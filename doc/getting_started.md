@@ -2,17 +2,20 @@
 
 ## Dependencies
 
+* A C/C++ compiler
 * [CMake](https://cmake.org/) (tested with version 3.7.2)
 * [GNU Radio](https://www.gnuradio.org/) (tested with version 3.7.10.1)
 * [UHD](https://github.com/EttusResearch/uhd/) library and headers (tested with version 3.9.5)
 * The [Rust compiler](https://www.rust-lang.org/learn/get-started) (latest stable version)
 * [FFTW](http://www.fftw.org/) (tested with version 3.3.5)
+* [SWIG](http://www.swig.org/) for generating Python bindings (tested with version 3.0.10)
 
 ### Installing dependencies on Ubuntu
 
 ```
-sudo apt install cmake gnuradio libuhd-dev libfftw3-3
+sudo apt install build-essential cmake gnuradio libuhd-dev libfftw3-3 swig
 curl https://sh.rustup.rs -sSf | sh
+source $HOME/.cargo/env
 ```
 
 The second command runs the Rust compiler installer. Use the default
