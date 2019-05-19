@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/sparsdr_bin_mask/sparsdr_bin_mask.iml" filepath="$PROJECT_DIR$/sparsdr_bin_mask/sparsdr_bin_mask.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sparsdr_reconstruct.iml" filepath="$PROJECT_DIR$/sparsdr_reconstruct.iml" />
+    </modules>
+  </component>
+</project>

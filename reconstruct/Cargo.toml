@@ -1,0 +1,66 @@
+#
+# Copyright 2019 The Regents of the University of California
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+[package]
+name = "sparsdr_reconstruct"
+version = "0.1.0"
+authors = ["Sam Crow <scrow@eng.ucsd.edu>"]
+description = "Reconstructs signals from SparSDR compressed data"
+license = "Apache-2.0"
+
+[dependencies]
+clap = "2.32.0"
+byteorder = "1.2.6"
+num-traits = "0.2.6"
+log = "0.4.6"
+simplelog = "0.5.3"
+indicatif = "0.10.3"
+crossbeam = "0.6.0"
+signal-hook = "0.1.8"
+nix = "0.13.0"
+libc = "0.2.51"
+
+[dependencies.num-complex]
+version = "0.2.0"
+default-features = false
+
+# Use the system-provided dynamically-linked FFTW to work around GPL
+[dependencies.fftw]
+version = "0.5.1"
+default-features = false
+features = ["system"]
+
+[dependencies.sparsdr_bin_mask]
+path = "sparsdr_bin_mask"
+
+# Enable debug output for release builds, for profiling
+[profile.release]
+debug = true
+
+# Benchmarking section
+[dev-dependencies]
+criterion = "0.2.10"
+tempfile = "3.0.6"
+
+[[bench]]
+name = "micro"
+harness = false
+
+[[bench]]
+name = "macro"
+harness = false
+
+[workspace]
