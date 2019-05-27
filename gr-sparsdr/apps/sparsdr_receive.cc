@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
             "USRP address in the format accepted by the uhd::device_addr_t \
 constructor, for example \"addr=192.168.10.2\"")
         ("antenna", po::value(&antenna)->default_value("RX2"),
-            "The antenna to receive signasl from")
+            "The antenna to receive signals from")
         ("output-path", po::value(&output_path)->default_value("compressed.iqz"),
             "path to the output file to write")
         ("threshold", po::value(&threshold)->default_value(25000),

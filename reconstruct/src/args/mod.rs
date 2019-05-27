@@ -104,7 +104,7 @@ impl Args {
                     .validator(validate::<f32>)
                     .value_name("hertz")
                     .help(
-                        "The bandwidth of the signal before compression (also known as Fs in the\
+                        "The bandwidth of the signal before compression (also known as Fs in the \
                          MATLAB code). The default value is 100 MHz.",
                     ),
             ).arg(

@@ -26,21 +26,21 @@ GR_PYTHON_INSTALL(
 
 # C++
 
-# sparsdr_real_time_receive
+# sparsdr_receive
 
-add_executable(sparsdr_real_time_receive
-    sparsdr_real_time_receive.cc
+add_executable(sparsdr_receive
+    sparsdr_receive.cc
 )
-target_include_directories(sparsdr_real_time_receive
+target_include_directories(sparsdr_receive
     PRIVATE
     ${UHD_INCLUDE_DIRS}
 )
-target_link_libraries(sparsdr_real_time_receive
+target_link_libraries(sparsdr_receive
     gnuradio-sparsdr
     ${UHD_LIBRARIES}
 )
 install(
-    TARGETS sparsdr_real_time_receive
+    TARGETS sparsdr_receive
     DESTINATION bin
 )
 

@@ -44,7 +44,13 @@ Run `uhd_image_loader --args 'type=usrp2' --fpga-path FFT_compression_for_N210.b
 
 When that completes, power cycle the USRP to start using the new image.
 
-## Using SparSDR
+## Using command-line tools
+
+SparSDR provides simple command-line tools to receive signals and reconstruct
+them. See [the command-line tool documentation](command_line.md) for more
+details.
+
+## Using the blocks in GNU Radio Companion
 
 SparSDR provides two GNU Radio blocks for simple receiving and reconstruction.
 Both blocks can be configured and used through GNU Radio Companion.
@@ -73,5 +79,8 @@ original signal in the frequency range 2.0 to 2.5 GHz.
 
 The actual sample rate of the reconstructed signals depends on the number of
 bins used for reconstruction, which may be greater than the numbers of bins
-specified in the band setup. The `sparsdr_reconstruct` program can display
-the actual sample rates of its outputs.
+specified in the band setup.
+
+To calculate the actual sample rate of an output, let `rounded_bins`
+be the number of bins rounded up to the nearest power of two. The sample rate
+will be `rounded_bins / 2048 * 100 MS/s`.
