@@ -18,6 +18,10 @@ The most frequently used command-line options are:
 
 For a complete and up-to-date list of options, run `sparsdr_receive --help`.
 
+The USRP N210 compression image always captures 100 MHz of bandwidth. `sparsdr_receive` does not have an option to change the bandwidth, but if constant signals in the 100 MHz frequency range are causing overflow you can mask them out.
+
+`sparsdr_receive` does not currently have an option to stop after a certain time. To stop the program, send it an interrupt signal (control-C) or use the `timeout` command with the option `--signal=SIGINT`.
+
 ### Overflow
 
 `sparsdr_receive` detects overflow and prints the message "Compression internal overflow, restarting."
