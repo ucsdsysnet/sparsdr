@@ -69,7 +69,10 @@ namespace gr {
           // Always use sc16 to prevent interpreting the samples as numbers
           ::uhd::stream_args_t("sc16", "sc16")
       ))
-    {}
+    {
+        // Connect the all-important output
+        connect(d_usrp, 0, self(), 0);
+    }
 
     /*
      * Our virtual destructor.

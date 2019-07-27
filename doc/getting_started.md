@@ -59,10 +59,23 @@ Both blocks can be configured and used through GNU Radio Companion.
 
 The compressing USRP source configures the USRP to use SparSDR compression.
 The center frequency and gain parameters are the same as with the standard
-USRP source block. The threshold parameter determines which bins will be sent
+USRP source block. The device address parameter can usually be left empty,
+but the IP address of the USRP can be specified with the syntax
+`addr=192.168.10.1`. The threshold parameter determines which bins will be sent
 from the USRP to the host for processing. If the threshold is too low, many
 bins will be sent and overflow will happen. If the threshold is too low,
 not enought bins will be sent for the signals to be decoded.
+
+
+#### Fixing the PATH
+
+The Rust compiler installer adds `~/.cargo/bin` to `$PATH`, and `sparsdr_reconstruct` gets installed
+there. When the SparSDR Reconstruct block runs, it will not be able to find `sparsdr_reconstruct`.
+There are two ways to fix this:
+
+* Option 1: Log out and then log back in, so that GNU Radio Companion will use the updated `PATH`
+* Option 2: In the SparSDR reconstruct block properties, change the Executable to
+`/home/<username>/.cargo/bin/sparsdr_reconstruct`
 
 ### SparSDR Reconstruct
 
