@@ -108,7 +108,7 @@ where
             }
         } else {
             // Send out the first half of the new window and store the rest
-            let mut first_half =
+            let first_half =
                 TimeWindow::new(new_window.time(), new_window.first_half().to_vec());
             self.prev_window = Some(new_window);
             Some(first_half)
