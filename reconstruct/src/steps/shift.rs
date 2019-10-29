@@ -29,7 +29,7 @@ use crate::window::{Fft, Logical, Ordering, Status, Window};
 /// Logical ordering has the center frequency at bin size / 2 - 1, minimum frequency at bin 0,
 /// and maximum frequency at bin size - 1.
 ///
-/// This adjust the index fields of data samples to perform this conversion
+/// This step adjusts the index fields of data samples to perform this conversion
 /// in either direction.
 ///
 pub struct Shift {
@@ -42,10 +42,12 @@ impl Shift {
     ///
     /// size: The size of the FFT to shift for
     ///
-    /// This function will panic if size is zero or odd.
+    /// This function will panic if size is zero or greater than one and odd.
     pub fn new(size: u16) -> Self {
         assert_ne!(size, 0, "size must not be zero");
-        assert_eq!(size % 2, 0, "size must be even");
+        if size != 1 {
+            assert_eq!(size % 2, 0, "size must be even if it is greater than one");
+        }
         Shift { size }
     }
 
@@ -140,6 +142,23 @@ mod test {
     use crate::input::Sample;
     use num_complex::Complex32;
     use num_traits::Zero;
+
+    #[test]
+    fn test_size_1() {
+        let input = vec![
+            Sample {
+                time: 0,
+                index: 0,
+                amplitude: Complex32::zero(),
+            },
+            Sample {
+                time: 1,
+                index: 0,
+                amplitude: Complex32::zero(),
+            },
+        ];
+        check_window(1, input.iter().cloned(), input.iter().cloned());
+    }
 
     #[test]
     fn test_size_2() {
