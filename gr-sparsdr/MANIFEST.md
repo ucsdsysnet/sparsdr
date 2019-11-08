@@ -5,7 +5,7 @@ tags: # Tags are arbitrary, but look at CGRAN what other authors are using
 author:
   - Sam Crow <scrow@eng.ucsd.edu>
 copyright_owner:
-  - Copyright Owner 1
+  - The Regents of the University of California
 license:
 repo: https://github.com/ucsdsysnet/sparsdr
 #website: <module_website> # If you have a separate project website, put it here

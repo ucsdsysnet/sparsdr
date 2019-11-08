@@ -141,6 +141,15 @@ if(NOT CPPUNIT_FOUND)
 endif()
 
 ########################################################################
+# Qt (for GUI blocks) and Python APIs
+########################################################################
+find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+set(CMAKE_AUTOMOC ON)
+
+
+find_package(PythonLibs 2 REQUIRED)
+
+########################################################################
 # Setup doxygen option
 ########################################################################
 if(DOXYGEN_FOUND)

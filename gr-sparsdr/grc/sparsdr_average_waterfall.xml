@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<block>
+  <name>Average Waterfall</name>
+  <key>sparsdr_average_waterfall</key>
+  <category>[SparSDR]</category>
+
+  <import>from PyQt4 import Qt</import>
+  <import>from gnuradio import qtgui</import>
+  <import>import sip</import>
+  <import>import sparsdr</import>
+
+  <make>sparsdr.average_waterfall($max_history)
+self._$(id)_win = sip.wrapinstance(self.$(id).pyqwidget(), Qt.QWidget)
+  </make>
+  <param>
+    <name>History</name>
+    <key>max_history</key>
+    <value>2048</value>
+    <type>int</type>
+  </param>
+
+  <sink>
+    <name>in</name>
+    <!-- Matches output of uhd_usrp_source when set up correctly -->
+    <type>sc16</type>
+  </sink>
+
+  <doc>
+This block displays a GUI waterfall view of the average signal magnitudes
+from a SparSDR compressing USRP source.
+  </doc>
+</block>

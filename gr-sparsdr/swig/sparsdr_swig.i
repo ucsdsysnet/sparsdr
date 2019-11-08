@@ -28,6 +28,7 @@ namespace std {
 #include "sparsdr/reconstruct.h"
 #include "sparsdr/mask_range.h"
 #include "sparsdr/compressing_usrp_source.h"
+#include "sparsdr/average_waterfall.h"
 using namespace gr::sparsdr;
 %}
 
@@ -41,3 +42,6 @@ GR_SWIG_BLOCK_MAGIC2(sparsdr, multi_sniffer);
 GR_SWIG_BLOCK_MAGIC2(sparsdr, reconstruct);
 %include "sparsdr/compressing_usrp_source.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, compressing_usrp_source);
+%include "sparsdr/average_waterfall.h"
+GR_SWIG_BLOCK_MAGIC2(sparsdr, average_waterfall);
+

@@ -29,5 +29,6 @@ install(FILES
     multi_sniffer.h
     mask_range.h
     reconstruct.h
+    average_waterfall.h
     DESTINATION include/sparsdr
 )

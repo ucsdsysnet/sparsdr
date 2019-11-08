@@ -22,7 +22,10 @@
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
 
-include_directories(${Boost_INCLUDE_DIR})
+include_directories(
+    ${Boost_INCLUDE_DIR}
+    ${PYTHON_INCLUDE_DIRS}
+)
 link_directories(${Boost_LIBRARY_DIRS})
 
 list(APPEND sparsdr_sources
@@ -31,6 +34,10 @@ list(APPEND sparsdr_sources
     multi_sniffer_impl.cc
     reconstruct_impl.cc
     compressing_usrp_source_impl.cc
+    gui/average_waterfall_impl.cc
+	gui/stream_average_model.cc
+	gui/average_model.cpp
+	gui/average_waterfall_view.cpp
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)
@@ -40,7 +47,12 @@ if(NOT sparsdr_sources)
 endif(NOT sparsdr_sources)
 
 add_library(gnuradio-sparsdr SHARED ${sparsdr_sources})
-target_link_libraries(gnuradio-sparsdr ${Boost_LIBRARIES} ${GNURADIO_ALL_LIBRARIES})
+target_link_libraries(gnuradio-sparsdr
+	${Boost_LIBRARIES}
+	${GNURADIO_ALL_LIBRARIES}
+    ${PYTHON_LIBRARIES}
+	Qt5::Widgets
+)
 set_target_properties(gnuradio-sparsdr PROPERTIES DEFINE_SYMBOL "gnuradio_sparsdr_EXPORTS")
 
 if(APPLE)
