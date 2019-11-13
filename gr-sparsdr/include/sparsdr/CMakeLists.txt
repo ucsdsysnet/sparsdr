@@ -30,5 +30,5 @@ install(FILES
     mask_range.h
     reconstruct.h
     average_waterfall.h
-    DESTINATION include/sparsdr
+    sample_distributor.h DESTINATION include/sparsdr
 )

@@ -145,7 +145,8 @@ endif()
 ########################################################################
 find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
 set(CMAKE_AUTOMOC ON)
-
+# Let automoc run on generated files
+cmake_policy(SET CMP0071 NEW)
 
 find_package(PythonLibs 2 REQUIRED)
 

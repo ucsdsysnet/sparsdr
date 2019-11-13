@@ -38,6 +38,7 @@ list(APPEND sparsdr_sources
 	gui/stream_average_model.cc
 	gui/average_model.cpp
 	gui/average_waterfall_view.cpp
+    sample_distributor_impl.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)

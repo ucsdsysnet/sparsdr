@@ -42,7 +42,8 @@ namespace gr {
     average_waterfall_impl::average_waterfall_impl(std::size_t max_history, QWidget* parent)
       : gr::sync_block("average_waterfall",
             // One input of SparSDR compressed samples
-              gr::io_signature::make(1, 1, sizeof(std::uint16_t)),
+            // (this matches the UHD complex short sample size)
+              gr::io_signature::make(1, 1, sizeof(std::uint32_t)),
               gr::io_signature::make(0, 0, 0)),
         d_average_model(max_history),
         d_parent(parent),
@@ -75,6 +76,7 @@ namespace gr {
             d_qApplication = new QApplication(d_argc, &d_argv);
         }
         d_main_gui = new AverageWaterfallView(d_parent);
+        d_main_gui->setModel(&d_average_model);
     }
 
     QWidget*
@@ -99,7 +101,7 @@ namespace gr {
         gr_vector_void_star &output_items)
     {
         // One sample is really 8 bytes
-        const auto nsamples = noutput_items / 4;
+        const auto nsamples = noutput_items / 2;
         const std::uint8_t* in = static_cast<const std::uint8_t*>(input_items[0]);
 
         // Do <+signal processing+>
@@ -130,7 +132,7 @@ namespace gr {
         d_main_gui->update();
 
         // Tell runtime system how many items were processed
-        return nsamples * 4;
+        return nsamples * 2;
     }
 
   } /* namespace sparsdr */
