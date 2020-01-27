@@ -1,17 +1,17 @@
 /* -*- c++ -*- */
-/* 
+/*
  * Copyright 2019 The Regents of the University of California.
- * 
+ *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3, or (at your option)
  * any later version.
- * 
+ *
  * This software is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this software; see the file COPYING.  If not, write to
  * the Free Software Foundation, Inc., 51 Franklin Street,
@@ -29,7 +29,7 @@ namespace gr {
   namespace sparsdr {
 
     /*!
-     * \brief <+description of block+>
+     * \brief Handles samples from many inputs and distributes them to decoders
      * \ingroup sparsdr
      *
      */
@@ -45,12 +45,25 @@ namespace gr {
        * constructor is in a private implementation
        * class. sparsdr::sample_distributor::make is the public interface for
        * creating new instances.
+       *
+       * \param item_size The size of stream items to process
        */
-      static sptr make(int inputs);
+      static sptr make(int item_size);
+
+      /**
+       * \return the number of decoders this block has available but did not use
+       * in the last call to general_work()
+       *
+       * This function is safe to call from any thread.
+       *
+       * A negative value means that not enough decoders are available for the
+       * number of active inputs.
+       */
+      virtual int decoder_surplus() const = 0;
+
     };
 
   } // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_SAMPLE_DISTRIBUTOR_H */
-

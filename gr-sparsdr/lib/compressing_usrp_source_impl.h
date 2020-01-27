@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2019 <+YOU OR YOUR COMPANY+>.
+ * Copyright 2019 The Regents of the University of California.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ namespace gr {
       virtual void start_all();
       virtual void stop_all();
       virtual void set_fft_size(uint32_t size);
+      virtual void set_fft_scaling(uint32_t scaling);
       virtual void set_threshold(uint16_t index, uint32_t threshold);
       virtual void set_mask_enabled(uint16_t index, bool enabled);
       virtual void set_average_weight(float weight);

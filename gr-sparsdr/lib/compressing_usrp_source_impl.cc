@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2019 <+YOU OR YOUR COMPANY+>.
+ * Copyright 2019 The Regents of the University of California.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -145,6 +145,12 @@ namespace gr {
     compressing_usrp_source_impl::set_fft_size(uint32_t size)
     {
         d_usrp->set_user_register(registers::FFT_SIZE, size);
+    }
+
+    void
+    compressing_usrp_source_impl::set_fft_scaling(uint32_t scaling)
+    {
+        d_usrp->set_user_register(registers::SCALING, scaling);
     }
 
     void

@@ -6,6 +6,7 @@
   <key>variable_sparsdr_reconstruct</key>
   <category>[SparSDR]</category>
   <import>import sparsdr</import>
+  <import>import distutils.spawn</import>
 
   <var_make>
 $(id)_bands = sparsdr.band_spec_vector()
@@ -105,7 +106,7 @@ $(id)_bands.push_back(sparsdr.band_spec($band_30_frequency, $band_30_bins))
 #if $band_count() > 31
 $(id)_bands.push_back(sparsdr.band_spec($band_31_frequency, $band_31_bins))
 #end if
-self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$reconstruct_path)
+self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path))
 
   </var_make>
   <!-- Use var_make instead -->
@@ -126,7 +127,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
     <type>int</type>
   </param>
 
-  
+
   <param>
     <name>Band 0 frequency</name>
     <key>band_0_frequency</key>
@@ -143,7 +144,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 0 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 1 frequency</name>
     <key>band_1_frequency</key>
@@ -160,7 +161,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 1 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 2 frequency</name>
     <key>band_2_frequency</key>
@@ -177,7 +178,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 2 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 3 frequency</name>
     <key>band_3_frequency</key>
@@ -194,7 +195,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 3 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 4 frequency</name>
     <key>band_4_frequency</key>
@@ -211,7 +212,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 4 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 5 frequency</name>
     <key>band_5_frequency</key>
@@ -228,7 +229,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 5 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 6 frequency</name>
     <key>band_6_frequency</key>
@@ -245,7 +246,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 6 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 7 frequency</name>
     <key>band_7_frequency</key>
@@ -262,7 +263,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 7 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 8 frequency</name>
     <key>band_8_frequency</key>
@@ -279,7 +280,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 8 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 9 frequency</name>
     <key>band_9_frequency</key>
@@ -296,7 +297,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 9 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 10 frequency</name>
     <key>band_10_frequency</key>
@@ -313,7 +314,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 10 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 11 frequency</name>
     <key>band_11_frequency</key>
@@ -330,7 +331,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 11 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 12 frequency</name>
     <key>band_12_frequency</key>
@@ -347,7 +348,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 12 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 13 frequency</name>
     <key>band_13_frequency</key>
@@ -364,7 +365,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 13 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 14 frequency</name>
     <key>band_14_frequency</key>
@@ -381,7 +382,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 14 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 15 frequency</name>
     <key>band_15_frequency</key>
@@ -398,7 +399,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 15 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 16 frequency</name>
     <key>band_16_frequency</key>
@@ -415,7 +416,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 16 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 17 frequency</name>
     <key>band_17_frequency</key>
@@ -432,7 +433,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 17 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 18 frequency</name>
     <key>band_18_frequency</key>
@@ -449,7 +450,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 18 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 19 frequency</name>
     <key>band_19_frequency</key>
@@ -466,7 +467,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 19 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 20 frequency</name>
     <key>band_20_frequency</key>
@@ -483,7 +484,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 20 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 21 frequency</name>
     <key>band_21_frequency</key>
@@ -500,7 +501,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 21 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 22 frequency</name>
     <key>band_22_frequency</key>
@@ -517,7 +518,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 22 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 23 frequency</name>
     <key>band_23_frequency</key>
@@ -534,7 +535,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 23 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 24 frequency</name>
     <key>band_24_frequency</key>
@@ -551,7 +552,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 24 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 25 frequency</name>
     <key>band_25_frequency</key>
@@ -568,7 +569,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 25 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 26 frequency</name>
     <key>band_26_frequency</key>
@@ -585,7 +586,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 26 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 27 frequency</name>
     <key>band_27_frequency</key>
@@ -602,7 +603,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 27 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 28 frequency</name>
     <key>band_28_frequency</key>
@@ -619,7 +620,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 28 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 29 frequency</name>
     <key>band_29_frequency</key>
@@ -636,7 +637,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 29 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 30 frequency</name>
     <key>band_30_frequency</key>
@@ -653,7 +654,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 30 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
   <param>
     <name>Band 31 frequency</name>
     <key>band_31_frequency</key>
@@ -670,7 +671,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=$re
 		<hide>#if $band_count() > 31 then 'none' else 'all'#</hide>
 		<tab>Bands</tab>
   </param>
-        
+
 
   <check>32 >= $band_count</check>
   <check>$band_count > 0</check>
@@ -700,7 +701,7 @@ Band i frequency: The center frequency to reconstruct, in herz relative to the c
 
 Band i bins: The number of bins to use when reconstructing. This determines the bandwidth to reconstruct and the sample rate of the resulting signal.
 
+Executable: The path to the sparsdr_reconstruct executable. If this is not an absolute path, the block will search for an executable with the correct name in the paths defined by the PATH environment variable.
 
   </doc>
 </block>
-    

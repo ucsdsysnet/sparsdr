@@ -17,7 +17,7 @@
 
 namespace {
 
-sig_atomic_t running = 1;
+volatile sig_atomic_t running = 1;
 
 void shutdown_handler(int) {
     running = 0;

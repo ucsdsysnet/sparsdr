@@ -47,6 +47,11 @@ namespace gr {
         for (uint16_t i = mask.start; i < mask.end; i++) {
             d_usrp->set_mask_enabled(i, true);
         }
+        // Mask bins 0, 1, and 2047
+        // These have some special properties.
+        d_usrp->set_mask_enabled(0, true);
+        d_usrp->set_mask_enabled(1, true);
+        d_usrp->set_mask_enabled(2047, true);
 
         // Set average interval
         const uint32_t average_interval = 1 << 14;

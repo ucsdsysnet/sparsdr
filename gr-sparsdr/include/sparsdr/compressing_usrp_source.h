@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2019 <+YOU OR YOUR COMPANY+>.
+ * Copyright 2019 The Regents of the University of California.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -117,8 +117,14 @@ namespace gr {
        */
       virtual void set_fft_size(uint32_t size) = 0;
 
-      // set_fft_scaling is not currently implemented. Sam currently
-      // doesn't understand what it does.
+      /*!
+       * \brief Sets the FFT scaling (what is this?)
+       *
+       * The default value is 0x6ab.
+       *
+       * This function should only be called when the FFT is disabled.
+       */
+      virtual void set_fft_scaling(uint32_t scaling) = 0;
 
       /*!
        * \brief Sets the threshold for one FFT bin
