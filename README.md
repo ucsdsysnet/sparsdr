@@ -16,6 +16,12 @@ data
 
 See [the getting started guide](doc/getting_started.md).
 
+## Compatibility
+
+SparSDR is currently tested with GNU Radio 3.7.13.4. It should work with any
+version in the 3.7 series. Version 3.9 has some changes that break compatibility
+with SparSDR
+
 ## Licenses
 
 * `gr-sparsdr`: GNU GPL v3 or later
