@@ -1,38 +1,85 @@
 <?xml version="1.0"?>
 <block>
-  <name>sample_distributor</name>
+  <name>Sample Distributor</name>
   <key>sparsdr_sample_distributor</key>
-  <category>[sparsdr]</category>
+  <category>[SparSDR]</category>
   <import>import sparsdr</import>
-  <make>sparsdr.sample_distributor($inputs)</make>
+  <make>sparsdr.sample_distributor($type.size * $vlen)</make>
+
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
        * key (makes the value accessible as $keyname, e.g. in the make node)
        * type -->
-  <param>
-    <name>...</name>
-    <key>...</key>
-    <type>...</type>
+   <param>
+     <name>Type</name>
+     <key>type</key>
+     <type>enum</type>
+     <option>
+       <name>Complex</name>
+       <key>complex</key>
+       <opt>size:gr.sizeof_gr_complex</opt>
+     </option>
+     <option>
+       <name>Float</name>
+       <key>float</key>
+       <opt>size:gr.sizeof_float</opt>
+     </option>
+     <option>
+       <name>Int</name>
+       <key>int</key>
+       <opt>size:gr.sizeof_int</opt>
+     </option>
+     <option>
+       <name>Short</name>
+       <key>short</key>
+       <opt>size:gr.sizeof_short</opt>
+     </option>
+     <option>
+       <name>Byte</name>
+       <key>byte</key>
+       <opt>size:gr.sizeof_char</opt>
+     </option>
+   </param>
+
+   <param>
+     <name>Vec Length</name>
+     <key>vlen</key>
+     <value>1</value>
+     <type>int</type>
+   </param>
+
+   <param>
+    <name>Inputs</name>
+    <key>num_inputs</key>
+    <value>1</value>
+    <type>int</type>
   </param>
 
-  <!-- Make one 'sink' node per input. Sub-nodes:
-       * name (an identifier for the GUI)
-       * type
-       * vlen
-       * optional (set to 1 for optional inputs) -->
+  <param>
+   <name>Outputs</name>
+   <key>num_outputs</key>
+   <value>1</value>
+   <type>int</type>
+ </param>
+
+  <check>$vlen &gt; 0</check>
+
+
   <sink>
     <name>in</name>
-    <type><!-- e.g. int, float, complex, byte, short, xxx_vector, ...--></type>
+    <type>$type</type>
+    <vlen>$vlen</vlen>
+    <nports>$num_inputs</nports>
   </sink>
-
-  <!-- Make one 'source' node per output. Sub-nodes:
-       * name (an identifier for the GUI)
-       * type
-       * vlen
-       * optional (set to 1 for optional inputs) -->
   <source>
     <name>out</name>
-    <type><!-- e.g. int, float, complex, byte, short, xxx_vector, ...--></type>
+    <type>$type</type>
+    <vlen>$vlen</vlen>
+    <nports>$num_outputs</nports>
   </source>
+
+
+
+  <doc>Copies samples from many inputs to many outputs leading to decoders</doc>
 </block>

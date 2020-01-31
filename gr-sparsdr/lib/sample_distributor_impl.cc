@@ -22,6 +22,9 @@
 #include "config.h"
 #endif
 
+#include <algorithm>
+#include <iostream>
+
 #include <gnuradio/io_signature.h>
 #include "sample_distributor_impl.h"
 
@@ -79,17 +82,19 @@ namespace gr {
       // const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
       // <+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
 
+      // Ensure that the number of decoders equals the actual number of
+      // outputs connected
+      update_decoders(output_items.size());
+
       // Keep track of the decoder surplus in this call to general_work()
       int local_decoder_surplus = 0;
-
-      // Lock mutex to access d_decoders
-      gr::thread::scoped_lock encoders_lock(d_setlock);
 
       // If any decoder is being used for an input that has no samples,
       // disassociate the input from the decoder and make it available again
       for (decoder_info& decoder : d_decoders) {
           if (decoder.d_input != decoder_info::NO_INPUT) {
               if (ninput_items.at(decoder.d_input) == 0) {
+                  std::cerr << "No samples on input " << decoder.d_input << ", deallocating a decoder\n";
                   decoder.d_input = decoder_info::NO_INPUT;
                   local_decoder_surplus += 1;
               }
@@ -108,6 +113,10 @@ namespace gr {
               const void* input = input_items.at(in_index);
               void* output = output_items.at(out_index);
 
+              // Add a stream tag to this output, specifying which input the
+              // samples came from
+              add_source_tag(in_index, out_index);
+
               std::memcpy(output, input, item_count * d_item_size);
               // Tell the scheduler that items were processed
               consume(in_index, item_count);
@@ -118,31 +127,38 @@ namespace gr {
       // Existing connections have been processed. Look for inputs that still
       // need to be handled
       for (int in_index = 0; in_index < ninput_items.size(); in_index++) {
-          if (nitems_read(in_index) != ninput_items.at(in_index)) {
+          const auto items_read = nitems_read(in_index);
+          const auto items_in = ninput_items.at(in_index);
+
+          if (items_in != 0 && items_in != items_read) {
               // This input has new samples that have not been processed
               // Look for an available decoder
-              bool decoder_found = false;
-              for (int out_index = 0; out_index < d_decoders.size(); out_index++) {
-                  decoder_info& decoder = d_decoders[out_index];
-                  if (decoder.d_input == decoder_info::NO_INPUT) {
-                      // Found an available decoder for this input. Connect it
-                      // and copy stream items
-                      decoder_found = true;
-                      decoder.d_input = in_index;
+              std::vector<decoder_info>::iterator new_decoder = find_unused_decoder();
+              if (new_decoder != d_decoders.end()) {
+                  // Found one. Connect it and copy samples.
+                  const size_t out_index = std::distance(d_decoders.begin(), new_decoder);
 
-                      // Calculate the number of items to process
-                      const int item_count = std::min(ninput_items.at(in_index), noutput_items);
+                  new_decoder->d_input = in_index;
 
-                      const void* input = input_items.at(in_index);
-                      void* output = output_items.at(out_index);
+                  // Calculate the number of items to process
+                  const int item_count = std::min(ninput_items.at(in_index), noutput_items);
 
-                      std::memcpy(output, input, item_count * d_item_size);
-                      // Tell the scheduler that items were processed
-                      consume(in_index, item_count);
-                      produce(out_index, item_count);
-                  }
-              }
-              if (!decoder_found) {
+                  // Add a stream tag to this output, specifying which input the
+                  // samples came from
+                  add_source_tag(in_index, out_index);
+
+                  std::cerr << "Assigning input " << in_index << " to output " << out_index << " and copying " << item_count << " items\n";
+
+                  const void* input = input_items.at(in_index);
+                  void* output = output_items.at(out_index);
+
+                  std::memcpy(output, input, item_count * d_item_size);
+                  // Tell the scheduler that items were processed
+                  consume(in_index, item_count);
+                  produce(out_index, item_count);
+
+              } else {
+                  // No decoder found
                   // Nothing to do but indicate a decoder deficit
                   local_decoder_surplus -= 1;
               }
@@ -152,9 +168,45 @@ namespace gr {
       // Update the atomic decoder surplus value
       d_decoder_surplus = local_decoder_surplus;
 
+      if (local_decoder_surplus < 0) {
+          std::cerr << "Decoder surplus " << local_decoder_surplus << '\n';
+      }
+
       // This special value allows different numbers of output samples for
       // different outputs, specified by calling produce()
       return WORK_CALLED_PRODUCE;
+    }
+
+    void
+    sample_distributor_impl::add_source_tag(int in_index, int out_index) {
+        gr::tag_t tag;
+        tag.offset = nitems_written(out_index);
+        tag.key = pmt::intern("source");
+        tag.value = pmt::from_long(in_index);
+        tag.srcid = pmt::intern("sample_distributor");
+        add_item_tag(out_index, tag);
+    }
+
+    std::vector<sample_distributor_impl::decoder_info>::iterator
+    sample_distributor_impl::find_unused_decoder()
+    {
+        for (auto iter = d_decoders.begin(); iter != d_decoders.end(); ++iter) {
+            if (iter->d_input == decoder_info::NO_INPUT) {
+                return iter;
+            }
+        }
+        // None found
+        return d_decoders.end();
+    }
+
+    void
+    sample_distributor_impl::update_decoders(std::size_t num_outputs)
+    {
+        if (num_outputs != d_decoders.size()) {
+            std::cerr << "Changing number of decoders to " << num_outputs << '\n';
+        }
+        // Resize, default-constructing new elements if needed
+        d_decoders.resize(num_outputs);
     }
 
     int
