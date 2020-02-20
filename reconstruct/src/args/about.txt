@@ -1,12 +1,15 @@
 This application decompresses IQZip/SparSDR compressed files. It can be used offline with regular files for input
 and output, or in real-time using standard input/standard output or named pipes.
 
-By default, the application assumes that the compressed file was recorded with 100 Mhz of bandwidth. It decompresses
-the full signal using an inverse FFT of size 2048.
+This version uses the compressed sample format that the Pluto FPGA image produces. It is not compatible with the USRP
+N210 format.
+
+By default, the application assumes that the compressed file was recorded with 61.44 Mhz of bandwidth. It decompresses
+the full signal using an inverse FFT of size 1024.
 
 There are two supported methods to decompress a smaller range of frequencies.
 
-Method 1: Specify a non-zero center frequency and a number of bins less than 2048. The bins around the center frequency
+Method 1: Specify a non-zero center frequency and a number of bins less than 1024. The bins around the center frequency
 will be decompressed.
 
 Method 2: Specify one or more decompression bands. If method 2 is used, the center frequency, bins, and destination

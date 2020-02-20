@@ -15,8 +15,13 @@
       <sourceFolder url="file://$MODULE_DIR$/pi_gpu_fft/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/pi_gpu_fft/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/pi_gpu_fft/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/sparsdr_bin_mask/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/sparsdr_bin_mask/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/sparsdr_bin_mask/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/sparsdr_bin_mask/benches" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/pi_gpu_fft/target" />
       <excludeFolder url="file://$MODULE_DIR$/pi_gpu_fft_sys/target" />
+      <excludeFolder url="file://$MODULE_DIR$/sparsdr_bin_mask/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

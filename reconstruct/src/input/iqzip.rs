@@ -19,8 +19,7 @@
 //! IQZip compressed data reading and writing
 //!
 
-use std::borrow::Borrow;
-use std::io::{self, Read, Result, Write};
+use std::io::{self, Read, Result};
 use std::iter::FilterMap;
 
 use byteorder::{ByteOrder, LittleEndian};
@@ -119,7 +118,7 @@ impl DataSample {
     }
 }
 
-/// Parses a sample from a slice of 8 bytes
+/// Parses a sample (in the Pluto format) from a slice of 8 bytes
 ///
 /// Panics if the length of bytes is not 8
 fn parse_sample(bytes: &[u8]) -> Sample {
@@ -127,23 +126,23 @@ fn parse_sample(bytes: &[u8]) -> Sample {
 
     // Little-endian
     type E = LittleEndian;
-    let fft_index = E::read_u16(&bytes[0..2]);
-    let time = E::read_u16(&bytes[2..4]);
+    let fft_index = E::read_u16(&bytes[6..8]);
+    let time = E::read_u16(&bytes[4..6]);
     // Last 4 bytes may be either real/imaginary signal or average magnitude
     let magnitude = {
         // Magnitude is in two 2-byte chunks. Bytes within each chunk are little endian,
         // but the more significant chunk is first.
-        let more_significant = E::read_u16(&bytes[4..6]);
-        let less_significant = E::read_u16(&bytes[6..8]);
+        let more_significant = E::read_u16(&bytes[2..4]);
+        let less_significant = E::read_u16(&bytes[0..2]);
         u32::from(more_significant) << 16 | u32::from(less_significant)
     };
-    let real = E::read_i16(&bytes[4..6]);
-    let imag = E::read_i16(&bytes[6..8]);
+    let real = E::read_i16(&bytes[2..4]);
+    let imag = E::read_i16(&bytes[0..2]);
 
     let is_average = ((fft_index >> 15) & 1) == 1;
-    let index = (fft_index >> 4) & 0x7ff;
+    let index = (fft_index >> 5) & 0x3ff;
     // Reassemble time from MSBs and other bits
-    let time = u32::from(time) | (u32::from(fft_index & 0xF) << 16);
+    let time = u32::from(time) | (u32::from(fft_index & 0x1F) << 16);
 
     if is_average {
         Sample::Average(AverageSample {
@@ -159,50 +158,6 @@ fn parse_sample(bytes: &[u8]) -> Sample {
             imag,
         })
     }
-}
-
-/// Encodes a sample into a slice of 8 bytes
-///
-/// Panics if the length of bytes is not 8
-fn encode_sample(sample: &Sample, bytes: &mut [u8]) {
-    assert_eq!(bytes.len(), SAMPLE_LENGTH, "Incorrect sample length");
-
-    let average_bit = if sample.is_average() { 1 } else { 0 };
-    let fft_index =
-        ((sample.time() >> 16) & 0xf) as u16 | (sample.index() & 0x7ff) << 4 | average_bit << 15;
-    let time_lsb = sample.time() as u16;
-
-    // Little-endian
-    type E = LittleEndian;
-    E::write_u16(&mut bytes[0..2], fft_index);
-    E::write_u16(&mut bytes[2..4], time_lsb);
-
-    match *sample {
-        Sample::Data(ref data) => {
-            E::write_i16(&mut bytes[4..6], data.real);
-            E::write_i16(&mut bytes[6..8], data.imag);
-        }
-        Sample::Average(ref average) => {
-            E::write_u32(&mut bytes[4..8], average.magnitude);
-        }
-    }
-}
-
-/// Writes compressed samples from an iterator to a writeable destination
-pub fn write_samples<S, I, W>(samples: I, mut destination: W) -> Result<()>
-where
-    S: Borrow<Sample>,
-    I: IntoIterator<Item = S>,
-    W: Write,
-{
-    let samples = samples.into_iter();
-    let mut buffer = [0u8; 8];
-    for sample in samples {
-        let sample = sample.borrow();
-        encode_sample(sample, &mut buffer);
-        destination.write_all(&buffer)?;
-    }
-    Ok(())
 }
 
 /// An iterator that reads IQZip samples from a byte source

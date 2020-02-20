@@ -25,17 +25,13 @@
     const_err,
     dead_code,
     improper_ctypes,
-    legacy_directory_ownership,
     non_shorthand_field_patterns,
     no_mangle_generic_items,
     overflowing_literals,
     path_statements,
     patterns_in_fns_without_body,
-    plugin_as_library,
     private_in_public,
-    safe_extern_statics,
     unconditional_recursion,
-    unions_with_drop_fields,
     unused,
     unused_allocation,
     unused_comparisons,
@@ -109,9 +105,9 @@ mod decompress;
 mod stages;
 
 /// FFT size used during compression
-const NATIVE_FFT_SIZE: u16 = 2048;
+const NATIVE_FFT_SIZE: u16 = 1024;
 /// Default compressed bandwidth
-const DEFAULT_COMPRESSED_BANDWIDTH: f32 = 100_000_000.0;
+const DEFAULT_COMPRESSED_BANDWIDTH: f32 = 61_440_000.0;
 
 pub use crate::band_decompress::{BandSetup, BandSetupBuilder};
 pub use crate::decompress::{decompress, DecompressSetup, Report};
