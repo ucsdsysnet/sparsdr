@@ -39,6 +39,7 @@ list(APPEND sparsdr_sources
 	gui/average_model.cpp
 	gui/average_waterfall_view.cpp
     sample_distributor_impl.cc
+    tagged_wavfile_sink_impl.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)
