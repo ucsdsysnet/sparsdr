@@ -60,6 +60,7 @@ impl Writer {
         for window in windows {
             logger.log_blocking(|| self.write_samples(&mut destination, window.samples()))?;
             samples_written += window.len() as u64;
+            trace!("Writing {} samples", window.len());
 
             if let Some(ref mut log) = time_log {
                 if let Some(tag) = window.tag() {
