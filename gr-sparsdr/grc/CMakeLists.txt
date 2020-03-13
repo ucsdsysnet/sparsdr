@@ -19,6 +19,7 @@
 
 install(FILES
     sparsdr_reconstruct.xml
+    sparsdr_reconstruct_from_file.xml
     sparsdr_compressing_usrp_source.xml
     sparsdr_average_waterfall.xml
     sparsdr_sample_distributor.xml

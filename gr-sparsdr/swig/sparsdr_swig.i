@@ -26,6 +26,7 @@ namespace std {
 #include "sparsdr/real_time_receiver.h"
 #include "sparsdr/multi_sniffer.h"
 #include "sparsdr/reconstruct.h"
+#include "sparsdr/reconstruct_from_file.h"
 #include "sparsdr/mask_range.h"
 #include "sparsdr/compressing_usrp_source.h"
 #include "sparsdr/average_waterfall.h"
@@ -42,6 +43,8 @@ GR_SWIG_BLOCK_MAGIC2(sparsdr, real_time_receiver);
 GR_SWIG_BLOCK_MAGIC2(sparsdr, multi_sniffer);
 %include "sparsdr/reconstruct.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, reconstruct);
+%include "sparsdr/reconstruct_from_file.h"
+GR_SWIG_BLOCK_MAGIC2(sparsdr, reconstruct_from_file);
 %include "sparsdr/compressing_usrp_source.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, compressing_usrp_source);
 %include "sparsdr/average_waterfall.h"

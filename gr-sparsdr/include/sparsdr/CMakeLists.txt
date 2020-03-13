@@ -29,6 +29,7 @@ install(FILES
     multi_sniffer.h
     mask_range.h
     reconstruct.h
+    reconstruct_from_file.h
     average_waterfall.h
     sample_distributor.h
     tagged_wavfile_sink.h DESTINATION include/sparsdr
