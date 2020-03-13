@@ -50,8 +50,9 @@ namespace gr {
        *
        * \param bands the bands to decompress
        * \param reconstruct_path the path to the sparsdr_reconstruct executable
+       * \param unbuffered true to disable buffering on the input and output files
        */
-      static sptr make(std::vector<::gr::sparsdr::band_spec> bands, const std::string& reconstruct_path = "sparsdr_reconstruct");
+      static sptr make(std::vector<::gr::sparsdr::band_spec> bands, const std::string& reconstruct_path = "sparsdr_reconstruct", bool unbuffered = false);
     };
 
   } // namespace sparsdr

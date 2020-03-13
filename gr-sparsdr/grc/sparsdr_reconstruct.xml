@@ -106,7 +106,7 @@ $(id)_bands.push_back(sparsdr.band_spec($band_30_frequency, $band_30_bins))
 #if $band_count() > 31
 $(id)_bands.push_back(sparsdr.band_spec($band_31_frequency, $band_31_bins))
 #end if
-self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path))
+self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path), unbuffered=$unbuffered)
 
   </var_make>
   <!-- Use var_make instead -->
@@ -125,6 +125,12 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=dis
     <key>band_count</key>
     <value>1</value>
     <type>int</type>
+  </param>
+  <param>
+    <name>Unbuffered</name>
+    <key>unbuffered</key>
+    <value>False</value>
+    <type>bool</type>
   </param>
 
 

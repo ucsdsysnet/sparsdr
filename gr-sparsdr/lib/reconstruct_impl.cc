@@ -49,16 +49,16 @@ namespace gr {
     }
 
     reconstruct::sptr
-    reconstruct::make(std::vector<band_spec> bands, const std::string& reconstruct_path)
+    reconstruct::make(std::vector<band_spec> bands, const std::string& reconstruct_path, bool unbuffered)
     {
       return gnuradio::get_initial_sptr
-        (new reconstruct_impl(bands, reconstruct_path));
+        (new reconstruct_impl(bands, reconstruct_path, unbuffered));
     }
 
     /*
      * The private constructor
      */
-    reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands, const std::string& reconstruct_path)
+    reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands, const std::string& reconstruct_path, bool unbuffered)
       : gr::hier_block2("reconstruct",
             // One input for compressed samples
             gr::io_signature::make(1, 1, sizeof(uint32_t)),
@@ -72,11 +72,11 @@ namespace gr {
         d_temp_dir(),
         d_child(0)
     {
-        start_subprocess(bands, reconstruct_path);
+        start_subprocess(bands, reconstruct_path, unbuffered);
     }
 
     void
-    reconstruct_impl::start_subprocess(const std::vector<band_spec>& bands, const std::string& reconstruct_path)
+    reconstruct_impl::start_subprocess(const std::vector<band_spec>& bands, const std::string& reconstruct_path, bool unbuffered)
     {
         // Start assembling the command
         std::vector<std::string> arguments;
@@ -85,7 +85,11 @@ namespace gr {
         arguments.push_back("--no-progress-bar");
         // Debug log output
         arguments.push_back("--log-level");
-        arguments.push_back("INFO");
+        arguments.push_back("WARN");
+
+        if (unbuffered) {
+            arguments.push_back("--unbuffered");
+        }
 
         // Create a temporary directory for the pipes
         std::string temp_dir("sparsdr_reconstruct_XXXXXX");
