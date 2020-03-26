@@ -21,36 +21,36 @@
 #ifndef INCLUDED_SPARSDR_AVERAGE_DETECTOR_IMPL_H
 #define INCLUDED_SPARSDR_AVERAGE_DETECTOR_IMPL_H
 
+#include <sparsdr/average_detector.h>
 #include <chrono>
 #include <mutex>
-#include <sparsdr/average_detector.h>
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
 
-    class average_detector_impl : public average_detector
-    {
-     private:
-      typedef std::chrono::high_resolution_clock::time_point time_point;
+class average_detector_impl : public average_detector
+{
+private:
+    typedef std::chrono::high_resolution_clock::time_point time_point;
 
-      /*! \brief The time of the last observed average sample */
-      time_point d_last_average;
-      /*! \brief Mutex that controls access to d_last_average */
-      std::mutex d_last_average_mutex;
+    /*! \brief The time of the last observed average sample */
+    time_point d_last_average;
+    /*! \brief Mutex that controls access to d_last_average */
+    std::mutex d_last_average_mutex;
 
-     public:
-      average_detector_impl();
-      ~average_detector_impl();
+public:
+    average_detector_impl();
+    ~average_detector_impl();
 
-      // Where all the action really happens
-      int work(int noutput_items,
-         gr_vector_const_void_star &input_items,
-         gr_vector_void_star &output_items);
+    // Where all the action really happens
+    int work(int noutput_items,
+             gr_vector_const_void_star& input_items,
+             gr_vector_void_star& output_items);
 
-      virtual std::chrono::high_resolution_clock::time_point last_average();
-    };
+    virtual std::chrono::high_resolution_clock::time_point last_average();
+};
 
-  } // namespace sparsdr
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_AVERAGE_DETECTOR_IMPL_H */

@@ -26,34 +26,38 @@
 #include <boost/noncopyable.hpp>
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
 
-    // Inherit from noncopyable to prevent copying d_child
-    class reconstruct_from_file_impl : public reconstruct_from_file, public boost::noncopyable
-    {
-     private:
-      /*! \brief Path to the sparsdr_reconstruct executable */
-      std::string d_reconstruct_path;
-      /*! \brief The bands to decompress */
-      std::vector<band_spec> d_bands;
-      /*! \brief Named pipes created that should be cleaned up */
-      std::vector<std::string> d_pipes;
-      /*!
-       * \brief Temporary directory that should be cleaned up, or an empty
-       * string if no temporary directory exists
-       */
-      std::string d_temp_dir;
-      /*! \brief The sparsdr_reconstruct child process, or 0 if none exists */
-      pid_t d_child;
+// Inherit from noncopyable to prevent copying d_child
+class reconstruct_from_file_impl : public reconstruct_from_file, public boost::noncopyable
+{
+private:
+    /*! \brief Path to the sparsdr_reconstruct executable */
+    std::string d_reconstruct_path;
+    /*! \brief The bands to decompress */
+    std::vector<band_spec> d_bands;
+    /*! \brief Named pipes created that should be cleaned up */
+    std::vector<std::string> d_pipes;
+    /*!
+     * \brief Temporary directory that should be cleaned up, or an empty
+     * string if no temporary directory exists
+     */
+    std::string d_temp_dir;
+    /*! \brief The sparsdr_reconstruct child process, or 0 if none exists */
+    pid_t d_child;
 
-      void start_subprocess(const std::vector<band_spec>& bands, const std::string& reconstruct_path, const std::string& input_path);
+    void start_subprocess(const std::vector<band_spec>& bands,
+                          const std::string& reconstruct_path,
+                          const std::string& input_path);
 
-     public:
-      reconstruct_from_file_impl(const std::vector<band_spec>& bands, const std::string& reconstruct_path, const std::string& input_path);
-      ~reconstruct_from_file_impl();
-    };
+public:
+    reconstruct_from_file_impl(const std::vector<band_spec>& bands,
+                               const std::string& reconstruct_path,
+                               const std::string& input_path);
+    ~reconstruct_from_file_impl();
+};
 
-  } // namespace sparsdr
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_RECONSTRUCT_FROM_FILE_IMPL_H */

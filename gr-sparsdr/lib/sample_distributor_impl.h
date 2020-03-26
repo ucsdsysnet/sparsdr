@@ -22,94 +22,78 @@
 #define INCLUDED_SPARSDR_SAMPLE_DISTRIBUTOR_IMPL_H
 
 #include <sparsdr/sample_distributor.h>
-#include <vector>
 #include <atomic>
+#include <vector>
+
+#include "named_pipe_reader.h"
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
 
-    class sample_distributor_impl : public sample_distributor
-    {
-     private:
+class sample_distributor_impl : public sample_distributor
+{
+private:
+    struct input_info {
+        static const int NO_OUTPUT = -1;
+        /** The index of the output (decoder) that is connected to ths input */
+        int d_output;
 
-      /**
-       * Information about a decoder that this sample distributor can supply
-       * with samples
-       */
-      class decoder_info
-      {
-      public:
-        /** Special value that indicates that this decoder is not in use */
-        static const int NO_INPUT = -1;
-        /** The index of the input that is using this decoder */
-        int d_input;
-
-        /** Creates a decoder_info with d_input set to NO_INPUT */
-        inline decoder_info() : d_input(NO_INPUT) {}
-      };
-
-      /** The size of stream items this block processes */
-      int d_item_size;
-
-      /**
-       * The decoders available for this block to use
-       *
-       * Each index in this vector is also an output index for this block.
-       *
-       * Thread safety: Access only from the general_work function in the
-       * block thread
-       */
-      std::vector<decoder_info> d_decoders;
-
-      /**
-       * The number of decoders this block has available but did not use
-       * in the last call to general_work()
-       *
-       * A negative value means that not enough decoders are available for the
-       * number of active inputs.
-       */
-      std::atomic_int d_decoder_surplus;
-
-      /**
-       * Finds a decoder in d_decoders that is not connected to any input.
-       *
-       * If an unused decoder is found, this function returns an iterator that
-       * points to it. Otherwise, this function returns d_decoders.end().
-       */
-      std::vector<decoder_info>::iterator find_unused_decoder();
-
-      /**
-       * Updates d_decoders, adding and removing decoder information objects
-       * so that the size of d_decoders matches this block's number of connected
-       * outputs
-       */
-      void update_decoders(std::size_t num_outputs);
-
-      /**
-       * Adds a stream tag to the next output sample, specifying that the sample
-       * came from a particular source
-       *
-       * @param in_index The index of the input where the sample came in
-       * @param out_index The index of the output where the sample and the
-       * associated tag should go out
-       */
-      void add_source_tag(int in_index, int out_index);
-
-     public:
-      sample_distributor_impl(int item_size);
-      ~sample_distributor_impl();
-
-      void forecast (int noutput_items, gr_vector_int &ninput_items_required);
-
-      int general_work(int noutput_items,
-           gr_vector_int &ninput_items,
-           gr_vector_const_void_star &input_items,
-           gr_vector_void_star &output_items);
-
-      virtual int decoder_surplus() const override;
+        inline input_info() : d_output(NO_OUTPUT) {}
     };
 
-  } // namespace sparsdr
+    named_pipe_reader d_pipe_reader;
+
+    /** The size of stream items this block processes */
+    int d_item_size;
+
+    /**
+     * Inputs (named pipes) that this block reads from
+     *
+     * Thread safety: Access only from the general_work function in the
+     * block thread
+     */
+    std::vector<input_info> d_inputs;
+
+    /**
+     * A value for each output. True indicates that the output is claimed
+     * by an input
+     */
+    std::vector<bool> d_outputs_used;
+
+    /**
+     * The number of decoders this block has available but did not use
+     * in the last call to general_work()
+     *
+     * A negative value means that not enough decoders are available for the
+     * number of active inputs.
+     */
+    std::atomic_int d_decoder_surplus;
+
+    /**
+     * Adds a stream tag to the next output sample, specifying that the sample
+     * came from a particular source
+     *
+     * @param in_index The index of the input where the sample came in
+     * @param out_index The index of the output where the sample and the
+     * associated tag should go out
+     */
+    void add_source_tag(int in_index, int out_index);
+
+public:
+    sample_distributor_impl(int item_size, const std::vector<std::string>& pipe_paths);
+    ~sample_distributor_impl();
+
+    void forecast(int noutput_items, gr_vector_int& ninput_items_required);
+
+    int general_work(int noutput_items,
+                     gr_vector_int& ninput_items,
+                     gr_vector_const_void_star& input_items,
+                     gr_vector_void_star& output_items);
+
+    virtual int decoder_surplus() const override;
+};
+
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_SAMPLE_DISTRIBUTOR_IMPL_H */

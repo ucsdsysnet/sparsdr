@@ -22,59 +22,62 @@
 #include "config.h"
 #endif
 
-#include <gnuradio/io_signature.h>
-#include <gnuradio/blocks/wavfile.h>
 #include "tagged_wavfile_sink_impl.h"
+#include <gnuradio/blocks/wavfile.h>
+#include <gnuradio/io_signature.h>
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
 
-    tagged_wavfile_sink::sptr
-    tagged_wavfile_sink::make(const std::string& directory, unsigned int sample_rate, int bits_per_sample)
-    {
-      return gnuradio::get_initial_sptr
-        (new tagged_wavfile_sink_impl(directory, sample_rate, bits_per_sample));
+tagged_wavfile_sink::sptr tagged_wavfile_sink::make(const std::string& directory,
+                                                    unsigned int sample_rate,
+                                                    int bits_per_sample)
+{
+    return gnuradio::get_initial_sptr(
+        new tagged_wavfile_sink_impl(directory, sample_rate, bits_per_sample));
+}
+
+/*
+ * The private constructor
+ */
+tagged_wavfile_sink_impl::tagged_wavfile_sink_impl(const std::string& directory,
+                                                   unsigned int sample_rate,
+                                                   int bits_per_sample)
+    : gr::sync_block("tagged_wavfile_sink",
+                     gr::io_signature::make(1, 1, sizeof(float)),
+                     gr::io_signature::make(0, 0, 0)),
+      d_directory(directory),
+      d_sample_rate(sample_rate),
+      d_bits_per_sample(bits_per_sample),
+      d_current_file(nullptr),
+      d_bytes_written(0)
+{
+}
+
+/*
+ * Our virtual destructor.
+ */
+tagged_wavfile_sink_impl::~tagged_wavfile_sink_impl()
+{
+    if (d_current_file != nullptr) {
+        // Finish writing and close the file
+        gr::blocks::wavheader_complete(d_current_file, d_bytes_written);
+        // TODO: Error handling (above and below)
+        std::fclose(d_current_file);
     }
+}
 
-    /*
-     * The private constructor
-     */
-    tagged_wavfile_sink_impl::tagged_wavfile_sink_impl(const std::string& directory, unsigned int sample_rate, int bits_per_sample)
-      : gr::sync_block("tagged_wavfile_sink",
-              gr::io_signature::make(1, 1, sizeof(float)),
-              gr::io_signature::make(0, 0, 0)),
-        d_directory(directory),
-        d_sample_rate(sample_rate),
-        d_bits_per_sample(bits_per_sample),
-        d_current_file(nullptr),
-        d_bytes_written(0)
-    {}
+int tagged_wavfile_sink_impl::work(int noutput_items,
+                                   gr_vector_const_void_star& input_items,
+                                   gr_vector_void_star& output_items)
+{
+    const float* in = static_cast<const float*>(input_items[0]);
 
-    /*
-     * Our virtual destructor.
-     */
-    tagged_wavfile_sink_impl::~tagged_wavfile_sink_impl()
-    {
-        if (d_current_file != nullptr) {
-            // Finish writing and close the file
-            gr::blocks::wavheader_complete(d_current_file, d_bytes_written);
-            // TODO: Error handling (above and below)
-            std::fclose(d_current_file);
-        }
-    }
+    // Do <+signal processing+>
 
-    int
-    tagged_wavfile_sink_impl::work(int noutput_items,
-        gr_vector_const_void_star &input_items,
-        gr_vector_void_star &output_items)
-    {
-      const float* in = static_cast<const float*>(input_items[0]);
+    // Tell runtime system how many output items we produced.
+    return noutput_items;
+}
 
-      // Do <+signal processing+>
-
-      // Tell runtime system how many output items we produced.
-      return noutput_items;
-    }
-
-  } /* namespace sparsdr */
+} /* namespace sparsdr */
 } /* namespace gr */

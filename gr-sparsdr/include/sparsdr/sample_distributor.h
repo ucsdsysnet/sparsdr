@@ -29,7 +29,7 @@ namespace gr {
   namespace sparsdr {
 
     /*!
-     * \brief Handles samples from many inputs and distributes them to decoders
+     * \brief Reads samples from many named pipes and distributes them to decoders
      * \ingroup sparsdr
      *
      */
@@ -47,8 +47,10 @@ namespace gr {
        * creating new instances.
        *
        * \param item_size The size of stream items to process
+       * \param pipe_paths the paths to one or more named pipes to read samples
+       * from
        */
-      static sptr make(int item_size);
+      static sptr make(int item_size, const std::vector<std::string>& pipe_paths);
 
       /**
        * \return the number of decoders this block has available but did not use

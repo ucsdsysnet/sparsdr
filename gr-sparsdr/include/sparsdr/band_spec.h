@@ -64,11 +64,11 @@ public:
     }
 
 
-    inline float frequency()
+    inline float frequency() const
     {
         return d_frequency;
     }
-    inline uint16_t bins()
+    inline uint16_t bins() const
     {
         return d_bins;
     }

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2019 The Regents of the University of California.
+ * Copyright 2019, 2020 The Regents of the University of California.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,38 +22,26 @@
 #define INCLUDED_SPARSDR_RECONSTRUCT_IMPL_H
 
 #include <sparsdr/reconstruct.h>
-#include <unistd.h>
 #include <boost/noncopyable.hpp>
 
+#include "named_pipe_reader.h"
+#include "reconstruct_process.h"
+
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
 
-    // Inherit from noncopyable to prevent copying d_child
-    class reconstruct_impl : public reconstruct, public boost::noncopyable
-    {
-     private:
-      /*! \brief Path to the sparsdr_reconstruct executable */
-      std::string d_reconstruct_path;
-      /*! \brief The bands to decompress */
-      std::vector<band_spec> d_bands;
-      /*! \brief Named pipes created that should be cleaned up */
-      std::vector<std::string> d_pipes;
-      /*!
-       * \brief Temporary directory that should be cleaned up, or an empty
-       * string if no temporary directory exists
-       */
-      std::string d_temp_dir;
-      /*! \brief The sparsdr_reconstruct child process, or 0 if none exists */
-      pid_t d_child;
+// Inherit from noncopyable to prevent copying d_child
+class reconstruct_impl : public reconstruct, public boost::noncopyable
+{
+private:
 
-      void start_subprocess(const std::vector<band_spec>& bands, const std::string& reconstruct_path, bool unbuffered);
+public:
+    reconstruct_impl(const std::vector<band_spec>& bands,
+                     const std::string& reconstruct_path);
+    ~reconstruct_impl();
+};
 
-     public:
-      reconstruct_impl(const std::vector<band_spec>& bands, const std::string& reconstruct_path, bool unbuffered);
-      ~reconstruct_impl();
-    };
-
-  } // namespace sparsdr
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_RECONSTRUCT_IMPL_H */
