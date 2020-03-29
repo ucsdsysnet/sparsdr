@@ -1,6 +1,6 @@
 # SparSDR
 
-This code accompanies the paper *SparSDR: Sparsity-proportional Backhaul and Compute for SDRs*.
+This code accompanies the paper [SparSDR: Sparsity-proportional Backhaul and Compute for SDRs](http://cseweb.ucsd.edu/~schulman/docs/mobisys19-sparsdr.pdf).
 
 ## What's included
 
