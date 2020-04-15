@@ -46,7 +46,8 @@
 //! frequency correction and writes samples to the destination.
 //!
 
-use std::io::{Result, Write};
+use std::error::Error;
+use std::io::Write;
 use std::iter;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -57,7 +58,7 @@ use crate::blocking::{BlockLogger, BlockLogs};
 use crate::channel_ext::LoggingReceiver;
 use crate::iter_ext::IterExt;
 use crate::steps::frequency_correct::FrequencyCorrect;
-use crate::steps::writer::Writer;
+use crate::steps::writer::{SampleSink, Writer};
 use crate::window::{Logical, Window};
 
 use super::band_receive::BandReceiver;
@@ -81,7 +82,7 @@ pub struct OutputSetup<'w> {
     /// Fractional part of center frequency offset, in bins
     pub bin_offset: f32,
     /// The destination to write decompressed samples to
-    pub destination: Box<dyn Write + Send + 'w>,
+    pub destination: Box<dyn SampleSink + Send + 'w>,
     /// Tagged window time log
     pub time_log: Option<Box<dyn Write + Send>>,
 }
@@ -103,14 +104,15 @@ pub struct FftOutputReport {
 pub fn run_fft_and_output_stage(
     mut setup: FftAndOutputSetup<'_>,
     stop: Arc<AtomicBool>,
-) -> Result<FftOutputReport> {
+) -> Result<FftOutputReport, Box<dyn Error + Send>> {
     // Time log headers for each file
     for log in setup
         .outputs
         .iter_mut()
         .filter_map(|setup| setup.time_log.as_mut())
     {
-        writeln!(log, "Tag,SampleIndex,Seconds,Nanoseconds")?;
+        writeln!(log, "Tag,SampleIndex,Seconds,Nanoseconds")
+            .map_err(|e| -> Box<dyn Error + Send> { Box::new(e) })?;
     }
 
     let fft_size = setup.fft_size;
@@ -147,7 +149,7 @@ pub fn run_fft_and_output_stage(
                 None => None,
             };
             let samples = writer.write_windows(
-                destination,
+                &mut **destination,
                 iter::once(output_window),
                 &out_block_logger,
                 time_log,

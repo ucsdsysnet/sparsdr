@@ -17,14 +17,70 @@
 
 //! Writing of samples to a destination
 
-use std::io::{Error, Result, Write};
+use std::error::Error;
+use std::fs::File;
+use std::io::{self, BufWriter, Stdout, Write};
 
-use byteorder::{WriteBytesExt, LE};
+use byteorder::{ByteOrder, NativeEndian};
 use libc::{clock_gettime, timespec};
 use num_complex::Complex32;
+use zmq::Socket;
 
 use crate::blocking::BlockLogger;
 use crate::window::{Tag, TimeWindow};
+
+/// A trait for outputs that can handle samples
+pub trait SampleSink {
+    /// Writes bytes to this sink
+    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>>;
+}
+
+impl<T: ?Sized> SampleSink for &'_ mut T
+where
+    T: SampleSink,
+{
+    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
+        (*self).write_bytes(bytes)
+    }
+}
+
+impl SampleSink for File {
+    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
+        self.write_all(bytes).map_err(box_error)?;
+        Ok(())
+    }
+}
+
+impl SampleSink for Stdout {
+    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
+        self.write_all(bytes).map_err(box_error)?;
+        Ok(())
+    }
+}
+
+impl<W> SampleSink for BufWriter<W>
+where
+    W: Write,
+{
+    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
+        self.write_all(bytes).map_err(box_error)?;
+        Ok(())
+    }
+}
+
+impl SampleSink for Socket {
+    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
+        self.send(bytes, 0).map_err(box_error)?;
+        Ok(())
+    }
+}
+
+fn box_error<E>(e: E) -> Box<dyn Error + Send>
+where
+    E: Error + Send + 'static,
+{
+    Box::new(e)
+}
 
 /// Writes samples to a destination
 pub struct Writer {
@@ -50,9 +106,9 @@ impl Writer {
         windows: I,
         logger: &BlockLogger,
         mut time_log: Option<&mut (dyn Write + Send)>,
-    ) -> Result<u64>
+    ) -> Result<u64, Box<dyn Error + Send>>
     where
-        W: Write,
+        W: SampleSink,
         I: IntoIterator<Item = TimeWindow>,
     {
         let mut samples_written = 0;
@@ -65,7 +121,7 @@ impl Writer {
             if let Some(ref mut log) = time_log {
                 if let Some(tag) = window.tag() {
                     // Sample index is the index of the last sample in this window
-                    log_window(log, tag, self.sample_index)?;
+                    log_window(log, tag, self.sample_index).map_err(box_error)?;
                 }
             }
         }
@@ -76,13 +132,19 @@ impl Writer {
     ///
     /// Each sample is written as two little-endian 32-bit floating-point values, first the real
     /// part and then the imaginary part.
-    fn write_samples<W>(&mut self, mut destination: W, samples: &[Complex32]) -> Result<()>
+    fn write_samples<W>(
+        &mut self,
+        destination: &mut W,
+        samples: &[Complex32],
+    ) -> Result<(), Box<dyn Error + Send>>
     where
-        W: Write,
+        W: SampleSink,
     {
         for sample in samples {
-            destination.write_f32::<LE>(sample.re)?;
-            destination.write_f32::<LE>(sample.im)?;
+            let mut buffer = [0u8; 8];
+            NativeEndian::write_f32(&mut buffer[0..4], sample.re);
+            NativeEndian::write_f32(&mut buffer[4..8], sample.im);
+            destination.write_bytes(&buffer)?;
 
             self.sample_index = self.sample_index.wrapping_add(1);
         }
@@ -91,7 +153,11 @@ impl Writer {
 }
 
 /// Logs a window output
-fn log_window(destination: &mut (dyn Write + Send), tag: &Tag, sample_index: u32) -> Result<()> {
+fn log_window(
+    destination: &mut (dyn Write + Send),
+    tag: &Tag,
+    sample_index: u32,
+) -> io::Result<()> {
     let mut now = timespec {
         tv_sec: 0,
         tv_nsec: 0,
@@ -99,7 +165,7 @@ fn log_window(destination: &mut (dyn Write + Send), tag: &Tag, sample_index: u32
     // Use clock_gettime, which should be the same in C++ and Rust
     let status = unsafe { clock_gettime(libc::CLOCK_MONOTONIC, &mut now) };
     if status != 0 {
-        return Err(Error::last_os_error());
+        return Err(io::Error::last_os_error());
     }
     // CSV format: tag, sample index, seconds, nanoseconds
     writeln!(

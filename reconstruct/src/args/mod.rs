@@ -69,7 +69,8 @@ impl Args {
                         "A file to read compressed samples from. If no file is specified, samples \
                          will be read from standard input.",
                     ),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("destination")
                     .long("destination")
                     .takes_value(true)
@@ -78,14 +79,16 @@ impl Args {
                         "A file to write uncompressed samples to. If no file is specified, \
                          samples will be written to standard output.",
                     ),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("bins")
                     .long("bins")
                     .takes_value(true)
                     .default_value("2048")
                     .validator(validate::<u16>)
                     .help("The number of bins to decompress"),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("center_frequency")
                     .long("center-frequency")
                     .takes_value(true)
@@ -96,7 +99,8 @@ impl Args {
                         "The desired center frequency of the decompressed signal, relative to \
                          the center frequency of the compressed data.",
                     ),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("compressed_bandwidth")
                     .long("compressed-bandwidth")
                     .takes_value(true)
@@ -107,11 +111,13 @@ impl Args {
                         "The bandwidth of the signal before compression (also known as Fs in the \
                          MATLAB code). The default value is 100 MHz.",
                     ),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("unbuffered")
                     .long("unbuffered")
                     .help("Disables buffering on the source and destination"),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("log_level")
                     .long("log-level")
                     .takes_value(true)
@@ -119,40 +125,62 @@ impl Args {
                     .possible_values(&["OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"])
                     .help("The level of logging to enable"),
             )
-            .arg(Arg::with_name("decompress_band")
-                .long("decompress-band")
-                .takes_value(true)
-                .multiple(true)
-                .value_name("bins:frequency[[:path]:time_log_path]")
-                .help("The number of bins, center frequency, and output file path of a band to \
+            .arg(
+                Arg::with_name("decompress_band")
+                    .long("decompress-band")
+                    .takes_value(true)
+                    .multiple(true)
+                    .value_name("bins:frequency[:path[:time_log_path]]")
+                    .help(
+                        "The number of bins, center frequency, and output file path of a band to \
                     be decompressed. If the output file path is not specified, decompressed \
-                    samples from this band will be written to standard output. This argument may \
-                    be repeated to decompress multiple bands.")
-                .conflicts_with_all(&["destination", "bins", "center_frequency"])
-                .validator(validate::<BandArgs>)
+                    samples from this band will be written to standard output. This argument and \
+                    decompress-band-zeromq may be repeated to decompress multiple bands.",
+                    )
+                    .conflicts_with_all(&["destination", "bins", "center_frequency"])
+                    .validator(validate::<BandArgs>),
             )
-            .arg(Arg::with_name("no_progress")
-                .long("no-progress-bar")
-                .help("Disables the command-line progress bar")
+            .arg(
+                Arg::with_name("decompress_band_zeromq")
+                    .long("decompress-band-zeromq")
+                    .takes_value(true)
+                    .multiple(true)
+                    .value_name("bins:frequency:address")
+                    .help(
+                        "The number of bins, center frequency, and address of a band to \
+                    be decompressed. sparsdr_reconstruct will bind a ZeroMQ PUSH socket to this \
+                    address and send reconstructed samples. This argument and decompress-band may \
+                    be repeated to decompress multiple bands.",
+                    )
+                    .conflicts_with_all(&["destination", "bins", "center_frequency"])
+                    .validator(validate::<BandArgs>),
             )
-            .arg(Arg::with_name("report")
-                .long("report")
-                .help("Displays a report of implementation-defined information about the \
-                reconstruction process")
+            .arg(
+                Arg::with_name("no_progress")
+                    .long("no-progress-bar")
+                    .help("Disables the command-line progress bar"),
             )
-            .arg(Arg::with_name("channel_capacity")
-                .long("channel-capacity")
-                .takes_value(true)
-                .default_value("32")
-                .validator(validate::<usize>)
-                .value_name("windows")
-                .help("Capacity of input -> FFT/output stage channels (this option is unstable)")
+            .arg(Arg::with_name("report").long("report").help(
+                "Displays a report of implementation-defined information about the \
+                reconstruction process",
+            ))
+            .arg(
+                Arg::with_name("channel_capacity")
+                    .long("channel-capacity")
+                    .takes_value(true)
+                    .default_value("32")
+                    .validator(validate::<usize>)
+                    .value_name("windows")
+                    .help(
+                        "Capacity of input -> FFT/output stage channels (this option is unstable)",
+                    ),
             )
-            .arg(Arg::with_name("input_log_path")
-                .long("input-log")
-                .takes_value(true)
-                .value_name("path")
-                .help("A path to a file to log the times when windows are read")
+            .arg(
+                Arg::with_name("input_log_path")
+                    .long("input-log")
+                    .takes_value(true)
+                    .value_name("path")
+                    .help("A path to a file to log the times when windows are read"),
             )
             .get_matches();
 
@@ -160,9 +188,11 @@ impl Args {
 
         let bands = if let Some(band_strings) = matches.values_of("decompress_band") {
             // New multi-band version
-            band_strings
-                .map(|s| BandArgs::from_str(s).unwrap())
-                .collect()
+
+            let zeromq_bands = matches.values_of("decompress_band_zeromq").into_iter().flatten().map(|s| BandArgs::from_str_zeromq(s).unwrap());
+            let bands = matches.values_of("decompress_band").into_iter().flatten().map(|s| BandArgs::from_str(s).unwrap());
+
+            bands.chain(zeromq_bands).collect()
         } else {
             // Legacy single-band version
             let band = BandArgs {

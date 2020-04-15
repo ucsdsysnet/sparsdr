@@ -20,7 +20,7 @@
 //!
 
 use std::collections::BTreeMap;
-use std::io::{Error, ErrorKind, Result, Write};
+use std::io::{self, Error, ErrorKind, Write};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -104,9 +104,11 @@ impl<'w, 'b, I> DecompressSetup<'w, 'b, I> {
 }
 
 /// Decompresses bands using the provided setup and returns information about the decompression
-pub fn decompress<I>(setup: DecompressSetup<'_, '_, I>) -> Result<Report>
+pub fn decompress<I>(
+    setup: DecompressSetup<'_, '_, I>,
+) -> Result<Report, Box<dyn std::error::Error + Send>>
 where
-    I: IntoIterator<Item = Result<Sample>>,
+    I: IntoIterator<Item = io::Result<Sample>>,
 {
     // Figure out the stages
     let stages = set_up_stages_combined(
@@ -130,7 +132,7 @@ where
             // Start a thread for each FFT and output stage
             let fft_and_output_threads: Vec<(
                 BinRange,
-                ScopedJoinHandle<'_, Result<FftOutputReport>>,
+                ScopedJoinHandle<'_, Result<FftOutputReport, Box<dyn std::error::Error + Send>>>,
             )> = stages
                 .fft_and_output
                 .into_iter()
@@ -150,10 +152,11 @@ where
                 .collect();
 
             // Run the input right here
-            let input_report = run_input_stage(stages.input, stop)?;
+            let input_report = run_input_stage(stages.input, stop)
+                .map_err(|e| -> Box<dyn std::error::Error + Send> { Box::new(e) })?;
 
             // Track the last error from a thread
-            let mut last_error: Option<Error> = None;
+            let mut last_error: Option<Box<dyn std::error::Error + Send>> = None;
 
             // Join output threads
             let fft_output_reports: BTreeMap<BinRange, FftOutputReport> = fft_and_output_threads
@@ -169,10 +172,10 @@ where
                         }
                         Err(_) => {
                             // Thread panicked
-                            last_error = Some(Error::new(
+                            last_error = Some(Box::new(Error::new(
                                 ErrorKind::Other,
                                 "An output thread has panicked",
-                            ));
+                            )));
                             // No report
                             None
                         }
@@ -182,11 +185,13 @@ where
                 .flatten()
                 .collect();
 
-            let decompress_status: Result<(InputReport, BTreeMap<BinRange, FftOutputReport>)> =
-                match last_error {
-                    Some(e) => Err(e),
-                    None => Ok((input_report, fft_output_reports)),
-                };
+            let decompress_status: Result<
+                (InputReport, BTreeMap<BinRange, FftOutputReport>),
+                Box<dyn std::error::Error + Send>,
+            > = match last_error {
+                Some(e) => Err(e),
+                None => Ok((input_report, fft_output_reports)),
+            };
             decompress_status
         })
         .expect("Unjoined thread panic")?;

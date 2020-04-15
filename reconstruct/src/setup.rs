@@ -15,14 +15,18 @@
  *
  */
 
+use std::error::Error;
 use std::fs::{self, File};
-use std::io::{self, BufReader, BufWriter, Read, Result, Write};
+use std::io::{self, BufReader, BufWriter, Read, Write};
 
-use simplelog::LevelFilter;
 use log::debug;
+use simplelog::LevelFilter;
+use zmq::{Context, SocketType};
 
 use super::args::Args;
 use super::args::BandArgs;
+
+use sparsdr_reconstruct::steps::writer::SampleSink;
 
 /// The setup for a decompression operation
 ///
@@ -57,13 +61,13 @@ pub struct BandSetup {
     /// Center frequency to decompress
     pub center_frequency: f32,
     /// Destination to write to
-    pub destination: Box<dyn Write + Send>,
+    pub destination: Box<dyn SampleSink + Send>,
     /// Window time log
     pub time_log: Option<Box<dyn Write + Send>>,
 }
 
 impl Setup {
-    pub fn from_args(args: Args) -> Result<Self> {
+    pub fn from_args(args: Args, zmq: &Context) -> Result<Self, Box<dyn Error>> {
         let buffer = args.buffer;
         // Open source and get length
         // The order of opening (source, then output files) is important to prevent deadlock
@@ -97,8 +101,8 @@ impl Setup {
         let bands = args
             .bands
             .into_iter()
-            .map(|band_args| BandSetup::from_args(band_args, buffer))
-            .collect::<Result<Vec<BandSetup>>>()?;
+            .map(|band_args| BandSetup::from_args(band_args, buffer, zmq))
+            .collect::<Result<Vec<BandSetup>, Box<dyn Error>>>()?;
 
         let input_time_log: Option<Box<dyn Write>> = match args.input_time_log_path {
             Some(path) => Some(Box::new(BufWriter::new(File::create(path)?))),
@@ -123,15 +127,30 @@ impl Setup {
 }
 
 impl BandSetup {
-    fn from_args(args: BandArgs, buffer: bool) -> Result<Self> {
+    fn from_args(args: BandArgs, buffer: bool, zmq: &Context) -> Result<Self, Box<dyn Error>> {
         // Open destination
-        let destination: Box<dyn Write + Send> = match args.path {
+        let destination: Box<dyn SampleSink + Send> = match args.path {
             Some(ref path) => {
-                debug!("Opening file {} for output", path.display());
-                if buffer {
-                    Box::new(BufWriter::new(File::create(path)?))
+                let zmq_address = path.to_str().and_then(|path| {
+                    if path.starts_with("tcp://") {
+                        Some(path)
+                    } else {
+                        None
+                    }
+                });
+
+                if let Some(zmq_address) = zmq_address {
+                    debug!("Binding a ZeroMQ socket to {}", zmq_address);
+                    let socket = zmq.socket(SocketType::PUSH)?;
+                    socket.bind(zmq_address)?;
+                    Box::new(socket)
                 } else {
-                    Box::new(File::create(path)?)
+                    debug!("Opening file {} for output", path.display());
+                    if buffer {
+                        Box::new(BufWriter::new(File::create(path)?))
+                    } else {
+                        Box::new(File::create(path)?)
+                    }
                 }
             }
             None => {

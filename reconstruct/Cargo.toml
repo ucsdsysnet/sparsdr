@@ -32,6 +32,7 @@ crossbeam = "0.6.0"
 signal-hook = "0.1.8"
 nix = "0.13.0"
 libc = "0.2.51"
+zmq = "0.9.2"
 
 [dependencies.num-complex]
 version = "0.2.0"

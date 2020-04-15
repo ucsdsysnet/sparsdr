@@ -36,7 +36,7 @@ pub struct BandArgs {
 impl FromStr for BandArgs {
     type Err = ParseError;
 
-    /// Parses BandArgs from `bins:frequency[[:path]:time_log_path]`
+    /// Parses BandArgs from `bins:frequency[:path[:time_log_path]]`
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.split(':');
         let bins: &str = parts.next().ok_or(ParseError::Format)?;

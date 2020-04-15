@@ -21,6 +21,7 @@ use std::time::Duration;
 use super::bins::choice::choose_bins;
 use super::bins::BinRange;
 use super::{DEFAULT_COMPRESSED_BANDWIDTH, NATIVE_FFT_SIZE};
+use crate::steps::writer::SampleSink;
 
 /// Default timeout before flushing samples to output
 pub const TIMEOUT: Duration = Duration::from_millis(100);
@@ -38,7 +39,7 @@ pub struct BandSetup<'w> {
     /// Time to wait for a compressed sample before flushing output
     pub timeout: Duration,
     /// The destination to write decompressed samples to
-    pub destination: Box<dyn Write + Send + 'w>,
+    pub destination: Box<dyn SampleSink + Send + 'w>,
     /// Tagged window time log
     pub time_log: Option<Box<dyn Write + Send>>,
 }
@@ -65,7 +66,7 @@ pub struct BandSetupBuilder<'w> {
     /// Time to wait for a compressed sample before flushing output
     timeout: Duration,
     /// The destination to write decompressed samples to
-    destination: Box<dyn Write + Send + 'w>,
+    destination: Box<dyn SampleSink + Send + 'w>,
     /// Tagged window time log
     time_log: Option<Box<dyn Write + Send>>,
 }
@@ -73,7 +74,7 @@ pub struct BandSetupBuilder<'w> {
 impl<'w> BandSetupBuilder<'w> {
     /// Creates a default band setup that will decompress a full 100 MHz spectrum and write
     /// decompressed samples to the provided source
-    pub fn new(destination: Box<dyn Write + Send + 'w>) -> Self {
+    pub fn new(destination: Box<dyn SampleSink + Send + 'w>) -> Self {
         BandSetupBuilder {
             compressed_bandwidth: DEFAULT_COMPRESSED_BANDWIDTH,
             center_frequency: 0.0,

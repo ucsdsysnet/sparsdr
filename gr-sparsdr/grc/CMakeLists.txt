@@ -23,5 +23,6 @@ install(FILES
     sparsdr_compressing_usrp_source.xml
     sparsdr_average_waterfall.xml
     sparsdr_sample_distributor.xml
-    sparsdr_tagged_wavfile_sink.xml DESTINATION share/gnuradio/grc/blocks
+    sparsdr_tagged_wavfile_sink.xml
+    sparsdr_compressing_plutosdr_source.xml DESTINATION share/gnuradio/grc/blocks
 )

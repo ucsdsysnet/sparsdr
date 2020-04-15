@@ -25,6 +25,7 @@ include(GrPlatform) #define LIB_SUFFIX
 include_directories(
     ${Boost_INCLUDE_DIR}
     ${PYTHON_INCLUDE_DIRS}
+    ${GR_IIO_INCLUDE_DIRS}
 )
 link_directories(${Boost_LIBRARY_DIRS})
 
@@ -43,6 +44,7 @@ list(APPEND sparsdr_sources
     tagged_wavfile_sink_impl.cc
     named_pipe_reader.cc
     reconstruct_process.cc
+    compressing_plutosdr_source_impl.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)
@@ -56,6 +58,7 @@ target_link_libraries(gnuradio-sparsdr
 	${Boost_LIBRARIES}
 	${GNURADIO_ALL_LIBRARIES}
     ${PYTHON_LIBRARIES}
+    ${GR_IIO_LIBRARIES}
 	Qt5::Widgets
 )
 set_target_properties(gnuradio-sparsdr PROPERTIES DEFINE_SYMBOL "gnuradio_sparsdr_EXPORTS")

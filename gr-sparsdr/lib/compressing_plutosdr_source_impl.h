@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2019, 2020 The Regents of the University of California.
+ * Copyright 2020 The Regents of the University of California.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,29 +18,28 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDED_SPARSDR_RECONSTRUCT_IMPL_H
-#define INCLUDED_SPARSDR_RECONSTRUCT_IMPL_H
+#ifndef INCLUDED_SPARSDR_COMPRESSING_PLUTOSDR_SOURCE_IMPL_H
+#define INCLUDED_SPARSDR_COMPRESSING_PLUTOSDR_SOURCE_IMPL_H
 
-#include <sparsdr/reconstruct.h>
-#include <boost/noncopyable.hpp>
-
-#include "named_pipe_reader.h"
-#include "reconstruct_process.h"
+#include <gnuradio/iio/fmcomms2_source.h>
+#include <sparsdr/compressing_plutosdr_source.h>
 
 namespace gr {
 namespace sparsdr {
 
-// Inherit from noncopyable to prevent copying d_child
-class reconstruct_impl : public reconstruct, public boost::noncopyable
+class compressing_plutosdr_source_impl : public compressing_plutosdr_source
 {
 private:
+    gr::iio::fmcomms2_source::sptr d_fmcomm;
+
 public:
-    reconstruct_impl(const std::vector<band_spec>& bands,
-                     const std::string& reconstruct_path);
-    ~reconstruct_impl();
+    compressing_plutosdr_source_impl(const std::string& uri,
+                                     unsigned long long frequency,
+                                     double gain);
+    ~compressing_plutosdr_source_impl();
 };
 
 } // namespace sparsdr
 } // namespace gr
 
-#endif /* INCLUDED_SPARSDR_RECONSTRUCT_IMPL_H */
+#endif /* INCLUDED_SPARSDR_COMPRESSING_PLUTOSDR_SOURCE_IMPL_H */

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2019 The Regents of the University of California
+ * Copyright 2020 The Regents of the University of California.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,44 +19,38 @@
  */
 
 
-#ifndef INCLUDED_SPARSDR_RECONSTRUCT_H
-#define INCLUDED_SPARSDR_RECONSTRUCT_H
+#ifndef INCLUDED_SPARSDR_COMPRESSING_PLUTOSDR_SOURCE_H
+#define INCLUDED_SPARSDR_COMPRESSING_PLUTOSDR_SOURCE_H
 
 #include <gnuradio/hier_block2.h>
 #include <sparsdr/api.h>
-#include <sparsdr/band_spec.h>
 
 namespace gr {
 namespace sparsdr {
 
 /*!
- * \brief The SparSDR reconstruct block receives compressed samples
- * and reconstructs signals from one or more bands
+ * \brief Receives compressed signals from a PlutoSDR device
  * \ingroup sparsdr
  *
  */
-class SPARSDR_API reconstruct : virtual public gr::hier_block2
+class SPARSDR_API compressing_plutosdr_source : virtual public gr::hier_block2
 {
 public:
-    typedef boost::shared_ptr<reconstruct> sptr;
+    typedef boost::shared_ptr<compressing_plutosdr_source> sptr;
 
     /*!
-     * \brief Return a shared_ptr to a new instance of sparsdr::reconstruct.
+     * \brief Return a shared_ptr to a new instance of
+     * sparsdr::compressing_plutosdr_source.
      *
-     * To avoid accidental use of raw pointers, sparsdr::reconstruct's
+     * To avoid accidental use of raw pointers, sparsdr::compressing_plutosdr_source's
      * constructor is in a private implementation
-     * class. sparsdr::reconstruct::make is the public interface for
+     * class. sparsdr::compressing_plutosdr_source::make is the public interface for
      * creating new instances.
-     *
-     * \param bands the bands to decompress
-     * \param reconstruct_path the path to the sparsdr_reconstruct executable
-     * \param unbuffered true to disable buffering on the input and output files
      */
-    static sptr make(std::vector<::gr::sparsdr::band_spec> bands,
-                     const std::string& reconstruct_path = "sparsdr_reconstruct");
+    static sptr make(const std::string& uri, unsigned long long frequency, double gain);
 };
 
 } // namespace sparsdr
 } // namespace gr
 
-#endif /* INCLUDED_SPARSDR_RECONSTRUCT_H */
+#endif /* INCLUDED_SPARSDR_COMPRESSING_PLUTOSDR_SOURCE_H */
