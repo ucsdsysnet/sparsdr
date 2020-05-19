@@ -26,13 +26,12 @@ clap = "2.32.0"
 byteorder = "1.2.6"
 num-traits = "0.2.6"
 log = "0.4.6"
-simplelog = "0.5.3"
-indicatif = "0.10.3"
-crossbeam = "0.6.0"
+simplelog = "0.8.0"
+indicatif = "0.14.0"
+crossbeam-channel = "0.4.2"
+crossbeam-utils = "0.7.2"
 signal-hook = "0.1.8"
-nix = "0.13.0"
 libc = "0.2.51"
-zmq = "0.9.2"
 
 [dependencies.num-complex]
 version = "0.2.0"
@@ -40,7 +39,7 @@ default-features = false
 
 # Use the system-provided dynamically-linked FFTW to work around GPL
 [dependencies.fftw]
-version = "0.5.1"
+version = "0.6.0"
 default-features = false
 features = ["system"]
 
@@ -53,7 +52,7 @@ debug = true
 
 # Benchmarking section
 [dev-dependencies]
-criterion = "0.2.10"
+criterion = "0.3.2"
 tempfile = "3.0.6"
 
 [[bench]]

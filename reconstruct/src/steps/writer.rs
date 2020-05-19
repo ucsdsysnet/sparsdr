@@ -24,7 +24,6 @@ use std::io::{self, BufWriter, Stdout, Write};
 use byteorder::{ByteOrder, NativeEndian};
 use libc::{clock_gettime, timespec};
 use num_complex::Complex32;
-use zmq::Socket;
 
 use crate::blocking::BlockLogger;
 use crate::window::{Tag, TimeWindow};
@@ -46,15 +45,19 @@ where
 
 impl SampleSink for File {
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
-        self.write_all(bytes).map_err(box_error)?;
-        Ok(())
+        self.write_all(bytes).map_err(box_error)
     }
 }
 
 impl SampleSink for Stdout {
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
-        self.write_all(bytes).map_err(box_error)?;
-        Ok(())
+        self.write_all(bytes).map_err(box_error)
+    }
+}
+
+impl SampleSink for Vec<u8> {
+    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
+        self.write_all(bytes).map_err(box_error)
     }
 }
 
@@ -64,13 +67,6 @@ where
 {
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
         self.write_all(bytes).map_err(box_error)?;
-        Ok(())
-    }
-}
-
-impl SampleSink for Socket {
-    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
-        self.send(bytes, 0).map_err(box_error)?;
         Ok(())
     }
 }

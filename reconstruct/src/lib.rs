@@ -59,11 +59,10 @@ extern crate num_complex;
 extern crate num_traits;
 #[macro_use]
 extern crate log;
-extern crate crossbeam;
+extern crate crossbeam_channel;
+extern crate crossbeam_utils;
 extern crate libc;
-extern crate nix;
 extern crate sparsdr_bin_mask;
-extern crate zmq;
 
 /// Converts an Option<Result<T, E>> into T, returning None if the value is None
 /// or Some(Err(e)) if the value is Some(Err(e))
@@ -94,6 +93,7 @@ pub mod blocking;
 pub mod input;
 // These are only public to allow the benchmark code to access them
 pub mod bins;
+pub mod format;
 pub mod iter_ext;
 pub mod steps;
 pub mod window;
@@ -104,11 +104,6 @@ mod channel_ext;
 mod component_setup;
 mod decompress;
 mod stages;
-
-/// FFT size used during compression
-const NATIVE_FFT_SIZE: u16 = 2048;
-/// Default compressed bandwidth
-const DEFAULT_COMPRESSED_BANDWIDTH: f32 = 100_000_000.0;
 
 pub use crate::band_decompress::{BandSetup, BandSetupBuilder};
 pub use crate::decompress::{decompress, DecompressSetup, Report};

@@ -27,6 +27,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 
 use num_traits::Zero;
+use sparsdr_reconstruct::format::SampleFormat;
 use sparsdr_reconstruct::input::iqzip::CompressedSamples;
 use sparsdr_reconstruct::iter_ext::IterExt;
 use sparsdr_reconstruct::window::{Logical, Window};
@@ -42,7 +43,7 @@ fn main() {
     let mut out_file =
         BufWriter::new(File::create(out_path).expect("Failed to create output file"));
 
-    let windows = CompressedSamples::new(in_file)
+    let windows = CompressedSamples::new(in_file, SampleFormat::n210())
         .group(usize::from(NATIVE_FFT_SIZE))
         .shift_result(NATIVE_FFT_SIZE);
 

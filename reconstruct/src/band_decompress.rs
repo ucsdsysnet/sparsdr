@@ -20,11 +20,13 @@ use std::time::Duration;
 
 use super::bins::choice::choose_bins;
 use super::bins::BinRange;
-use super::{DEFAULT_COMPRESSED_BANDWIDTH, NATIVE_FFT_SIZE};
 use crate::steps::writer::SampleSink;
 
 /// Default timeout before flushing samples to output
 pub const TIMEOUT: Duration = Duration::from_millis(100);
+
+const DEFAULT_COMPRESSED_BANDWIDTH: f32 = 100_000_000.0;
+const DEFAULT_FFT_SIZE: u16 = 2048;
 
 /// Setup for decompression of one band
 pub struct BandSetup<'w> {
@@ -63,6 +65,8 @@ pub struct BandSetupBuilder<'w> {
     center_frequency: f32,
     /// The number of bins to decompress
     bins: u16,
+    /// The number of bins used to compress the signals
+    compression_bins: u16,
     /// Time to wait for a compressed sample before flushing output
     timeout: Duration,
     /// The destination to write decompressed samples to
@@ -74,11 +78,12 @@ pub struct BandSetupBuilder<'w> {
 impl<'w> BandSetupBuilder<'w> {
     /// Creates a default band setup that will decompress a full 100 MHz spectrum and write
     /// decompressed samples to the provided source
-    pub fn new(destination: Box<dyn SampleSink + Send + 'w>) -> Self {
+    pub fn new(destination: Box<dyn SampleSink + Send + 'w>, compression_bins: u16) -> Self {
         BandSetupBuilder {
             compressed_bandwidth: DEFAULT_COMPRESSED_BANDWIDTH,
             center_frequency: 0.0,
-            bins: NATIVE_FFT_SIZE,
+            bins: DEFAULT_FFT_SIZE,
+            compression_bins,
             timeout: TIMEOUT,
             destination,
             time_log: None,
@@ -122,11 +127,11 @@ impl<'w> BandSetupBuilder<'w> {
             .expect("FFT size too large to round up");
 
         let exact_bin_offset =
-            f32::from(NATIVE_FFT_SIZE) * self.center_frequency / self.compressed_bandwidth;
+            f32::from(self.compression_bins) * self.center_frequency / self.compressed_bandwidth;
         let fc_bins = exact_bin_offset.floor();
         let bin_offset = exact_bin_offset.fract();
 
-        let bin_range = choose_bins(self.bins, fc_bins as i16);
+        let bin_range = choose_bins(self.bins, fc_bins as i16, self.compression_bins);
 
         BandSetup {
             bins: bin_range,

@@ -58,11 +58,10 @@ extern crate log;
 extern crate signal_hook;
 extern crate simplelog;
 extern crate sparsdr_reconstruct;
-extern crate zmq;
 
 use indicatif::ProgressBar;
 use signal_hook::{flag::register, SIGHUP, SIGINT};
-use simplelog::{Config, SimpleLogger, TermLogger};
+use simplelog::{Config, SimpleLogger, TermLogger, TerminalMode};
 use sparsdr_reconstruct::blocking::BlockLogger;
 use sparsdr_reconstruct::input::iqzip::CompressedSamples;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
@@ -82,15 +81,14 @@ use self::setup::Setup;
 fn run() -> Result<(), Box<dyn Error>> {
     let args = Args::get();
     // Logging
-    let log_status = TermLogger::init(args.log_level, Config::default())
+    let log_status = TermLogger::init(args.log_level, Config::default(), TerminalMode::Stderr)
         .or_else(|_| SimpleLogger::init(args.log_level, Config::default()));
     if let Err(e) = log_status {
         eprintln!("Failed to set up simpler logger: {}", e);
     }
 
-    let zmq = zmq::Context::new();
-
-    let setup = Setup::from_args(args, &zmq)?;
+    let sample_format = args.sample_format.clone();
+    let setup = Setup::from_args(args)?;
 
     let progress = create_progress_bar(&setup);
 
@@ -100,9 +98,14 @@ fn run() -> Result<(), Box<dyn Error>> {
         CompressedSamples::with_block_logger(
             Box::new(progress.wrap_read(setup.source)),
             &in_block_logger,
+            sample_format,
         )
     } else {
-        CompressedSamples::with_block_logger(Box::new(setup.source), &in_block_logger)
+        CompressedSamples::with_block_logger(
+            Box::new(setup.source),
+            &in_block_logger,
+            sample_format,
+        )
     };
 
     // Set up signal handlers for clean exit
@@ -111,7 +114,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     register(SIGHUP, Arc::clone(&stop_flag))?;
 
     // Configure compression
-    let mut decompress_setup = DecompressSetup::new(samples_in);
+    let mut decompress_setup = DecompressSetup::new(samples_in, setup.sample_format.fft_size());
     decompress_setup
         .set_channel_capacity(setup.channel_capacity)
         .set_source_block_logger(&in_block_logger)
@@ -120,10 +123,11 @@ fn run() -> Result<(), Box<dyn Error>> {
         decompress_setup.set_input_time_log(input_time_log);
     }
     for band in setup.bands {
-        let mut band_setup = BandSetupBuilder::new(band.destination)
-            .compressed_bandwidth(setup.compressed_bandwidth)
-            .center_frequency(band.center_frequency)
-            .bins(band.bins);
+        let mut band_setup =
+            BandSetupBuilder::new(band.destination, setup.sample_format.fft_size())
+                .compressed_bandwidth(setup.sample_format.compressed_bandwidth())
+                .center_frequency(band.center_frequency)
+                .bins(band.bins);
         if let Some(time_log) = band.time_log {
             band_setup = band_setup.time_log(time_log);
         }

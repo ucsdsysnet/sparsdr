@@ -26,6 +26,7 @@ use clap::{App, Arg};
 use simplelog::LevelFilter;
 
 pub use self::band_args::BandArgs;
+use sparsdr_reconstruct::format::SampleFormat;
 
 #[derive(Debug)]
 pub struct Args {
@@ -33,8 +34,6 @@ pub struct Args {
     pub source_path: Option<PathBuf>,
     /// Enable buffering for source and destination
     pub buffer: bool,
-    /// Bandwidth of the signal before compression
-    pub compressed_bandwidth: f32,
     /// Bands to decompress
     pub bands: Vec<BandArgs>,
     /// Log level
@@ -47,6 +46,8 @@ pub struct Args {
     pub channel_capacity: usize,
     /// Window input time log path
     pub input_time_log_path: Option<PathBuf>,
+    /// Input sample format
+    pub sample_format: SampleFormat,
     /// Private field to prevent exhaustive matching and literal creation
     _0: (),
 }
@@ -101,18 +102,6 @@ impl Args {
                     ),
             )
             .arg(
-                Arg::with_name("compressed_bandwidth")
-                    .long("compressed-bandwidth")
-                    .takes_value(true)
-                    .default_value("100000000")
-                    .validator(validate::<f32>)
-                    .value_name("hertz")
-                    .help(
-                        "The bandwidth of the signal before compression (also known as Fs in the \
-                         MATLAB code). The default value is 100 MHz.",
-                    ),
-            )
-            .arg(
                 Arg::with_name("unbuffered")
                     .long("unbuffered")
                     .help("Disables buffering on the source and destination"),
@@ -134,22 +123,7 @@ impl Args {
                     .help(
                         "The number of bins, center frequency, and output file path of a band to \
                     be decompressed. If the output file path is not specified, decompressed \
-                    samples from this band will be written to standard output. This argument and \
-                    decompress-band-zeromq may be repeated to decompress multiple bands.",
-                    )
-                    .conflicts_with_all(&["destination", "bins", "center_frequency"])
-                    .validator(validate::<BandArgs>),
-            )
-            .arg(
-                Arg::with_name("decompress_band_zeromq")
-                    .long("decompress-band-zeromq")
-                    .takes_value(true)
-                    .multiple(true)
-                    .value_name("bins:frequency:address")
-                    .help(
-                        "The number of bins, center frequency, and address of a band to \
-                    be decompressed. sparsdr_reconstruct will bind a ZeroMQ PUSH socket to this \
-                    address and send reconstructed samples. This argument and decompress-band may \
+                    samples from this band will be written to standard output. This argument may \
                     be repeated to decompress multiple bands.",
                     )
                     .conflicts_with_all(&["destination", "bins", "center_frequency"])
@@ -182,17 +156,26 @@ impl Args {
                     .value_name("path")
                     .help("A path to a file to log the times when windows are read"),
             )
+            .arg(
+                Arg::with_name("sample_format")
+                    .long("format")
+                    .takes_value(true)
+                    .default_value("n210")
+                    .possible_values(&["n210", "pluto"])
+                    .help(
+                        "The compressed sample format to read (this depends on the radio used to \
+                capture the signals)",
+                    ),
+            )
             .get_matches();
 
         let buffer = !matches.is_present("unbuffered");
 
         let bands = if let Some(band_strings) = matches.values_of("decompress_band") {
-            // New multi-band version
-
-            let zeromq_bands = matches.values_of("decompress_band_zeromq").into_iter().flatten().map(|s| BandArgs::from_str_zeromq(s).unwrap());
-            let bands = matches.values_of("decompress_band").into_iter().flatten().map(|s| BandArgs::from_str(s).unwrap());
-
-            bands.chain(zeromq_bands).collect()
+            band_strings
+                .into_iter()
+                .map(|s| BandArgs::from_str(s).unwrap())
+                .collect()
         } else {
             // Legacy single-band version
             let band = BandArgs {
@@ -208,14 +191,15 @@ impl Args {
             vec![band]
         };
 
+        let sample_format = match matches.value_of("sample_format") {
+            Some("n210") => SampleFormat::n210(),
+            Some("pluto") => SampleFormat::pluto(),
+            _ => panic!("Invalid or missing sample format"),
+        };
+
         Args {
             source_path: matches.value_of_os("source").map(PathBuf::from),
             buffer,
-            compressed_bandwidth: matches
-                .value_of("compressed_bandwidth")
-                .unwrap()
-                .parse()
-                .unwrap(),
             bands,
             log_level: matches.value_of("log_level").unwrap().parse().unwrap(),
             report: matches.is_present("report"),
@@ -226,6 +210,7 @@ impl Args {
                 .parse()
                 .unwrap(),
             input_time_log_path: matches.value_of("input_log_path").map(PathBuf::from),
+            sample_format,
             _0: (),
         }
     }

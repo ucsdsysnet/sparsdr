@@ -20,7 +20,7 @@
 use std::collections::BTreeMap;
 use std::io::{Result, Write};
 
-use crossbeam::channel;
+use crossbeam_channel;
 use sparsdr_bin_mask::BinMask;
 
 use crate::band_decompress::BandSetup;
@@ -54,6 +54,7 @@ pub fn set_up_stages_combined<'w, I, B>(
     bands: B,
     channel_capacity: usize,
     input_time_log: Option<Box<dyn Write>>,
+    compression_fft_size: u16,
 ) -> StagesCombined<'w, I::IntoIter>
 where
     I: IntoIterator<Item = Result<Sample>>,
@@ -67,13 +68,14 @@ where
         samples: samples.into_iter(),
         destinations: Vec::new(),
         input_time_log,
+        fft_size: compression_fft_size,
     };
 
     for band_setup in bands {
         // Create an FFT setup if none exists
         let fft_setup = ffts.entry(key(&band_setup)).or_insert_with(|| {
             // Create a new channel to this FFT stage
-            let (tx, rx) = channel::bounded(channel_capacity);
+            let (tx, rx) = crossbeam_channel::bounded(channel_capacity);
             let tx = LoggingSender::new(tx);
             let rx = LoggingReceiver::new(rx);
 
@@ -86,6 +88,7 @@ where
                 source: rx,
                 bins: band_setup.bins.clone(),
                 fft_size: band_setup.fft_size,
+                compression_fft_size,
                 fc_bins: band_setup.fc_bins,
                 timeout: band_setup.timeout,
                 outputs: vec![],

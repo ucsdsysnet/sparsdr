@@ -78,11 +78,15 @@ pub trait IterExt {
     }
 
     /// Applies an inverse FFT to windows
-    fn fft(self, fft_size: u16) -> Fft<Self>
+    fn fft(self, fft_size: u16, compression_fft_size: u16) -> Fft<Self>
     where
         Self: Iterator<Item = Status<Window>> + Sized,
     {
-        Fft::new(self, usize::from(fft_size))
+        Fft::new(
+            self,
+            usize::from(fft_size),
+            usize::from(compression_fft_size),
+        )
     }
 
     /// Overlaps windows with consecutive time values

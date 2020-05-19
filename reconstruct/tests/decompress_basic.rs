@@ -26,15 +26,17 @@ use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
 
 mod test_vectors;
 
+const COMPRESSION_FFT_SIZE: u16 = 2048;
+
 #[test]
 fn test_empty() {
     let empty_source = iter::empty();
     let mut destination = Vec::new();
     {
-        let band_setup = BandSetupBuilder::new(Box::new(&mut destination))
+        let band_setup = BandSetupBuilder::new(Box::new(&mut destination), COMPRESSION_FFT_SIZE)
             .bins(2048)
             .center_frequency(0.0);
-        let mut setup = DecompressSetup::new(empty_source);
+        let mut setup = DecompressSetup::new(empty_source, COMPRESSION_FFT_SIZE);
         setup.add_band(band_setup.build());
         decompress(setup).expect("Decompress failed");
     }

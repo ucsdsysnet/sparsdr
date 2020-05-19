@@ -21,7 +21,7 @@
 
 use std::time::Duration;
 
-use crossbeam::channel::{
+use crossbeam_channel::{
     Receiver, RecvTimeoutError, SendError, Sender, TryRecvError, TrySendError,
 };
 

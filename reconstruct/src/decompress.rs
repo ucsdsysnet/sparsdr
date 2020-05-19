@@ -25,7 +25,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crossbeam::thread::{self, ScopedJoinHandle};
+use crossbeam_utils::thread::{self, ScopedJoinHandle};
 
 use crate::band_decompress::BandSetup;
 use crate::bins::BinRange;
@@ -46,6 +46,8 @@ pub struct DecompressSetup<'w, 'b, I> {
     bands: Vec<BandSetup<'w>>,
     /// Capacity of input -> FFT/output stage channels
     channel_capacity: usize,
+    /// The number of FFT bins used to compress the samples
+    compression_fft_size: u16,
     /// Block logger used in source
     source_block_logger: Option<&'b BlockLogger>,
     /// A file or file-like thing where the time when each channel becomes active will be written
@@ -58,11 +60,12 @@ pub struct DecompressSetup<'w, 'b, I> {
 
 impl<'w, 'b, I> DecompressSetup<'w, 'b, I> {
     /// Creates a new decompression setup with no bands and default channel capacity
-    pub fn new(source: I) -> Self {
+    pub fn new(source: I, compression_fft_size: u16) -> Self {
         DecompressSetup {
             source,
             bands: Vec::new(),
             channel_capacity: DEFAULT_CHANNEL_CAPACITY,
+            compression_fft_size,
             source_block_logger: None,
             input_time_log: None,
             stop: None,
@@ -116,6 +119,7 @@ where
         setup.bands,
         setup.channel_capacity,
         setup.input_time_log,
+        setup.compression_fft_size,
     );
 
     // Measure time

@@ -17,7 +17,7 @@
 
 use std::time::Duration;
 
-use crossbeam::channel::RecvTimeoutError;
+use crossbeam_channel::RecvTimeoutError;
 
 use crate::channel_ext::LoggingReceiver;
 use crate::window::{Logical, Status, Window};

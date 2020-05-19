@@ -70,6 +70,8 @@ pub struct FftAndOutputSetup<'w> {
     pub bins: BinRange,
     /// The actual FFT size to use
     pub fft_size: u16,
+    /// The number of FFT bins used to compress the samples
+    pub compression_fft_size: u16,
     /// Floor of the center frequency offset, in bins
     pub fc_bins: f32,
     /// Time to wait for a compressed sample before flushing output
@@ -122,7 +124,7 @@ pub fn run_fft_and_output_stage(
         .filter_bins(setup.bins, setup.fft_size)
         .shift(setup.fft_size)
         .phase_correct(setup.fc_bins)
-        .fft(setup.fft_size)
+        .fft(setup.fft_size, setup.compression_fft_size)
         .overlap(usize::from(setup.fft_size));
 
     // Set up a frequency corrector for each output

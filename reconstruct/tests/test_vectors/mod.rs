@@ -26,6 +26,7 @@ use sparsdr_reconstruct::input::matlab;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
 
 use self::uncompressed::SAMPLE_BYTES;
+use crate::COMPRESSION_FFT_SIZE;
 
 /// Creates a decompressor and tests it on some test vectors
 ///
@@ -63,10 +64,10 @@ pub fn test_with_vectors<P1, P2, P3>(
         let samples_in = matlab::Samples::new(input_file);
         let mut output_file = BufWriter::new(&mut output_file);
 
-        let band_setup = BandSetupBuilder::new(Box::new(&mut output_file))
+        let band_setup = BandSetupBuilder::new(Box::new(&mut output_file), COMPRESSION_FFT_SIZE)
             .center_frequency(center_frequency)
             .bins(bins);
-        let mut setup = DecompressSetup::new(samples_in);
+        let mut setup = DecompressSetup::new(samples_in, COMPRESSION_FFT_SIZE);
         setup.add_band(band_setup.build());
 
         let info = decompress(setup).expect("Decompress failed");

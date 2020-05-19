@@ -28,6 +28,7 @@ use std::fs::File;
 use std::io::{BufReader, Result};
 use std::process;
 
+use sparsdr_reconstruct::format::SampleFormat;
 use sparsdr_reconstruct::input::iqzip::{Sample, Samples};
 
 /// Number of bins
@@ -39,7 +40,7 @@ fn main() -> Result<()> {
         process::exit(-1)
     });
     // Get average samples
-    let samples = Samples::new(BufReader::new(File::open(path)?))
+    let samples = Samples::new(BufReader::new(File::open(path)?), SampleFormat::n210())
         .map(Result::unwrap)
         .filter_map(Sample::into_average);
 

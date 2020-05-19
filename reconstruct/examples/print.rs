@@ -24,6 +24,7 @@ extern crate sparsdr_reconstruct;
 
 use std::io::{BufReader, Result};
 
+use sparsdr_reconstruct::format::SampleFormat;
 use sparsdr_reconstruct::input::iqzip::{Sample, Samples};
 use sparsdr_reconstruct::steps::group::overflow::Overflow;
 
@@ -33,10 +34,9 @@ fn main() -> Result<()> {
         "Sample", "Type", "FFT_No", "Index", "Time(ns)", "Real", "Imag"
     );
 
-    let samples = Samples::new(BufReader::new(std::io::stdin()));
+    let samples = Samples::new(BufReader::new(std::io::stdin()), SampleFormat::n210());
 
     let mut overflow = Overflow::new();
-    let mut offset = TimeOffsetRemover::new();
 
     for (i, sample) in samples.enumerate() {
         let sample = sample?;
@@ -63,27 +63,4 @@ fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Removes a time offset from samples
-#[derive(Debug, Default)]
-struct TimeOffsetRemover {
-    /// Timestamp of the first sample seen, in tens of nanoseconds
-    first_time: Option<u64>,
-}
-
-impl TimeOffsetRemover {
-    /// Creates an offset remover
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Removes the offset from a timestamp
-    pub fn remove_offset(&mut self, time: u64) -> u64 {
-        if self.first_time.is_none() {
-            self.first_time = Some(time);
-        }
-        time.checked_sub(self.first_time.unwrap())
-            .expect("Time offset calculation mathematical error")
-    }
 }

@@ -32,7 +32,6 @@ use crate::channel_ext::LoggingSender;
 use crate::input::Sample;
 use crate::iter_ext::IterExt;
 use crate::window::{Logical, Tag, Window};
-use crate::NATIVE_FFT_SIZE;
 
 /// The setup for the input stage
 pub struct InputSetup<I> {
@@ -42,6 +41,8 @@ pub struct InputSetup<I> {
     pub destinations: Vec<ToFft>,
     /// A file or file-like thing where the time when each channel becomes active will be written
     pub input_time_log: Option<Box<dyn Write>>,
+    /// The number of FFT bins used to compress the samples
+    pub fft_size: u16,
 }
 
 /// Information about an FFT stage, and a channel that can be used to send windows there
@@ -98,8 +99,8 @@ where
     let shift = setup
         .samples
         .take_while(|_| !stop.load(Ordering::Relaxed))
-        .group(usize::from(NATIVE_FFT_SIZE))
-        .shift_result(NATIVE_FFT_SIZE);
+        .group(usize::from(setup.fft_size))
+        .shift_result(setup.fft_size);
 
     // Process windows
     // Latency measurement hack: detect when the channel changes from active to inactive

@@ -19,7 +19,6 @@
 //! The basic steps of the decompression process
 //!
 
-pub mod buffered_pipe;
 pub mod fft;
 pub mod filter_bins;
 pub mod frequency_correct;
