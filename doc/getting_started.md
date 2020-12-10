@@ -40,7 +40,9 @@ sudo make install
 
 ## Loading the FPGA image
 
-Run `uhd_image_loader --args 'type=usrp2' --fpga-path FFT_compression_for_N210.bin`
+FPGA images are in the `fpga_images/N210` folder of this repository. One image file is for revisions 2 and 3 of the USRP N210, and the other file is for revision 4.
+
+Run `uhd_image_loader --args 'type=usrp2' --fpga-path SparSDR_N210_[revision].bin`
 
 When that completes, power cycle the USRP to start using the new image.
 

@@ -1,6 +1,6 @@
 # SparSDR
 
-This code accompanies the paper *SparSDR: Sparsity-proportional Backhaul and Compute for SDRs*.
+This code accompanies the paper [*SparSDR: Sparsity-proportional Backhaul and Compute for SDRs*](https://cseweb.ucsd.edu/~schulman/docs/mobisys19-sparsdr.pdf).
 
 ## What's included
 
@@ -16,11 +16,26 @@ data
 
 See [the getting started guide](doc/getting_started.md).
 
+## Debugging
+
+When SparSDR does not work correctly, [the debugging guide](doc/debugging.md) may help.
+
 ## Compatibility
 
-SparSDR is currently tested with GNU Radio 3.7.13.4. It should work with any
-version in the 3.7 series. Version 3.9 has some changes that break compatibility
-with SparSDR
+We have tested SparSDR with this configuration:
+
+* GNU Radio 3.7.13.4 or 3.7.14.1
+* UHD 3.10.3.0 or 3.13.1.0
+* Hardware: USRP N210 revision 4 with an SBX-120 daughter board
+
+SparSDR should work with any GNU Radio version in the 3.7 series. GNU Radio 3.8 has some changes that prevent the SparSDR module from compiling.
+
+This repository includes one FPGA image for the USRP N210 revision 4, and a separate FPGA image for N210 revisions 2 and 3.
+
+Daughter boards other than the SBX-120 should also work, with the following considerations:
+
+* If the daughter board receive bandwidth is less than 100 MHz, this will limit what you can receive with SparSDR
+* If the daughter board receive bandwidth is greater than 100 MHz, you may see aliasing because the signal will still be sampled at 100 megasamples per second.
 
 ## Licenses
 
