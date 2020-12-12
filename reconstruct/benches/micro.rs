@@ -25,6 +25,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
 use num_complex::Complex32;
 use sparsdr_reconstruct::bins::BinRange;
+use sparsdr_reconstruct::blocking::BlockLogger;
 use sparsdr_reconstruct::input::Sample;
 use sparsdr_reconstruct::steps::fft::Fft;
 use sparsdr_reconstruct::steps::filter_bins::FilterBinsIter;
@@ -35,7 +36,6 @@ use sparsdr_reconstruct::steps::phase_correct::PhaseCorrectIter;
 use sparsdr_reconstruct::steps::shift::ShiftIter;
 use sparsdr_reconstruct::steps::writer;
 use sparsdr_reconstruct::window::{Status, TimeWindow, Window};
-use sparsdr_reconstruct::blocking::BlockLogger;
 
 const COMPRESSION_BINS: u16 = 2048;
 
@@ -47,17 +47,35 @@ fn benchmark_fft(c: &mut Criterion) {
         (16, 100),
         (4, 100),
     ];
-    c.bench_function_over_inputs(
-        "step_fft",
-        |b, (size, count)| {
-            b.iter(|| {
-                let windows = iter::repeat(Status::Ok(Window::new(0, *size))).take(*count);
-                let fft = Fft::new(windows, *size, usize::from(COMPRESSION_BINS));
-                for _window in fft {}
-            })
-        },
-        sizes_and_counts.iter().cloned(),
-    );
+    {
+        let mut group = c.benchmark_group("FFT setup and teardown");
+        for (size, count) in sizes_and_counts.iter() {
+            group.bench_with_input(
+                format!("size {}, count {}", *size, *count),
+                &(*size, *count),
+                |b, &(size, count)| {
+                    b.iter(|| {
+                        let windows = iter::repeat(Status::Ok(Window::new(0, size))).take(count);
+                        let _fft = Fft::new(windows, size, usize::from(COMPRESSION_BINS));
+                    })
+                },
+            );
+        }
+    }
+    {
+        let mut group = c.benchmark_group("FFT run");
+        for (size, count) in sizes_and_counts.iter() {
+            group.bench_with_input(
+                format!("size {}, count {}", *size, *count),
+                &(*size, *count),
+                |b, &(size, count)| {
+                    let windows = iter::repeat(Status::Ok(Window::new(0, size)));
+                    let mut fft = Fft::new(windows, size, usize::from(COMPRESSION_BINS));
+                    b.iter(|| for _ in fft.by_ref().take(count) {})
+                },
+            );
+        }
+    }
 }
 
 fn benchmark_filter_bins(c: &mut Criterion) {
@@ -269,7 +287,9 @@ fn benchmark_write(c: &mut Criterion) {
                 let destination = std::io::sink();
                 let mut writer = writer::Writer::new();
                 let block_logger = BlockLogger::default();
-                writer.write_windows(destination, windows, &block_logger, None).unwrap();
+                writer
+                    .write_windows(destination, windows, &block_logger, None)
+                    .unwrap();
             },
             BatchSize::SmallInput,
         )

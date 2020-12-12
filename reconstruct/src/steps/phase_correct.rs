@@ -47,7 +47,7 @@ impl PhaseCorrect {
     ///
     /// fc_bins: The whole-number part of the frequency offset in bins
     pub fn new(fc_bins: f32) -> Self {
-        let correction_base = Complex32::exp(&(Complex32::i() * PI * fc_bins));
+        let correction_base = Complex32::exp(Complex32::i() * PI * fc_bins);
         PhaseCorrect {
             correction_base,
             correction: Complex32::one(),

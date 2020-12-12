@@ -54,6 +54,7 @@
 #![warn(unused)]
 
 extern crate byteorder;
+#[cfg(feature = "fftw")]
 extern crate fftw;
 extern crate num_complex;
 extern crate num_traits;
@@ -62,6 +63,8 @@ extern crate log;
 extern crate crossbeam_channel;
 extern crate crossbeam_utils;
 extern crate libc;
+#[cfg(not(feature = "fftw"))]
+extern crate rustfft;
 extern crate sparsdr_bin_mask;
 
 /// Converts an Option<Result<T, E>> into T, returning None if the value is None

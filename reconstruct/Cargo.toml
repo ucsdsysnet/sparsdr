@@ -32,16 +32,20 @@ crossbeam-channel = "0.4.2"
 crossbeam-utils = "0.7.2"
 signal-hook = "0.1.8"
 libc = "0.2.51"
+rustfft = "4.0.0"
 
 [dependencies.num-complex]
-version = "0.2.0"
+version = "0.3.1"
 default-features = false
 
 # Use the system-provided dynamically-linked FFTW to work around GPL
+# FIXME: The git dependency is needed to keep everything on num-complex 0.3. When fftw 0.7 is released, update this.
 [dependencies.fftw]
-version = "0.6.0"
+version = "0.7.0-alpha.0"
+git = "https://github.com/rust-math/fftw"
 default-features = false
 features = ["system"]
+optional = true
 
 [dependencies.sparsdr_bin_mask]
 path = "sparsdr_bin_mask"
@@ -64,3 +68,8 @@ name = "macro"
 harness = false
 
 [workspace]
+
+[features]
+# fftw is optional. If the fftw feature is disabled, rustfft will be used instead.
+default = ["fftw"]
+
