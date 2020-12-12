@@ -26,13 +26,16 @@ use std::io::{BufReader, BufWriter};
 use criterion::{criterion_group, criterion_main, Criterion};
 use sparsdr_reconstruct::input::iqzip::CompressedSamples;
 use sparsdr_reconstruct::{BandSetupBuilder, DecompressSetup};
+use sparsdr_reconstruct::format::SampleFormat;
+
+const COMPRESSION_BINS: u16 = 2048;
 
 fn benchmark_macro(c: &mut Criterion) {
     c.bench_function("macro_ble_advertising_channels", |f| {
         f.iter(|| {
             let source = File::open("test-data/iqzip/ble-advertising-short.iqz")
                 .expect("Failed to open source file");
-            let source = CompressedSamples::new(BufReader::new(source));
+            let source = CompressedSamples::new(BufReader::new(source), SampleFormat::n210());
 
             let mut ch37_out =
                 BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
@@ -41,23 +44,23 @@ fn benchmark_macro(c: &mut Criterion) {
             let mut ch39_out =
                 BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
 
-            let mut setup = DecompressSetup::new(source);
+            let mut setup = DecompressSetup::new(source, COMPRESSION_BINS);
             // Add channels
             setup
                 .add_band(
-                    BandSetupBuilder::new(&mut ch37_out)
+                    BandSetupBuilder::new(Box::new(ch37_out), COMPRESSION_BINS)
                         .bins(64)
                         .center_frequency(-48000000.0)
                         .build(),
                 )
                 .add_band(
-                    BandSetupBuilder::new(&mut ch38_out)
+                    BandSetupBuilder::new(Box::new(ch38_out), COMPRESSION_BINS)
                         .bins(64)
                         .center_frequency(-24000000.0)
                         .build(),
                 )
                 .add_band(
-                    BandSetupBuilder::new(&mut ch39_out)
+                    BandSetupBuilder::new(Box::new(ch39_out), COMPRESSION_BINS)
                         .bins(64)
                         .center_frequency(30000000.0)
                         .build(),
@@ -82,13 +85,13 @@ fn benchmark_macro(c: &mut Criterion) {
 
             let source = File::open("test-data/iqzip/ble-advertising-extra-short.iqz")
                 .expect("Failed to open source file");
-            let source = CompressedSamples::new(BufReader::new(source));
+            let source = CompressedSamples::new(BufReader::new(source), SampleFormat::n210());
 
-            let mut setup = DecompressSetup::new(source);
+            let mut setup = DecompressSetup::new(source, COMPRESSION_BINS);
             // Add channels
             for (frequency, file) in frequencies_and_files.iter_mut() {
                 setup.add_band(
-                    BandSetupBuilder::new(file)
+                    BandSetupBuilder::new(Box::new(file), COMPRESSION_BINS)
                         .bins(2)
                         .center_frequency(*frequency as f32 - 150_000_000.0)
                         .build(),

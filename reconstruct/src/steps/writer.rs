@@ -61,6 +61,12 @@ impl SampleSink for Vec<u8> {
     }
 }
 
+impl SampleSink for std::io::Sink {
+    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send>> {
+        self.write_all(bytes).map_err(box_error)
+    }
+}
+
 impl<W> SampleSink for BufWriter<W>
 where
     W: Write,

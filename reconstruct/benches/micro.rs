@@ -35,6 +35,9 @@ use sparsdr_reconstruct::steps::phase_correct::PhaseCorrectIter;
 use sparsdr_reconstruct::steps::shift::ShiftIter;
 use sparsdr_reconstruct::steps::writer;
 use sparsdr_reconstruct::window::{Status, TimeWindow, Window};
+use sparsdr_reconstruct::blocking::BlockLogger;
+
+const COMPRESSION_BINS: u16 = 2048;
 
 fn benchmark_fft(c: &mut Criterion) {
     let sizes_and_counts = [
@@ -49,7 +52,7 @@ fn benchmark_fft(c: &mut Criterion) {
         |b, (size, count)| {
             b.iter(|| {
                 let windows = iter::repeat(Status::Ok(Window::new(0, *size))).take(*count);
-                let fft = Fft::new(windows, *size);
+                let fft = Fft::new(windows, *size, usize::from(COMPRESSION_BINS));
                 for _window in fft {}
             })
         },
@@ -252,22 +255,6 @@ fn benchmark_window(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
-    c.bench_function("window_clone_arc", |b| {
-        b.iter_batched(
-            || {
-                // Create a window, which uses an Arc Arcow variant
-                let mut window = Window::new(0, 2048);
-                // Modify the window to make it owned
-                window.bins_mut()[0].re = 3.91;
-                window
-            },
-            |mut window| {
-                let _window1 = window.clone_arc();
-                let _window2 = window.clone_arc();
-            },
-            BatchSize::SmallInput,
-        )
-    });
 }
 
 fn benchmark_write(c: &mut Criterion) {
@@ -280,7 +267,9 @@ fn benchmark_write(c: &mut Criterion) {
             },
             |windows| {
                 let destination = std::io::sink();
-                writer::write_windows(destination, windows).unwrap();
+                let mut writer = writer::Writer::new();
+                let block_logger = BlockLogger::default();
+                writer.write_windows(destination, windows, &block_logger, None).unwrap();
             },
             BatchSize::SmallInput,
         )
