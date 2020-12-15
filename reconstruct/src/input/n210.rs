@@ -1,0 +1,407 @@
+/*
+ * Copyright 2020 The Regents of the University of California
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+//!
+//! USRP N210 input
+//!
+
+use std::error::Error;
+use std::{cmp, mem};
+
+use uhd::{
+    ReceiveStreamer, StreamArgs, StreamCommand, StreamCommandType, StreamTime, TuneRequest,
+    TuneResult, Usrp,
+};
+
+use super::{ReadInput, Sample};
+use byteorder::{ByteOrder, LittleEndian};
+use num_complex::{Complex, Complex32};
+use std::convert::TryInto;
+
+/// Sample rate used to receive time-domain samples for compression
+const SAMPLE_RATE: f32 = 100e6;
+/// Size of FFT used for compression
+const BINS: u16 = 2048;
+
+/// Number of bytes used to represent a sample, in the format the USRP sends
+const SAMPLE_BYTES: usize = 8;
+
+/// Maximum of Complex<i16> samples to read at a time
+///
+/// How we got this: The default receive frame size is 1472 bytes = 368 Complex<i16>s
+/// Then we rounded up to the nearest power of two.
+const RECEIVE_BUFFER_SIZE: usize = 512;
+
+mod registers {
+    /// Scaling (what is this?)
+    pub const SCALING: u8 = 10;
+    /// Per-bin threshold set command
+    pub const THRESHOLD: u8 = 11;
+    /// Per-bin mask set command
+    pub const MASK: u8 = 12;
+    /// Average weight
+    pub const AVG_WEIGHT: u8 = 13;
+    /// Average interval
+    pub const AVG_INTERVAL: u8 = 14;
+    /// Enable FFT sample sending
+    pub const FFT_SEND: u8 = 15;
+    /// Enable average sample sending
+    pub const AVG_SEND: u8 = 16;
+    /// Enable FFT
+    pub const RUN_FFT: u8 = 17;
+    /// Register to enable/disable compression
+    pub const ENABLE_COMPRESSION: u8 = 19;
+    /// FFT size
+    pub const FFT_SIZE: u8 = 20;
+}
+
+/// An input that reads from a USRP N210
+///
+/// When start() is called, compression is automatically enabled. Client code does not need to
+/// manually enable it.
+pub struct N210<'usrp> {
+    /// USRP
+    usrp: &'usrp Usrp,
+    /// Receive stream
+    stream: ReceiveStreamer<'usrp, Complex<i16>>,
+    /// The USRP motherboard number to control (usually 0)
+    mboard: usize,
+    /// The receive channel number to use (usually 0)
+    channel: usize,
+}
+
+impl<'usrp> N210<'usrp> {
+    /// Creates a receiver that uses a USRP
+    ///
+    /// mboard and channel are normally 0, but other values may be needed if multiple USRPs
+    /// are connected.
+    pub fn new(usrp: &'usrp Usrp, mboard: usize, channel: usize) -> Result<Self, uhd::Error> {
+        // Arguments: Stream the selected channel only
+        let args = StreamArgs::<Complex<i16>>::builder()
+            .channels(vec![channel])
+            .build();
+        let stream = usrp.get_rx_stream(&args)?;
+        Ok(N210 {
+            usrp,
+            stream,
+            mboard,
+            channel,
+        })
+    }
+
+    /// Sets the center frequency for receiving
+    pub fn set_frequency(&self, frequency: &TuneRequest) -> Result<TuneResult, uhd::Error> {
+        self.usrp.set_rx_frequency(frequency, self.channel)
+    }
+
+    /// Sets the antenna used to receive
+    pub fn set_antenna(&self, antenna: &str) -> Result<(), uhd::Error> {
+        self.usrp.set_rx_antenna(antenna, self.channel)
+    }
+
+    /// Sets the receive gain for the gain element with the provided name
+    ///
+    /// If name is empty, a gain element will be chosen automatically.
+    pub fn set_gain(&self, gain: f64, name: &str) -> Result<(), uhd::Error> {
+        self.usrp.set_rx_gain(gain, self.channel, name)
+    }
+
+    /// Enables or disables compression
+    ///
+    /// When compression is disabled, the USRP will send uncompressed samples as if it were using
+    /// the standard FPGA image.
+    pub fn set_compression_enabled(&self, enabled: bool) -> Result<(), uhd::Error> {
+        self.usrp
+            .set_user_register(registers::ENABLE_COMPRESSION, enabled as u32, self.mboard)
+    }
+
+    /// Enables/disables running the FFT
+    pub fn set_fft_enabled(&self, enabled: bool) -> Result<(), uhd::Error> {
+        self.usrp
+            .set_user_register(registers::RUN_FFT, enabled as u32, self.mboard)
+    }
+
+    /// Enables/disables sending of FFT samples
+    pub fn set_fft_send_enabled(&self, enabled: bool) -> Result<(), uhd::Error> {
+        self.usrp
+            .set_user_register(registers::FFT_SEND, enabled as u32, self.mboard)
+    }
+
+    /// Enables/disables sending of average samples
+    pub fn set_average_send_enabled(&self, enabled: bool) -> Result<(), uhd::Error> {
+        self.usrp
+            .set_user_register(registers::AVG_SEND, enabled as u32, self.mboard)
+    }
+
+    /// Enables the FFT, sending of FFT samples, and sending of average samples
+    pub fn start_all(&self) -> Result<(), uhd::Error> {
+        self.set_fft_send_enabled(true)?;
+        self.set_average_send_enabled(true)?;
+        self.set_fft_enabled(true)?;
+        Ok(())
+    }
+
+    /// Disables the FFT, sending of FFT samples, and sending of average samples
+    pub fn stop_all(&self) -> Result<(), uhd::Error> {
+        self.set_fft_send_enabled(false)?;
+        self.set_average_send_enabled(false)?;
+        self.set_fft_enabled(false)?;
+        Ok(())
+    }
+
+    /// Sets the number of bins used for the FFT
+    pub fn set_fft_size(&self, size: u32) -> Result<(), uhd::Error> {
+        self.usrp
+            .set_user_register(registers::FFT_SIZE, size, self.mboard)
+    }
+
+    /// Sets the FFT scaling factor (what is this?)
+    pub fn set_fft_scaling(&self, scaling: u32) -> Result<(), uhd::Error> {
+        self.usrp
+            .set_user_register(registers::SCALING, scaling, self.mboard)
+    }
+
+    /// Sets the threshold for one bin
+    ///
+    /// TODO: Threshold units and more documentation
+    pub fn set_threshold(&self, index: u16, threshold: u32) -> Result<(), uhd::Error> {
+        // Register format:
+        // Bits 31:21 : index (11 bits)
+        // Bits 20:0 : threshold shifted right by 11 bits (21 bits)
+
+        // Check that index fits within 11 bits
+        assert!(index <= 0x7ff, "index must fit within 11 bits");
+
+        let command: u32 = (u32::from(index) << 21) | (threshold >> 11);
+        self.usrp
+            .set_user_register(registers::THRESHOLD, command, self.mboard)
+    }
+
+    /// Enables or disables masking for one bin
+    pub fn set_mask_enabled(&self, index: u16, enabled: bool) -> Result<(), uhd::Error> {
+        // Register format:
+        // Bits 31:1 : index (31 bits)
+        // Bit 0 : set mask (1) / clear mask (0)
+
+        let command: u32 = (u32::from(index) << 1) | enabled as u32;
+        self.usrp
+            .set_user_register(registers::MASK, command, self.mboard)
+    }
+
+    /// Sets the average weight
+    ///
+    /// TODO: What is this?, more documentation
+    pub fn set_average_weight(&self, weight: f32) -> Result<(), uhd::Error> {
+        assert!(
+            weight >= 0.0 && weight <= 1.0,
+            "weight must be in the range [0, 1]"
+        );
+
+        // Map to 0...255
+        let mapped = (weight * 255.0) as u8;
+        self.usrp
+            .set_user_register(registers::AVG_WEIGHT, u32::from(mapped), self.mboard)
+    }
+
+    /// Sets the interval between sets of average samples
+    ///
+    /// TODO: What units?
+    pub fn set_average_packet_interval(&self, interval: u32) -> Result<(), uhd::Error> {
+        assert_ne!(interval, 0, "interval must not be 0");
+
+        // Register format: ceiling of the base-2 logarithm of the interval
+        let ceiling_log_interval = 31 - interval.leading_zeros();
+        self.usrp
+            .set_user_register(registers::AVG_INTERVAL, ceiling_log_interval, self.mboard)
+    }
+}
+
+impl ReadInput for N210<'_> {
+    fn sample_rate(&self) -> f32 {
+        SAMPLE_RATE
+    }
+
+    fn bins(&self) -> u16 {
+        BINS
+    }
+
+    fn start(&mut self) -> Result<(), Box<dyn Error>> {
+        self.set_compression_enabled(true)?;
+        self.start_all()?;
+        // Start sending samples now and expect to continue forever
+        self.stream.send_command(&StreamCommand {
+            time: StreamTime::Now,
+            command_type: StreamCommandType::StartContinuous,
+        })?;
+        Ok(())
+    }
+
+    fn read_samples(&mut self, samples: &mut [Sample]) -> Result<usize, Box<dyn Error>> {
+        // Calculate the number of Complex<i16>s to read. This uses double samples.len()
+        // because each sample is 8 bytes (two Complex<i16>s)
+        let raw_sample_count = cmp::min(samples.len() * 2, RECEIVE_BUFFER_SIZE);
+        let mut raw_buffer = [Complex::<i16>::default(); RECEIVE_BUFFER_SIZE];
+        let mut raw_buffer = &mut raw_buffer[..raw_sample_count];
+        // Need to loop in case all the samples received are average samples.
+        // The loop will exit if at least one data sample was received.
+        loop {
+            // TODO: Set timeout correctly, detect and handle overflow
+            let metadata = self.stream.receive(&mut [&mut raw_buffer], 0.1, false)?;
+            if metadata.out_of_sequence() {
+                warn!("Dropped or out-of-sequence packet from USRP");
+            }
+            if let Some(e) = metadata.last_error() {
+                return Err(e.into());
+            }
+            let raw_received = complex_to_bytes(&raw_buffer[..metadata.samples()]);
+            // Parse samples, get data samples only, convert to generic samples, copy into output buffer
+            let samples_out = raw_received
+                .chunks_exact(SAMPLE_BYTES)
+                .map(|chunk| parse_sample(chunk.try_into().unwrap()))
+                .filter_map(N210Sample::into_data)
+                .zip(samples.iter_mut())
+                .map(|(sample, buffer_item)| {
+                    *buffer_item = sample.into();
+                })
+                .count();
+            if samples_out != 0 {
+                return Ok(samples_out);
+            }
+        }
+    }
+}
+
+/// Converts a slice of complex values to a view of the same memory as bytes
+fn complex_to_bytes(samples: &[Complex<i16>]) -> &[u8] {
+    let ptr = samples.as_ptr();
+    let scale = mem::size_of::<Complex<i16>>() / mem::size_of::<u8>();
+    let length = samples.len() * scale;
+    // This is safe as long as u8 does not require greater alignment than Complex<i16>.
+    unsafe { std::slice::from_raw_parts(ptr as *const u8, length) }
+}
+
+fn parse_sample(bytes: &[u8; SAMPLE_BYTES]) -> N210Sample {
+    // Little-endian
+    type E = LittleEndian;
+    let fft_index = E::read_u16(&bytes[0..2]);
+    let time = E::read_u16(&bytes[2..4]);
+    // Last 4 bytes may be either real/imaginary signal or average magnitude
+    let magnitude = {
+        // Magnitude is in two 2-byte chunks. Bytes within each chunk are little endian,
+        // but the more significant chunk is first.
+        let more_significant = E::read_u16(&bytes[4..6]);
+        let less_significant = E::read_u16(&bytes[6..8]);
+        u32::from(more_significant) << 16 | u32::from(less_significant)
+    };
+    let real = E::read_i16(&bytes[4..6]);
+    let imag = E::read_i16(&bytes[6..8]);
+
+    let is_average = ((fft_index >> 15) & 1) == 1;
+    let index = (fft_index >> 4) & 0x7ff;
+    // Reassemble time from MSBs and other bits
+    let time = u32::from(time) | (u32::from(fft_index & 0xF) << 16);
+
+    if is_average {
+        N210Sample::Average(AverageSample {
+            time,
+            index,
+            magnitude,
+        })
+    } else {
+        N210Sample::Data(DataSample {
+            time,
+            index,
+            real,
+            imag,
+        })
+    }
+}
+
+/// A data or average sample
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
+enum N210Sample {
+    /// A data sample
+    Data(DataSample),
+    /// An average sample
+    Average(AverageSample),
+}
+
+impl N210Sample {
+    /// Returns a DataSample if this is a data sample, or None otherwise
+    pub fn into_data(self) -> Option<DataSample> {
+        match self {
+            N210Sample::Data(data) => Some(data),
+            N210Sample::Average(_) => None,
+        }
+    }
+}
+
+/// A data sample, containing signal information
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
+struct DataSample {
+    /// The time of this sample, in units of 10 nanoseconds
+    pub time: u32,
+    /// The index in the FFT (0-2047) of this sample
+    pub index: u16,
+    /// The real part of the amplitude, as a 16-bit signed integer
+    pub real: i16,
+    /// The imaginary part of the amplitude, as a 16-bit signed integer
+    pub imag: i16,
+}
+
+impl DataSample {
+    /// Returns the amplitude of this sample as a floating-point complex number
+    pub fn complex_amplitude(&self) -> Complex32 {
+        Complex32 {
+            re: to_float(self.real),
+            im: to_float(self.imag),
+        }
+    }
+}
+
+/// An average sample
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
+struct AverageSample {
+    /// The time of this sample, in units of 10 nanoseconds
+    pub time: u32,
+    /// The index in the FFT (0-2047) of this sample
+    pub index: u16,
+    /// The magnitude of the average signal at this index, in the same units as the threshold
+    pub magnitude: u32,
+}
+
+/// Converts a 16-bit value into a float
+///
+/// -32767 maps to approximately -1.0 and 32768 maps to approximately 1.0 .
+fn to_float(value: i16) -> f32 {
+    const MAX_MAGNITUDE: f32 = 32768.0;
+    f32::from(value) / MAX_MAGNITUDE
+}
+
+/// Conversion from an IQZip data sample into a standard sample
+impl From<DataSample> for Sample {
+    fn from(data_sample: DataSample) -> Self {
+        Sample {
+            time: data_sample.time,
+            index: data_sample.index,
+            amplitude: data_sample.complex_amplitude(),
+        }
+    }
+}

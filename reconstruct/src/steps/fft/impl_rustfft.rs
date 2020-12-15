@@ -19,11 +19,13 @@
 //! An FFT implementation that uses rustfft
 //!
 
-use crate::window::{Fft, TimeWindow, Window};
+use std::sync::Arc;
+
 use num_complex::Complex32;
 use num_traits::Zero;
 use rustfft::{FFTplanner, FFT};
-use std::sync::Arc;
+
+use crate::window::{Fft, TimeWindow, Window};
 
 /// rustfft FFT implementation
 pub struct RustFftFft {

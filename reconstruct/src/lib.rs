@@ -66,6 +66,7 @@ extern crate libc;
 #[cfg(not(feature = "fftw"))]
 extern crate rustfft;
 extern crate sparsdr_bin_mask;
+extern crate uhd;
 
 /// Converts an Option<Result<T, E>> into T, returning None if the value is None
 /// or Some(Err(e)) if the value is Some(Err(e))
@@ -94,6 +95,7 @@ macro_rules! try_status {
 // Public modules
 pub mod blocking;
 pub mod input;
+pub mod output;
 // These are only public to allow the benchmark code to access them
 pub mod bins;
 pub mod format;

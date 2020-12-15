@@ -33,6 +33,7 @@ crossbeam-utils = "0.7.2"
 signal-hook = "0.1.8"
 libc = "0.2.51"
 rustfft = "4.0.0"
+uhd = "0.1.0"
 
 [dependencies.num-complex]
 version = "0.3.1"
