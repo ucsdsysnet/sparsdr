@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/sparsdr_bin_mask/sparsdr_bin_mask.iml" filepath="$PROJECT_DIR$/sparsdr_bin_mask/sparsdr_bin_mask.iml" />
       <module fileurl="file://$PROJECT_DIR$/sparsdr_reconstruct.iml" filepath="$PROJECT_DIR$/sparsdr_reconstruct.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sparsdr_reconstruct_config/sparsdr_reconstruct_config.iml" filepath="$PROJECT_DIR$/sparsdr_reconstruct_config/sparsdr_reconstruct_config.iml" />
     </modules>
   </component>
 </project>

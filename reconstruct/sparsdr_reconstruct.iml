@@ -19,6 +19,8 @@
       <sourceFolder url="file://$MODULE_DIR$/sparsdr_bin_mask/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/sparsdr_bin_mask/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/sparsdr_bin_mask/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/sparsdr_reconstruct_config/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/sparsdr_reconstruct_config/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/pi_gpu_fft/target" />
       <excludeFolder url="file://$MODULE_DIR$/pi_gpu_fft_sys/target" />
       <excludeFolder url="file://$MODULE_DIR$/sparsdr_bin_mask/target" />
