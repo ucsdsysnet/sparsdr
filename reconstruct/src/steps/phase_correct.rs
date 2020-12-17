@@ -64,6 +64,13 @@ impl PhaseCorrect {
         // Update correction for next window
         self.correction *= self.correction_base;
     }
+
+    /// Applies the correction to a sequence of windows
+    pub fn correct_windows(&mut self, windows: &mut [Window]) {
+        for window in windows {
+            self.correct_window(window);
+        }
+    }
 }
 
 /// An iterator adapter that applies a phase correction to frequency-domain windows

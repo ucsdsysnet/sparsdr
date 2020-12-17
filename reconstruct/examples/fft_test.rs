@@ -34,7 +34,7 @@ fn main() {
 
     let mut output = AlignedVec::<Complex32>::new(FFT_SIZE);
 
-    let mut fft = C2CPlan32::aligned(&[FFT_SIZE], Sign::Backward, Flag::Measure)
+    let mut fft = C2CPlan32::aligned(&[FFT_SIZE], Sign::Backward, Flag::MEASURE)
         .expect("Failed to create FFT");
 
     fft.c2c(&mut input_scratch, &mut output)

@@ -17,6 +17,8 @@
 
 //! Bin filtering
 
+use std::slice;
+
 use num_complex::Complex32;
 use num_traits::Zero;
 
@@ -42,10 +44,19 @@ impl FilterBins {
     /// Filters a window and moves the bins to new positions in the window
     ///
     /// Returns None if the window contains no active bins in this filter's bin range
-    fn filter_window(&mut self, mut window: Window<Logical>) -> Option<Window<Logical>> {
+    fn filter_window(&self, mut window: Window<Logical>) -> Option<Window<Logical>> {
         debug_assert!(usize::from(self.bins.end()) <= window.bins().len());
         let matches = matches_range(&self.bins, window.bins());
         if matches {
+            self.filter_windows(slice::from_mut(&mut window));
+            Some(window)
+        } else {
+            None
+        }
+    }
+
+    pub fn filter_windows(&self, windows: &mut [Window<Logical>]) {
+        for window in windows {
             // Need to truncate the window to self.fft_size bins, and move values in the range
             // self.bins to the center of the truncated window
 
@@ -61,16 +72,12 @@ impl FilterBins {
                 *bin = Complex32::zero();
             }
 
-            // Shift
+            // Part 2: Shift
             let offset = self.bins.middle() - self.fft_size / 2;
             window.bins_mut().rotate_left(usize::from(offset));
 
             // Truncate
             window.truncate_bins(usize::from(self.fft_size));
-
-            Some(window)
-        } else {
-            None
         }
     }
 }

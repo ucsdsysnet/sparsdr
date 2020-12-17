@@ -80,6 +80,20 @@ impl ToFft {
             Ok(false)
         }
     }
+
+    pub fn send_multiple_if_interested(&self, windows: &[Window<Logical>]) -> Result<()> {
+        let mut to_send = Vec::new();
+        for window in windows {
+            if window.active_bins().overlaps(&self.bin_mask) {
+                to_send.push(window.clone());
+            }
+        }
+        // TODO: Change channel to use Vec<Window<Logical>>. The current version has bad performance.
+        for window in to_send {
+            self.send_if_interested(&window)?;
+        }
+        Ok(())
+    }
 }
 
 pub fn run_input_stage<I>(mut setup: InputSetup<I>, stop: Arc<AtomicBool>) -> Result<InputReport>

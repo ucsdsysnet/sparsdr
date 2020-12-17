@@ -29,7 +29,7 @@ fn main() {
     while imaginary <= PI * 2.0 {
         let complex = Complex32::new(0.0, imaginary);
 
-        let exponent = Complex32::exp(&complex);
+        let exponent = Complex32::exp(complex);
 
         // CSV-like output
         println!("{},{},{}", imaginary, exponent.re, exponent.im);

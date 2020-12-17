@@ -22,6 +22,7 @@
 use std::fmt::{self, Write};
 use std::iter::Enumerate;
 use std::marker::PhantomData;
+use std::mem;
 use std::ops::Range;
 use std::slice::Iter;
 use std::u16;
@@ -282,6 +283,15 @@ where
             tag: self.tag,
             _order_phantom: PhantomData,
         }
+    }
+
+    /// Swaps all non-phantom fields of this window with the corresponding fields of another window
+    /// of the opposite order
+    pub fn swap_with_other_ordering(&mut self, other: &mut Window<Ord::Other>) {
+        mem::swap(&mut self.time, &mut other.time);
+        mem::swap(&mut self.bins, &mut other.bins);
+        mem::swap(&mut self.active_bins, &mut other.active_bins);
+        mem::swap(&mut self.tag, &mut other.tag);
     }
 }
 

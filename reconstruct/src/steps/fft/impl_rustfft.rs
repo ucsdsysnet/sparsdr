@@ -48,4 +48,9 @@ impl RustFftFft {
         time_window.samples_mut().copy_from_slice(&self.scratch);
         time_window
     }
+
+    pub fn run2(&mut self, source: &mut Window, destination: &mut TimeWindow) {
+        self.fft
+            .process(source.bins_mut(), destination.samples_mut());
+    }
 }

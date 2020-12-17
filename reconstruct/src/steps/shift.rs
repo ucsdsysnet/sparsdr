@@ -52,9 +52,9 @@ impl Shift {
     }
 
     /// Shifts all samples in a window from one ordering to the other
-    fn shift_window<Ord>(&mut self, mut window: Window<Ord>) -> Window<Ord::Other>
+    fn shift_window<ORD>(&self, mut window: Window<ORD>) -> Window<ORD::Other>
     where
-        Ord: Ordering,
+        ORD: Ordering,
     {
         debug_assert_eq!(
             window.bins().len(),
@@ -70,6 +70,35 @@ impl Shift {
         // Do the same for the active bin bits
         window.active_bins_mut().shift();
         window.into_other_ordering()
+    }
+
+    /// Shifts multiple windows
+    ///
+    /// Returns the number of windows processed
+    pub fn shift_windows<ORD>(
+        &self,
+        windows_in: &mut [Window<ORD>],
+        windows_out: &mut [Window<ORD::Other>],
+    ) -> usize
+    where
+        ORD: Ordering,
+    {
+        windows_in
+            .iter_mut()
+            .zip(windows_out.iter_mut())
+            .map(|(window_in, window_out)| {
+                debug_assert_eq!(
+                    window_in.bins().len(),
+                    usize::from(self.size),
+                    "Incorrect window size"
+                );
+                // Apply the shift to window_in, then swap it with window_out to change the type
+                let half_size = usize::from(self.size / 2);
+                window_in.bins_mut().rotate_right(half_size);
+                window_in.active_bins_mut().shift();
+                window_in.swap_with_other_ordering(window_out);
+            })
+            .count()
     }
 }
 

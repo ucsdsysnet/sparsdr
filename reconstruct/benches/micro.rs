@@ -27,11 +27,11 @@ use num_complex::Complex32;
 use sparsdr_reconstruct::bins::BinRange;
 use sparsdr_reconstruct::blocking::BlockLogger;
 use sparsdr_reconstruct::input::Sample;
-use sparsdr_reconstruct::steps::fft::Fft;
+use sparsdr_reconstruct::steps::fft::FftIter;
 use sparsdr_reconstruct::steps::filter_bins::FilterBinsIter;
 use sparsdr_reconstruct::steps::frequency_correct::FrequencyCorrectIter;
-use sparsdr_reconstruct::steps::group::Grouper;
-use sparsdr_reconstruct::steps::overlap::Overlap;
+use sparsdr_reconstruct::steps::group::GroupIter;
+use sparsdr_reconstruct::steps::overlap::OverlapIter;
 use sparsdr_reconstruct::steps::phase_correct::PhaseCorrectIter;
 use sparsdr_reconstruct::steps::shift::ShiftIter;
 use sparsdr_reconstruct::steps::writer;
@@ -56,7 +56,7 @@ fn benchmark_fft(c: &mut Criterion) {
                 |b, &(size, count)| {
                     b.iter(|| {
                         let windows = iter::repeat(Status::Ok(Window::new(0, size))).take(count);
-                        let _fft = Fft::new(windows, size, usize::from(COMPRESSION_BINS));
+                        let _fft = FftIter::new(windows, size, usize::from(COMPRESSION_BINS));
                     })
                 },
             );
@@ -70,7 +70,7 @@ fn benchmark_fft(c: &mut Criterion) {
                 &(*size, *count),
                 |b, &(size, count)| {
                     let windows = iter::repeat(Status::Ok(Window::new(0, size)));
-                    let mut fft = Fft::new(windows, size, usize::from(COMPRESSION_BINS));
+                    let mut fft = FftIter::new(windows, size, usize::from(COMPRESSION_BINS));
                     b.iter(|| for _ in fft.by_ref().take(count) {})
                 },
             );
@@ -175,7 +175,7 @@ fn benchmark_grouper(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let samples = GenerateSamples::new(2048).map(Ok).take(2048 * 2);
-                Grouper::new(samples, 2048)
+                GroupIter::new(samples, 2048)
             },
             |step| {
                 for _window in step {}
@@ -215,7 +215,7 @@ fn benchmark_overlap(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let windows = GenerateTimeWindows::new(2048).map(Status::Ok).take(100);
-                Overlap::new(windows, 2048)
+                OverlapIter::new(windows, 2048)
             },
             |step| {
                 for _window in step {}

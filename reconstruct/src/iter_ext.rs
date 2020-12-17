@@ -21,11 +21,11 @@ use std::io::Result;
 
 use crate::bins::BinRange;
 use crate::input::Sample;
-use crate::steps::fft::Fft;
+use crate::steps::fft::FftIter;
 use crate::steps::filter_bins::FilterBinsIter;
 use crate::steps::frequency_correct::FrequencyCorrectIter;
-use crate::steps::group::Grouper;
-use crate::steps::overlap::Overlap;
+use crate::steps::group::GroupIter;
+use crate::steps::overlap::OverlapIter;
 use crate::steps::phase_correct::PhaseCorrectIter;
 use crate::steps::shift::{ShiftIter, ShiftWindowResultIter};
 
@@ -34,11 +34,11 @@ use super::window::{Logical, Status, TimeWindow, Window};
 /// Iterator extension for signal processing
 pub trait IterExt {
     /// Groups samples with the same time field into windows
-    fn group(self, fft_size: usize) -> Grouper<Self>
+    fn group(self, fft_size: usize) -> GroupIter<Self>
     where
         Self: Iterator<Item = Result<Sample>> + Sized,
     {
-        Grouper::new(self, fft_size)
+        GroupIter::new(self, fft_size)
     }
 
     /// Filters windows based on a bin range
@@ -78,11 +78,11 @@ pub trait IterExt {
     }
 
     /// Applies an inverse FFT to windows
-    fn fft(self, fft_size: u16, compression_fft_size: u16) -> Fft<Self>
+    fn fft(self, fft_size: u16, compression_fft_size: u16) -> FftIter<Self>
     where
         Self: Iterator<Item = Status<Window>> + Sized,
     {
-        Fft::new(
+        FftIter::new(
             self,
             usize::from(fft_size),
             usize::from(compression_fft_size),
@@ -90,11 +90,11 @@ pub trait IterExt {
     }
 
     /// Overlaps windows with consecutive time values
-    fn overlap(self, window_size: usize) -> Overlap<Self>
+    fn overlap(self, window_size: usize) -> OverlapIter<Self>
     where
         Self: Iterator<Item = Status<TimeWindow>> + Sized,
     {
-        Overlap::new(self, window_size)
+        OverlapIter::new(self, window_size)
     }
 
     /// Applies frequency correction to time-domain samples

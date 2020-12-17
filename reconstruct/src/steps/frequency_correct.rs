@@ -75,6 +75,12 @@ impl FrequencyCorrect {
             self.correct_sample(sample);
         }
     }
+    /// Applies the frequency correction to each sample in each window
+    pub fn correct_windows(&mut self, windows: &mut [TimeWindow]) {
+        for window in windows {
+            self.correct_samples(window.samples_mut());
+        }
+    }
 }
 
 /// An iterator adapter that applies a frequency correction to time-domain samples

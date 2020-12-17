@@ -109,6 +109,7 @@ pub mod window;
 mod band_decompress;
 mod channel_ext;
 mod component_setup;
+mod cursor;
 mod decompress;
 mod stages;
 
