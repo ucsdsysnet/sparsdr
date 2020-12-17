@@ -26,6 +26,10 @@ GR_PYTHON_INSTALL(
 
 # C++
 
+# Use pkg-config to find log4cpp
+# When using GNU Radio 3.8, this library needs to be linked.
+pkg_check_modules(LOG4CPP REQUIRED log4cpp)
+
 # sparsdr_receive
 
 add_executable(sparsdr_receive
@@ -38,6 +42,7 @@ target_include_directories(sparsdr_receive
 target_link_libraries(sparsdr_receive
     gnuradio-sparsdr
     ${UHD_LIBRARIES}
+    ${LOG4CPP_LIBRARIES}
 )
 install(
     TARGETS sparsdr_receive
@@ -58,6 +63,7 @@ if(GR_BLUETOOTH_FOUND)
     target_link_libraries(sparsdr_bluetooth_sniffer
         gnuradio-sparsdr
         ${GR_BLUETOOTH_LIBRARIES}
+        ${LOG4CPP_LIBRARIES}
     )
     install(
         TARGETS sparsdr_bluetooth_sniffer
@@ -76,6 +82,7 @@ if(GR_BLUETOOTH_FOUND)
         gnuradio-sparsdr
         ${GR_BLUETOOTH_LIBRARIES}
         ${UHD_LIBRARIES}
+        ${LOG4CPP_LIBRARIES}
     )
     install(
         TARGETS sparsdr_receive_sniffer
