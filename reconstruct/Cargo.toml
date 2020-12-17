@@ -17,6 +17,7 @@
 [package]
 name = "sparsdr_reconstruct"
 version = "0.1.0"
+edition = "2018"
 authors = ["Sam Crow <scrow@eng.ucsd.edu>"]
 description = "Reconstructs signals from SparSDR compressed data"
 license = "Apache-2.0"

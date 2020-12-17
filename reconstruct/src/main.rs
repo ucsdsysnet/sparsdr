@@ -50,6 +50,8 @@
     missing_docs
 )]
 #![warn(clippy::all)]
+// Keep extern crates, like in 2015
+#![allow(unused_extern_crates)]
 
 #[macro_use]
 extern crate clap;

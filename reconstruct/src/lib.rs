@@ -52,6 +52,8 @@
 )]
 #![warn(clippy::all)]
 #![warn(unused)]
+// Keep extern crates, like in 2015
+#![allow(unused_extern_crates)]
 
 extern crate byteorder;
 #[cfg(feature = "fftw")]
