@@ -205,6 +205,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use log::LevelFilter;
 
     #[test]
     fn no_args() -> Result<(), Box<dyn Error>> {

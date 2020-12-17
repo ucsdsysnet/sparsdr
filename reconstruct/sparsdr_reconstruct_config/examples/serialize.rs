@@ -15,13 +15,14 @@
  *
  */
 
-extern crate serde_json;
 extern crate sparsdr_reconstruct_config;
 extern crate toml;
 
 use std::path::PathBuf;
 
-use sparsdr_reconstruct_config::{Band, Compression, Config, Format, Input, Output, UserInterface};
+use sparsdr_reconstruct_config::{
+    Band, Compression, Config, Format, Input, Output, UdpHeaderFormat, UserInterface,
+};
 use std::collections::BTreeMap;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -49,11 +50,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 destination: Output::Udp {
                     local_address: "127.0.0.1:0".parse()?,
                     remote_address: "127.0.0.1:3920".parse()?,
+                    header_format: UdpHeaderFormat::None,
                 },
             },
         ],
     };
-    println!("{}", serde_json::to_string_pretty(&test_config_1)?);
     println!("{}", toml::to_string(&test_config_1)?);
     let uhd_args = {
         let mut args = BTreeMap::new();
@@ -97,6 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 destination: Output::Udp {
                     local_address: "127.0.0.1:0".parse()?,
                     remote_address: "127.0.0.1:3920".parse()?,
+                    header_format: UdpHeaderFormat::Sequence,
                 },
             },
             Band {

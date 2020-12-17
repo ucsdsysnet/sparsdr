@@ -1055,7 +1055,6 @@ dependencies = [
  "clap",
  "log",
  "serde",
- "serde_json",
  "toml 0.5.7",
 ]
 

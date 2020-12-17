@@ -388,6 +388,7 @@ frequency = 0
 type = 'udp'
 local_address = '192.168.10.147:0'
 remote_address = '128.64.8.33:992'
+header_format = 'sequence_and_length'
     ",
         &Config {
             source: Input::File {
@@ -401,6 +402,7 @@ remote_address = '128.64.8.33:992'
                 destination: Output::Udp {
                     local_address: "192.168.10.147:0".parse().unwrap(),
                     remote_address: "128.64.8.33:992".parse().unwrap(),
+                    header_format: UdpHeaderFormat::SequenceAndLength,
                 },
             }],
         },
@@ -435,6 +437,7 @@ remote_address = '128.64.8.33:992'
                 destination: Output::Udp {
                     local_address: any_address(),
                     remote_address: "128.64.8.33:992".parse().unwrap(),
+                    header_format: UdpHeaderFormat::None,
                 },
             }],
         },

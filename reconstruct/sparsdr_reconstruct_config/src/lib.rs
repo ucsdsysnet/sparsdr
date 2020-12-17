@@ -145,7 +145,24 @@ pub enum Output {
         #[serde(default = "any_address")]
         local_address: SocketAddr,
         remote_address: SocketAddr,
+        #[serde(default)]
+        header_format: UdpHeaderFormat,
     },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(rename_all = "snake_case")]
+pub enum UdpHeaderFormat {
+    None,
+    Sequence,
+    SequenceAndLength,
+}
+
+impl Default for UdpHeaderFormat {
+    fn default() -> Self {
+        UdpHeaderFormat::None
+    }
 }
 
 /// Returns an address that allows binding to an unspecified IP address and port
