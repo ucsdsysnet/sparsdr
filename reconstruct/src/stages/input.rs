@@ -19,7 +19,7 @@
 //! into windows, and shifts them into logical order
 
 use std::collections::BTreeMap;
-use std::io::{Error, ErrorKind, Result, Write};
+use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -28,19 +28,18 @@ use sparsdr_bin_mask::BinMask;
 
 use crate::bins::BinRange;
 use crate::blocking::BlockLogs;
-use crate::channel_ext::LoggingSender;
-use crate::input::Sample;
+use crate::input::{ReadInput, Sample};
 use crate::iter_ext::IterExt;
 use crate::window::{Logical, Tag, Window};
+use crossbeam_channel::Sender;
+use std::error::Error;
 
 /// The setup for the input stage
-pub struct InputSetup<I> {
-    /// An iterator yielding samples from the source
-    pub samples: I,
+pub struct InputSetup {
+    /// Source of compressed samples
+    pub source: Box<dyn ReadInput>,
     /// Send half of channels used to send windows to all FFT stages
     pub destinations: Vec<ToFft>,
-    /// A file or file-like thing where the time when each channel becomes active will be written
-    pub input_time_log: Option<Box<dyn Write>>,
     /// The number of FFT bins used to compress the samples
     pub fft_size: u16,
 }
@@ -52,138 +51,106 @@ pub struct ToFft {
     /// The mask of bins the FFT stage is interested in (same as bins)
     pub bin_mask: BinMask,
     /// A sender on the channel to the FFT stage
-    pub tx: LoggingSender<Window<Logical>>,
+    pub tx: Sender<Vec<Window<Logical>>>,
 }
 
 impl ToFft {
     /// Sends a window to this FFT/output stage, if this stage is interested in the window
     ///
     /// This function returns Err if the FFT/output thread thread has exited. On success,
-    /// it returns true if the window was sent.
-    pub fn send_if_interested(&self, window: &Window<Logical>) -> Result<bool> {
-        // Check if the stage is interested
-        if window.active_bins().overlaps(&self.bin_mask) {
-            match self.tx.send(window.clone()) {
-                Ok(()) => Ok(true),
-                Err(_) => {
-                    // This can happen when using the stop flag if the other thread stops before
-                    // this one. It's not really an error here. If the other thread panicked,
-                    // the higher-level code will detect it.
-                    Err(Error::new(
-                        ErrorKind::Other,
-                        "A decompression thread has exited unexpectedly",
-                    ))
-                }
-            }
-        } else {
-            // Not interested, don't send
-            Ok(false)
-        }
-    }
-
-    pub fn send_multiple_if_interested(&self, windows: &[Window<Logical>]) -> Result<()> {
-        let mut to_send = Vec::new();
+    /// it returns true if any window was sent.
+    pub fn send_if_interested(&self, windows: &[Window<Logical>]) -> io::Result<bool> {
+        let mut windows_to_send = Vec::new();
         for window in windows {
+            // Check if the stage is interested
             if window.active_bins().overlaps(&self.bin_mask) {
-                to_send.push(window.clone());
+                windows_to_send.push(window.clone());
             }
         }
-        // TODO: Change channel to use Vec<Window<Logical>>. The current version has bad performance.
-        for window in to_send {
-            self.send_if_interested(&window)?;
+
+        if windows_to_send.is_empty() {
+            Ok(false)
+        } else {
+            // Send the windows
+            self.tx.send(windows_to_send).map_err(|e| {
+                // Couldn't send because the channel has been disconnected
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    "A decompression thread has exited unexpectedly",
+                )
+            })?;
+            Ok(true)
         }
-        Ok(())
     }
 }
 
-pub fn run_input_stage<I>(mut setup: InputSetup<I>, stop: Arc<AtomicBool>) -> Result<InputReport>
-where
-    I: Iterator<Item = Result<Sample>>,
-{
-    // Write time log CSV headers
-    if let Some(log) = setup.input_time_log.as_mut() {
-        writeln!(log, "Channel,Tag,Seconds,Nanoseconds")?;
+pub fn run_input_stage(mut setup: InputSetup, stop: Arc<AtomicBool>) -> Result<(), Box<dyn Error>> {
+    while !stop.load(Ordering::Relaxed) {
+        let buffer_size = 64usize;
+        let mut samples_in = vec![
+            Sample {
+                time: 0,
+                index: 0,
+                amplitude: Default::default()
+            };
+            buffer_size * setup.fft_size
+        ];
+        let samples_read = setup.source.read_samples(&mut samples_in)?;
+        samples_in.truncate(samples_read);
+        // Group
     }
 
-    // Tag windows that have newly active channels
-    let mut next_tag = Tag::default();
-
-    // Set up iterator chain
-    // Shift and send to the decompression thread
-    let shift = setup
-        .samples
-        .take_while(|_| !stop.load(Ordering::Relaxed))
-        .group(usize::from(setup.fft_size))
-        .shift_result(setup.fft_size);
-
-    // Process windows
-    // Latency measurement hack: detect when the channel changes from active to inactive
-    let mut prev_active = false;
-    for window in shift {
-        let mut window = window?;
-        // Give this window a tag
-        let window_tag = next_tag;
-        window.set_tag(window_tag);
-        next_tag = next_tag.next();
-
-        // Send to each interested FFT stage
-        for fft_stage in setup.destinations.iter() {
-            match fft_stage.send_if_interested(&window) {
-                Ok(sent) => {
-                    // Latency measurement hack that works correctly only when there is only one
-                    // band to decompress: Detect when the bins have become inactive and log that
-                    if !sent && prev_active {
-                        if let Some(ref mut log) = setup.input_time_log {
-                            log_inactive_channel(&mut *log, "BLE 37", window_tag)?;
-                        }
-                    }
-
-                    prev_active = sent;
-                }
-                Err(_) => {
-                    // Other thread could have exited normally due to the stop flag, so just
-                    // exit this thread normally
-                    break;
-                }
-            }
-        }
-    }
-
-    // Collect block logs
-    let channel_send_blocks = setup
-        .destinations
-        .into_iter()
-        .map(|to_fft| (to_fft.bins, to_fft.tx.logs()))
-        .collect();
-
-    Ok(InputReport {
-        channel_send_blocks,
-    })
-}
-
-/// Writes a log entry indicating that a channel with the provided name is active
-fn log_inactive_channel(destination: &mut dyn Write, channel_name: &str, tag: Tag) -> Result<()> {
-    let mut now = timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    };
-    // Use clock_gettime, which should be the same in C++ and Rust
-    let status = unsafe { clock_gettime(libc::CLOCK_MONOTONIC, &mut now) };
-    if status != 0 {
-        return Err(Error::last_os_error());
-    }
-    // CSV format: channel, tag, seconds, nanoseconds
-    writeln!(
-        destination,
-        "{},{},{},{}",
-        channel_name, tag, now.tv_sec, now.tv_nsec
-    )?;
     Ok(())
-}
 
-/// A report on the results of the input stage
-#[derive(Debug)]
-pub struct InputReport {
-    /// Logs of blocks on channels for sending to the FFT/output stages
-    pub channel_send_blocks: BTreeMap<BinRange, BlockLogs>,
+    // // Set up iterator chain
+    // // Shift and send to the decompression thread
+    // let shift = setup
+    //     .samples
+    //     .take_while(|_| !stop.load(Ordering::Relaxed))
+    //     .group(usize::from(setup.fft_size))
+    //     .shift_result(setup.fft_size);
+    //
+    // // Process windows
+    // // Latency measurement hack: detect when the channel changes from active to inactive
+    // let mut prev_active = false;
+    // for window in shift {
+    //     let mut window = window?;
+    //     // Give this window a tag
+    //     let window_tag = next_tag;
+    //     window.set_tag(window_tag);
+    //     next_tag = next_tag.next();
+    //
+    //     // Send to each interested FFT stage
+    //     for fft_stage in setup.destinations.iter() {
+    //         match fft_stage.send_if_interested(&window) {
+    //             Ok(sent) => {
+    //                 // Latency measurement hack that works correctly only when there is only one
+    //                 // band to decompress: Detect when the bins have become inactive and log that
+    //                 if !sent && prev_active {
+    //                     if let Some(ref mut log) = setup.input_time_log {
+    //                         log_inactive_channel(&mut *log, "BLE 37", window_tag)?;
+    //                     }
+    //                 }
+    //
+    //                 prev_active = sent;
+    //             }
+    //             Err(_) => {
+    //                 // Other thread could have exited normally due to the stop flag, so just
+    //                 // exit this thread normally
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
+    //
+    // // Collect block logs
+    // let channel_send_blocks = setup
+    //     .destinations
+    //     .into_iter()
+    //     .map(|to_fft| (to_fft.bins, to_fft.tx.logs()))
+    //     .collect();
+    //
+    // Ok(InputReport {
+    //     channel_send_blocks,
+    // })
 }

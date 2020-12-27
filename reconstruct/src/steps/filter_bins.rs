@@ -26,7 +26,7 @@ use crate::bins::BinRange;
 use crate::window::{Logical, Status, Window};
 
 /// Filters Samples and applies an offset to index values
-struct FilterBins {
+pub struct FilterBins {
     /// Bin range to map from
     bins: BinRange,
     /// Index values get mapped into a region of bins of the same size as bins, at the center of
@@ -35,7 +35,7 @@ struct FilterBins {
 }
 
 impl FilterBins {
-    fn new(bins: BinRange, fft_size: u16) -> Self {
+    pub(crate) fn new(bins: BinRange, fft_size: u16) -> Self {
         debug_assert!(bins.end() >= bins.start());
         assert!(bins.size() <= fft_size);
         FilterBins { bins, fft_size }

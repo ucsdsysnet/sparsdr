@@ -417,6 +417,11 @@ impl TimeWindow {
         self.time
     }
 
+    /// Sets the timestamp of this window
+    pub fn set_time(&mut self, time: u64) {
+        self.time = time;
+    }
+
     /// Returns the number of samples in this window
     pub fn len(&self) -> usize {
         self.samples.len()

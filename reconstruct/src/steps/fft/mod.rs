@@ -76,6 +76,7 @@ impl Fft {
         // FFT
         for (window_in, window_out) in windows_in.iter_mut().zip(windows_out.iter_mut()) {
             self.fft_impl.run2(window_in, window_out);
+            window_out.set_time(window_in.time());
         }
         // Scale
         for window in windows_out {

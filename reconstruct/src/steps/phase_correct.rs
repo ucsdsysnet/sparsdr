@@ -33,7 +33,7 @@ use crate::window::{Status, Window};
 //
 
 /// Applies phase correction to frequency-domain windows
-struct PhaseCorrect {
+pub struct PhaseCorrect {
     /// e^(i * pi * fc_bins)
     ///
     /// For each new window, correction gets multiplied by this value
