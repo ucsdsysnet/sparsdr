@@ -26,16 +26,16 @@ use sparsdr_bin_mask::BinMask;
 use crate::band_decompress::BandSetup;
 use crate::bins::BinRange;
 use crate::channel_ext::{LoggingReceiver, LoggingSender};
-use crate::input::Sample;
+use crate::input::{ReadInput, Sample};
 use crate::stages::fft_and_output::{FftAndOutputSetup, OutputSetup};
 use crate::stages::input::{InputSetup, ToFft};
 
 /// Setups for the input stage, and the combined FFT and output stages
-pub struct StagesCombined<'w, I> {
+pub struct StagesCombined {
     /// Input stage setup
-    pub input: InputSetup<I>,
+    pub input: InputSetup,
     /// FFT and output stages setup
-    pub fft_and_output: Vec<FftAndOutputSetup<'w>>,
+    pub fft_and_output: Vec<FftAndOutputSetup>,
 }
 
 /// Calculates and returns setups for the input, FFT and output stages to decompress the provided
@@ -47,27 +47,22 @@ pub struct StagesCombined<'w, I> {
 ///
 /// channel_capacity: the capacity of the channels connecting the input stage to each output stage
 ///
-/// input_time_log: A file or file-like thing where active channels and times will be logged
-///
-pub fn set_up_stages_combined<'w, I, B>(
-    samples: I,
+pub fn set_up_stages_combined<B>(
+    samples: Box<dyn ReadInput>,
     bands: B,
     channel_capacity: usize,
-    input_time_log: Option<Box<dyn Write>>,
     compression_fft_size: u16,
-) -> StagesCombined<'w, I::IntoIter>
+) -> StagesCombined
 where
-    I: IntoIterator<Item = Result<Sample>>,
-    B: IntoIterator<Item = BandSetup<'w>>,
+    B: IntoIterator<Item = BandSetup>,
 {
     let bands = bands.into_iter();
     // Each (bin range, fc_bins) gets one FFT and output stage
-    let mut ffts: BTreeMap<FftKey, FftAndOutputSetup<'w>> = BTreeMap::new();
+    let mut ffts: BTreeMap<FftKey, FftAndOutputSetup> = BTreeMap::new();
 
     let mut input = InputSetup {
-        samples: samples.into_iter(),
+        source: samples,
         destinations: Vec::new(),
-        input_time_log,
         fft_size: compression_fft_size,
     };
 
@@ -76,8 +71,6 @@ where
         let fft_setup = ffts.entry(key(&band_setup)).or_insert_with(|| {
             // Create a new channel to this FFT stage
             let (tx, rx) = crossbeam_channel::bounded(channel_capacity);
-            let tx = LoggingSender::new(tx);
-            let rx = LoggingReceiver::new(rx);
 
             input.destinations.push(ToFft {
                 bins: band_setup.bins.clone(),
@@ -98,7 +91,6 @@ where
         let output_setup = OutputSetup {
             bin_offset: band_setup.bin_offset,
             destination: band_setup.destination,
-            time_log: band_setup.time_log,
         };
         fft_setup.outputs.push(output_setup);
     }
@@ -116,7 +108,7 @@ where
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 struct FftKey(BinRange, i64);
 /// Creates a key from a band setup
-fn key(band_setup: &BandSetup<'_>) -> FftKey {
+fn key(band_setup: &BandSetup) -> FftKey {
     FftKey(band_setup.bins.clone(), band_setup.fc_bins as i64)
 }
 

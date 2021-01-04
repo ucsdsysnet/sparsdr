@@ -47,14 +47,12 @@
 //!
 
 use std::error::Error;
-use std::io::Write;
 use std::time::Duration;
 
 use crossbeam_channel::{Receiver, RecvTimeoutError};
 use num_complex::Complex32;
 
 use crate::bins::BinRange;
-use crate::iter_ext::IterExt;
 use crate::output::WriteOutput;
 use crate::steps::fft::Fft;
 use crate::steps::filter_bins::FilterBins;
@@ -100,18 +98,20 @@ struct OutputChain {
 /// On success, this returns the total number of samples written.
 pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup) -> Result<(), Box<dyn Error + Send>> {
     // Set up steps
-    let mut filter_bins = FilterBins::new(setup.bins, setup.fft_size);
-    let mut shift = Shift::new(setup.fft_size);
+    let filter_bins = FilterBins::new(setup.bins, setup.fft_size);
+    let shift = Shift::new(setup.fft_size);
     let mut phase_correct = PhaseCorrect::new(setup.fc_bins);
     let mut fft = Fft::new(
         usize::from(setup.fft_size),
         usize::from(setup.compression_fft_size),
     );
     let mut overlap = Overlap::new();
+    let fft_size = setup.fft_size;
     let mut output_chains: Vec<OutputChain> = setup
         .outputs
+        .into_iter()
         .map(|output_setup| OutputChain {
-            frequency_correct: FrequencyCorrect::new(output_setup.bin_offset, setup.fft_size),
+            frequency_correct: FrequencyCorrect::new(output_setup.bin_offset, fft_size),
             destination: output_setup.destination,
         })
         .collect();
@@ -134,17 +134,17 @@ pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup) -> Result<(), Box<
                 // Feed windows in to process
                 filter_bins.filter_windows(&mut windows_before_shift);
                 windows_before_fft.resize_with(windows_before_shift.len(), || {
-                    Window::new(0, usize::from(setup.fft_size))
+                    Window::new(0, usize::from(fft_size))
                 });
                 shift.shift_windows(&mut windows_before_shift, &mut windows_before_fft);
                 phase_correct.correct_windows(&mut windows_before_fft);
                 windows_before_overlap.resize_with(windows_before_fft.len(), || {
-                    TimeWindow::new(0, vec![Complex32::default(); usize::from(setup.fft_size)])
+                    TimeWindow::new(0, vec![Complex32::default(); usize::from(fft_size)])
                 });
                 fft.run(&mut windows_before_fft, &mut windows_before_overlap);
                 // Overlap output size: The maximum number of output windows = number of input windows
                 windows_before_frequency_correct.resize_with(windows_before_overlap.len(), || {
-                    TimeWindow::new(0, vec![Complex32::default(); usize::from(setup.fft_size)])
+                    TimeWindow::new(0, vec![Complex32::default(); usize::from(fft_size)])
                 });
                 let overlap_result = overlap.run(
                     &windows_before_overlap,

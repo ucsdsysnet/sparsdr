@@ -114,4 +114,4 @@ mod decompress;
 mod stages;
 
 pub use crate::band_decompress::{BandSetup, BandSetupBuilder};
-pub use crate::decompress::{decompress, DecompressSetup, Report};
+pub use crate::decompress::{decompress, DecompressSetup};

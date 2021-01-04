@@ -18,19 +18,15 @@
 //! The input stage of the decompression, which reads samples from a source, groups them
 //! into windows, and shifts them into logical order
 
-use std::collections::BTreeMap;
 use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use libc::{clock_gettime, timespec};
 use sparsdr_bin_mask::BinMask;
 
 use crate::bins::BinRange;
-use crate::blocking::BlockLogs;
 use crate::input::{ReadInput, Sample};
-use crate::iter_ext::IterExt;
-use crate::window::{Logical, Tag, Window};
+use crate::window::{Logical, Window};
 use crossbeam_channel::Sender;
 use std::error::Error;
 
@@ -72,7 +68,7 @@ impl ToFft {
             Ok(false)
         } else {
             // Send the windows
-            self.tx.send(windows_to_send).map_err(|e| {
+            self.tx.send(windows_to_send).map_err(|_e| {
                 // Couldn't send because the channel has been disconnected
                 io::Error::new(
                     io::ErrorKind::Other,
@@ -93,7 +89,7 @@ pub fn run_input_stage(mut setup: InputSetup, stop: Arc<AtomicBool>) -> Result<(
                 index: 0,
                 amplitude: Default::default()
             };
-            buffer_size * setup.fft_size
+            buffer_size * usize::from(setup.fft_size)
         ];
         let samples_read = setup.source.read_samples(&mut samples_in)?;
         samples_in.truncate(samples_read);

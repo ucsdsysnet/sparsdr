@@ -15,12 +15,11 @@
  *
  */
 
-use std::io::Write;
 use std::time::Duration;
 
 use super::bins::choice::choose_bins;
 use super::bins::BinRange;
-use crate::steps::writer::SampleSink;
+use crate::output::WriteOutput;
 
 /// Default timeout before flushing samples to output
 pub const TIMEOUT: Duration = Duration::from_millis(100);
@@ -29,7 +28,7 @@ const DEFAULT_COMPRESSED_BANDWIDTH: f32 = 100_000_000.0;
 const DEFAULT_FFT_SIZE: u16 = 2048;
 
 /// Setup for decompression of one band
-pub struct BandSetup<'w> {
+pub struct BandSetup {
     /// The bins to decompress
     pub bins: BinRange,
     /// The actual FFT size to use
@@ -41,12 +40,10 @@ pub struct BandSetup<'w> {
     /// Time to wait for a compressed sample before flushing output
     pub timeout: Duration,
     /// The destination to write decompressed samples to
-    pub destination: Box<dyn SampleSink + Send + 'w>,
-    /// Tagged window time log
-    pub time_log: Option<Box<dyn Write + Send>>,
+    pub destination: Box<dyn WriteOutput + Send>,
 }
 
-impl<'w> BandSetup<'w> {
+impl BandSetup {
     /// Returns the bins to be decompressed for this band
     pub fn bins(&self) -> BinRange {
         self.bins.clone()
@@ -58,7 +55,7 @@ impl<'w> BandSetup<'w> {
 }
 
 /// Setup builder for decompression of one band
-pub struct BandSetupBuilder<'w> {
+pub struct BandSetupBuilder {
     /// Bandwidth of the compressed data
     compressed_bandwidth: f32,
     /// Center frequency to decompress, relative to the center of the compressed data
@@ -70,15 +67,13 @@ pub struct BandSetupBuilder<'w> {
     /// Time to wait for a compressed sample before flushing output
     timeout: Duration,
     /// The destination to write decompressed samples to
-    destination: Box<dyn SampleSink + Send + 'w>,
-    /// Tagged window time log
-    time_log: Option<Box<dyn Write + Send>>,
+    destination: Box<dyn WriteOutput + Send>,
 }
 
-impl<'w> BandSetupBuilder<'w> {
+impl BandSetupBuilder {
     /// Creates a default band setup that will decompress a full 100 MHz spectrum and write
     /// decompressed samples to the provided source
-    pub fn new(destination: Box<dyn SampleSink + Send + 'w>, compression_bins: u16) -> Self {
+    pub fn new(destination: Box<dyn WriteOutput + Send>, compression_bins: u16) -> Self {
         BandSetupBuilder {
             compressed_bandwidth: DEFAULT_COMPRESSED_BANDWIDTH,
             center_frequency: 0.0,
@@ -86,7 +81,6 @@ impl<'w> BandSetupBuilder<'w> {
             compression_bins,
             timeout: TIMEOUT,
             destination,
-            time_log: None,
         }
     }
     /// Sets the center frequency to decompress
@@ -111,16 +105,9 @@ impl<'w> BandSetupBuilder<'w> {
             ..self
         }
     }
-    /// Sets the window output time log file
-    pub fn time_log(self, time_log: Box<dyn Write + Send>) -> Self {
-        BandSetupBuilder {
-            time_log: Some(time_log),
-            ..self
-        }
-    }
 
     /// Builds a setup from this builder
-    pub fn build(self) -> BandSetup<'w> {
+    pub fn build(self) -> BandSetup {
         let fft_size = self
             .bins
             .checked_next_power_of_two()
@@ -140,7 +127,6 @@ impl<'w> BandSetupBuilder<'w> {
             fc_bins,
             timeout: self.timeout,
             destination: self.destination,
-            time_log: self.time_log,
         }
     }
 }

@@ -55,6 +55,7 @@ impl FilterBins {
         }
     }
 
+    /// Filters the bins in each window in the provided slice
     pub fn filter_windows(&self, windows: &mut [Window<Logical>]) {
         for window in windows {
             // Need to truncate the window to self.fft_size bins, and move values in the range
