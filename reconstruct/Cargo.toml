@@ -22,6 +22,10 @@ authors = ["Sam Crow <scrow@eng.ucsd.edu>"]
 description = "Reconstructs signals from SparSDR compressed data"
 license = "Apache-2.0"
 
+[[bin]]
+name = "sparsdr_reconstruct"
+path = "app/main.rs"
+
 [dependencies]
 clap = "2.32.0"
 byteorder = "1.2.6"

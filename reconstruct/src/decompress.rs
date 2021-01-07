@@ -85,21 +85,22 @@ impl DecompressSetup {
 
 /// Decompresses bands using the provided setup and returns information about the decompression
 pub fn decompress(setup: DecompressSetup) -> Result<(), Box<dyn std::error::Error + Send>> {
-    // Figure out the stages
-    let stages = set_up_stages_combined(
-        setup.source,
-        setup.bands,
-        setup.channel_capacity,
-        setup.compression_fft_size,
-    );
-
-    // Track number of threads created, including the main thread
-    let mut threads = 1usize;
-    // Create a stop flag that's always false if the caller did not provide one
+    // If a stop flag was not provided, keep running forever
     let stop = setup
         .stop
         .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
 
+    // Figure out the stages
+    let mut stages = set_up_stages_combined(
+        setup.source,
+        setup.bands,
+        setup.channel_capacity,
+        setup.compression_fft_size,
+        Arc::clone(&stop),
+    );
+
+    // Track number of threads created, including the main thread
+    let mut threads = 1usize;
     thread::scope(|scope| {
         // Start a thread for each FFT and output stage
         let fft_and_output_threads: Vec<(
@@ -124,10 +125,12 @@ pub fn decompress(setup: DecompressSetup) -> Result<(), Box<dyn std::error::Erro
 
         // Run the input right here
         run_input_stage(stages.input, stop).expect("Input failure");
+        log::debug!("Input exited");
 
         // Join output threads
         // TODO: Error handling
         for (_bins, thread) in fft_and_output_threads {
+            log::debug!("Joining an output thread...");
             thread
                 .join()
                 .expect("Join failure")

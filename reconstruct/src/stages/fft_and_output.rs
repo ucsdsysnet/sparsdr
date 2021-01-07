@@ -61,6 +61,9 @@ use crate::steps::overlap::Overlap;
 use crate::steps::phase_correct::PhaseCorrect;
 use crate::steps::shift::Shift;
 use crate::window::{Logical, TimeWindow, Window};
+use std::ops::Not;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 pub struct FftAndOutputSetup {
     /// Source of windows
@@ -77,6 +80,15 @@ pub struct FftAndOutputSetup {
     pub timeout: Duration,
     /// The output setups
     pub outputs: Vec<OutputSetup>,
+    /// The stop flag
+    pub stop: Arc<AtomicBool>,
+}
+
+impl FftAndOutputSetup {
+    /// Returns false if self.stop is true, returns false otherwise
+    pub fn running(&self) -> bool {
+        self.stop.load(Ordering::Relaxed).not()
+    }
 }
 
 pub struct OutputSetup {
@@ -98,7 +110,7 @@ struct OutputChain {
 /// On success, this returns the total number of samples written.
 pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup) -> Result<(), Box<dyn Error + Send>> {
     // Set up steps
-    let filter_bins = FilterBins::new(setup.bins, setup.fft_size);
+    let filter_bins = FilterBins::new(setup.bins.clone(), setup.fft_size);
     let shift = Shift::new(setup.fft_size);
     let mut phase_correct = PhaseCorrect::new(setup.fc_bins);
     let mut fft = Fft::new(
@@ -109,7 +121,7 @@ pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup) -> Result<(), Box<
     let fft_size = setup.fft_size;
     let mut output_chains: Vec<OutputChain> = setup
         .outputs
-        .into_iter()
+        .drain(..)
         .map(|output_setup| OutputChain {
             frequency_correct: FrequencyCorrect::new(output_setup.bin_offset, fft_size),
             destination: output_setup.destination,
@@ -128,7 +140,7 @@ pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup) -> Result<(), Box<
     let mut windows_before_frequency_correct: Vec<TimeWindow> = Vec::new();
 
     // Run everything
-    loop {
+    while setup.running() {
         match setup.source.recv_timeout(setup.timeout) {
             Ok(mut windows_before_shift) => {
                 // Feed windows in to process
@@ -176,10 +188,11 @@ pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup) -> Result<(), Box<
             }
             Err(RecvTimeoutError::Disconnected) => {
                 // No more windows will appear, so exit
-                break Ok(());
+                return Ok(());
             }
         };
     }
+    Ok(())
 
     //
     // let fft_size = setup.fft_size;

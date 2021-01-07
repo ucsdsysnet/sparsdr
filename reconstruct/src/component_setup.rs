@@ -18,17 +18,17 @@
 //! Determines a good setup for the stages of decompression
 
 use std::collections::BTreeMap;
-use std::io::{Result, Write};
 
 use crossbeam_channel;
 use sparsdr_bin_mask::BinMask;
 
 use crate::band_decompress::BandSetup;
 use crate::bins::BinRange;
-use crate::channel_ext::{LoggingReceiver, LoggingSender};
-use crate::input::{ReadInput, Sample};
+use crate::input::ReadInput;
 use crate::stages::fft_and_output::{FftAndOutputSetup, OutputSetup};
 use crate::stages::input::{InputSetup, ToFft};
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 /// Setups for the input stage, and the combined FFT and output stages
 pub struct StagesCombined {
@@ -48,10 +48,11 @@ pub struct StagesCombined {
 /// channel_capacity: the capacity of the channels connecting the input stage to each output stage
 ///
 pub fn set_up_stages_combined<B>(
-    samples: Box<dyn ReadInput>,
+    mut samples: Box<dyn ReadInput>,
     bands: B,
     channel_capacity: usize,
     compression_fft_size: u16,
+    stop: Arc<AtomicBool>,
 ) -> StagesCombined
 where
     B: IntoIterator<Item = BandSetup>,
@@ -59,6 +60,9 @@ where
     let bands = bands.into_iter();
     // Each (bin range, fc_bins) gets one FFT and output stage
     let mut ffts: BTreeMap<FftKey, FftAndOutputSetup> = BTreeMap::new();
+
+    // Initialize stop flag for input
+    samples.set_stop_flag(Arc::clone(&stop));
 
     let mut input = InputSetup {
         source: samples,
@@ -85,6 +89,7 @@ where
                 fc_bins: band_setup.fc_bins,
                 timeout: band_setup.timeout,
                 outputs: vec![],
+                stop: Arc::clone(&stop),
             }
         });
 

@@ -19,7 +19,7 @@
 //! This binary decompresses IQZip/SparSDR/whatever it's called now compressed data.
 //!
 
-#![deny(
+#![warn(
     bad_style,
     const_err,
     dead_code,
@@ -60,15 +60,15 @@ extern crate log;
 extern crate signal_hook;
 extern crate simplelog;
 extern crate sparsdr_reconstruct;
+extern crate sparsdr_reconstruct_config;
 
 use indicatif::ProgressBar;
 use signal_hook::{flag::register, SIGHUP, SIGINT};
 use simplelog::{Config, SimpleLogger, TermLogger, TerminalMode};
 use sparsdr_reconstruct::blocking::BlockLogger;
 use sparsdr_reconstruct::input::iqzip::CompressedSamples;
-use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
+use sparsdr_reconstruct::{decompress, BandSetup, BandSetupBuilder, DecompressSetup};
 
-mod args;
 mod setup;
 
 use std::error::Error;
@@ -77,74 +77,49 @@ use std::process;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
-use self::args::Args;
 use self::setup::Setup;
 
 fn run() -> Result<(), Box<dyn Error>> {
-    let args = Args::get();
+    let config = sparsdr_reconstruct_config::config_from_command_line()?;
     // Logging
-    let log_status = TermLogger::init(args.log_level, Config::default(), TerminalMode::Stderr)
-        .or_else(|_| SimpleLogger::init(args.log_level, Config::default()));
+    let log_status = TermLogger::init(config.ui.log_level, Config::default(), TerminalMode::Stderr)
+        .or_else(|_| SimpleLogger::init(config.ui.log_level, Config::default()));
     if let Err(e) = log_status {
         eprintln!("Failed to set up simpler logger: {}", e);
     }
 
-    let sample_format = args.sample_format.clone();
-    let setup = Setup::from_args(args)?;
+    let setup = Setup::from_config(&config)?;
+    let compression_bins = setup.source.bins();
+    let compression_bandwidth = setup.source.sample_rate();
 
     let progress = create_progress_bar(&setup);
 
-    // Set up to read IQZip samples from file
-    let in_block_logger = BlockLogger::new();
-    let samples_in: CompressedSamples<'_, Box<dyn Read>> = if let Some(ref progress) = progress {
-        CompressedSamples::with_block_logger(
-            Box::new(progress.wrap_read(setup.source)),
-            &in_block_logger,
-            sample_format,
-        )
-    } else {
-        CompressedSamples::with_block_logger(
-            Box::new(setup.source),
-            &in_block_logger,
-            sample_format,
-        )
-    };
-
+    // Notes about signals on Linux:
+    // SIGINT or SIGHUP sets the stop flag to true, but does not interrupt any read calls that are
+    // in progress.
     // Set up signal handlers for clean exit
     let stop_flag = Arc::new(AtomicBool::new(false));
     register(SIGINT, Arc::clone(&stop_flag))?;
     register(SIGHUP, Arc::clone(&stop_flag))?;
 
     // Configure compression
-    let mut decompress_setup = DecompressSetup::new(samples_in, setup.sample_format.fft_size());
-    decompress_setup
-        .set_channel_capacity(setup.channel_capacity)
-        .set_source_block_logger(&in_block_logger)
-        .set_stop_flag(Arc::clone(&stop_flag));
-    if let Some(input_time_log) = setup.input_time_log {
-        decompress_setup.set_input_time_log(input_time_log);
-    }
+    let mut decompress_setup = DecompressSetup::new(setup.source, compression_bins);
+    decompress_setup.set_channel_capacity(setup.channel_capacity);
+    decompress_setup.set_stop_flag(stop_flag);
+
     for band in setup.bands {
-        let mut band_setup =
-            BandSetupBuilder::new(band.destination, setup.sample_format.fft_size())
-                .compressed_bandwidth(setup.sample_format.compressed_bandwidth())
+        decompress_setup.add_band(
+            BandSetupBuilder::new(band.destination, compression_bins, compression_bandwidth)
                 .center_frequency(band.center_frequency)
-                .bins(band.bins);
-        if let Some(time_log) = band.time_log {
-            band_setup = band_setup.time_log(time_log);
-        }
-        decompress_setup.add_band(band_setup.build());
+                .bins(band.bins)
+                .build(),
+        );
     }
 
-    let report =
-        decompress(decompress_setup).map_err(|e: Box<dyn Error + Send>| -> Box<dyn Error> { e })?;
+    decompress(decompress_setup).map_err(|e: Box<dyn Error + Send>| -> Box<dyn Error> { e })?;
 
     if let Some(progress) = progress {
         progress.finish();
-    }
-
-    if setup.report {
-        eprintln!("{:#?}", report);
     }
 
     Ok(())

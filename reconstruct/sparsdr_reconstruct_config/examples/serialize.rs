@@ -51,6 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     local_address: "127.0.0.1:0".parse()?,
                     remote_address: "127.0.0.1:3920".parse()?,
                     header_format: UdpHeaderFormat::None,
+                    mtu: 1472,
                 },
             },
         ],
@@ -99,6 +100,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     local_address: "127.0.0.1:0".parse()?,
                     remote_address: "127.0.0.1:3920".parse()?,
                     header_format: UdpHeaderFormat::Sequence,
+                    mtu: 1472,
                 },
             },
             Band {

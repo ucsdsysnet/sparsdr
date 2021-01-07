@@ -19,6 +19,7 @@
 //! Parsers for reading sample input in various formats
 //!
 
+pub mod format;
 pub mod iqzip;
 pub mod matlab;
 pub mod n210;
@@ -26,6 +27,8 @@ pub mod n210;
 use std::error::Error;
 
 use num_complex::Complex32;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 /// Trait for methods of reading compressed samples from a radio or file
 pub trait ReadInput {
@@ -45,6 +48,10 @@ pub trait ReadInput {
         Ok(())
     }
 
+    /// Sets the stop flag to use when reading input
+    /// If the stop flag is true, the input should stop reading.
+    fn set_stop_flag(&mut self, stop: Arc<AtomicBool>);
+
     /// Reads one or more samples from the source into a buffer
     ///
     /// This function may read fewer samples than the size of the buffer. If the source
@@ -62,9 +69,10 @@ pub trait ReadInput {
 pub struct Sample {
     /// A timestamp of the FFT that produced this sample
     ///
-    /// The unit of this timestamp is the interval between time-domain samples. For example,
-    /// SparSDR on the USRP N210 receives signals at 100 million samples per second, so the timestamp
-    /// is in units of 10 nanoseconds.
+    /// The unit of this timestamp is (half the compression FFT size) / (the compression sample rate).
+    /// For example, SparSDR on the USRP N210 receives signals at 100 million samples per second
+    /// with a window size of 2048 samples, so the timestamp
+    /// is in units of 1024 / 100e6 = 10.24 microseconds
     ///
     /// Consecutive samples with the same value are assumed to come from the same FFT. This value
     /// may overflow.

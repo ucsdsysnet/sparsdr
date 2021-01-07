@@ -129,24 +129,38 @@ fn log_level_warn() -> LevelFilter {
     LevelFilter::Warn
 }
 
+/// How to write the reconstructed samples from a band
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum Output {
+    /// Write files to standard output
     Stdout,
+    /// Write samples to a file
     File {
+        /// The path to the file
         path: PathBuf,
     },
+    /// Connect to a TCP server and send samples over a socket
     TcpClient {
+        /// Address of the server to connect to
         server_address: SocketAddr,
     },
+    /// Send samples over a UDP socket
     Udp {
+        /// Local address to bind to
         #[serde(default = "any_address")]
         local_address: SocketAddr,
+        /// Remote address to send samples to
         remote_address: SocketAddr,
+        /// Format of headers to add to each packet
         #[serde(default)]
         header_format: UdpHeaderFormat,
+        /// The maximum number of bytes to send in each packet, including headers added by
+        /// the selected header format but excluding the IP and UDP headers
+        #[serde(default = "default_mtu")]
+        mtu: usize,
     },
 }
 
@@ -159,10 +173,16 @@ pub enum UdpHeaderFormat {
     SequenceAndLength,
 }
 
+/// Returns a header format that uses no headers
 impl Default for UdpHeaderFormat {
     fn default() -> Self {
         UdpHeaderFormat::None
     }
+}
+
+/// Returns the default MTU of 1472 bytes, which works for most network links
+fn default_mtu() -> usize {
+    1472
 }
 
 /// Returns an address that allows binding to an unspecified IP address and port

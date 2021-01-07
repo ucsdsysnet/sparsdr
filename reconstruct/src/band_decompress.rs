@@ -20,12 +20,11 @@ use std::time::Duration;
 use super::bins::choice::choose_bins;
 use super::bins::BinRange;
 use crate::output::WriteOutput;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 /// Default timeout before flushing samples to output
 pub const TIMEOUT: Duration = Duration::from_millis(100);
-
-const DEFAULT_COMPRESSED_BANDWIDTH: f32 = 100_000_000.0;
-const DEFAULT_FFT_SIZE: u16 = 2048;
 
 /// Setup for decompression of one band
 pub struct BandSetup {
@@ -73,11 +72,15 @@ pub struct BandSetupBuilder {
 impl BandSetupBuilder {
     /// Creates a default band setup that will decompress a full 100 MHz spectrum and write
     /// decompressed samples to the provided source
-    pub fn new(destination: Box<dyn WriteOutput + Send>, compression_bins: u16) -> Self {
+    pub fn new(
+        destination: Box<dyn WriteOutput + Send>,
+        compression_bins: u16,
+        compression_bandwidth: f32,
+    ) -> Self {
         BandSetupBuilder {
-            compressed_bandwidth: DEFAULT_COMPRESSED_BANDWIDTH,
+            compressed_bandwidth: compression_bandwidth,
             center_frequency: 0.0,
-            bins: DEFAULT_FFT_SIZE,
+            bins: compression_bins,
             compression_bins,
             timeout: TIMEOUT,
             destination,
@@ -105,7 +108,6 @@ impl BandSetupBuilder {
             ..self
         }
     }
-
     /// Builds a setup from this builder
     pub fn build(self) -> BandSetup {
         let fft_size = self

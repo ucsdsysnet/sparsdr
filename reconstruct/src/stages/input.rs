@@ -29,6 +29,7 @@ use crate::input::{ReadInput, Sample};
 use crate::window::{Logical, Window};
 use crossbeam_channel::Sender;
 use std::error::Error;
+use std::ops::Not;
 
 /// The setup for the input stage
 pub struct InputSetup {
@@ -80,8 +81,12 @@ impl ToFft {
     }
 }
 
+fn running(stop: &AtomicBool) -> bool {
+    stop.load(Ordering::Relaxed).not()
+}
+
 pub fn run_input_stage(mut setup: InputSetup, stop: Arc<AtomicBool>) -> Result<(), Box<dyn Error>> {
-    while !stop.load(Ordering::Relaxed) {
+    while running(&stop) {
         let buffer_size = 64usize;
         let mut samples_in = vec![
             Sample {
@@ -92,8 +97,13 @@ pub fn run_input_stage(mut setup: InputSetup, stop: Arc<AtomicBool>) -> Result<(
             buffer_size * usize::from(setup.fft_size)
         ];
         let samples_read = setup.source.read_samples(&mut samples_in)?;
+        if samples_read == 0 {
+            // End of file
+            break;
+        }
         samples_in.truncate(samples_read);
         // Group
+        // TODO
     }
 
     Ok(())
