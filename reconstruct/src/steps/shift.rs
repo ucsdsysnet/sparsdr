@@ -264,7 +264,7 @@ mod test {
         let in_window: Window<Fft> = Window::with_samples(0, usize::from(size), input);
         let expected_window: Window<Logical> = Window::with_samples(0, usize::from(size), expected);
 
-        let mut shift = Shift::new(size);
+        let shift = Shift::new(size);
         let actual_window = shift.shift_window(in_window.clone());
 
         assert_eq!(expected_window, actual_window);

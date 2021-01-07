@@ -24,46 +24,61 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter};
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use sparsdr_reconstruct::input::iqzip::CompressedSamples;
+
+use sparsdr_reconstruct::input::format::n210::N210SampleReader;
+
+use sparsdr_reconstruct::output::stdio::StdioOutput;
 use sparsdr_reconstruct::{BandSetupBuilder, DecompressSetup};
-use sparsdr_reconstruct::format::SampleFormat;
 
 const COMPRESSION_BINS: u16 = 2048;
+const COMPRESSION_BANDWIDTH: f32 = 100_000_000.0;
 
 fn benchmark_macro(c: &mut Criterion) {
     c.bench_function("macro_ble_advertising_channels", |f| {
         f.iter(|| {
             let source = File::open("test-data/iqzip/ble-advertising-short.iqz")
                 .expect("Failed to open source file");
-            let source = CompressedSamples::new(BufReader::new(source), SampleFormat::n210());
+            let source = N210SampleReader::new(BufReader::new(source));
 
-            let mut ch37_out =
+            let ch37_out =
                 BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
-            let mut ch38_out =
+            let ch38_out =
                 BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
-            let mut ch39_out =
+            let ch39_out =
                 BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
 
-            let mut setup = DecompressSetup::new(source, COMPRESSION_BINS);
+            let mut setup = DecompressSetup::new(Box::new(source), COMPRESSION_BINS);
             // Add channels
             setup
                 .add_band(
-                    BandSetupBuilder::new(Box::new(ch37_out), COMPRESSION_BINS)
-                        .bins(64)
-                        .center_frequency(-48000000.0)
-                        .build(),
+                    BandSetupBuilder::new(
+                        Box::new(StdioOutput::new(ch37_out)),
+                        COMPRESSION_BINS,
+                        COMPRESSION_BANDWIDTH,
+                    )
+                    .bins(64)
+                    .center_frequency(-48000000.0)
+                    .build(),
                 )
                 .add_band(
-                    BandSetupBuilder::new(Box::new(ch38_out), COMPRESSION_BINS)
-                        .bins(64)
-                        .center_frequency(-24000000.0)
-                        .build(),
+                    BandSetupBuilder::new(
+                        Box::new(StdioOutput::new(ch38_out)),
+                        COMPRESSION_BINS,
+                        COMPRESSION_BANDWIDTH,
+                    )
+                    .bins(64)
+                    .center_frequency(-24000000.0)
+                    .build(),
                 )
                 .add_band(
-                    BandSetupBuilder::new(Box::new(ch39_out), COMPRESSION_BINS)
-                        .bins(64)
-                        .center_frequency(30000000.0)
-                        .build(),
+                    BandSetupBuilder::new(
+                        Box::new(StdioOutput::new(ch39_out)),
+                        COMPRESSION_BINS,
+                        COMPRESSION_BANDWIDTH,
+                    )
+                    .bins(64)
+                    .center_frequency(30000000.0)
+                    .build(),
                 );
 
             sparsdr_reconstruct::decompress(setup).expect("Decompress failed");
@@ -85,16 +100,20 @@ fn benchmark_macro(c: &mut Criterion) {
 
             let source = File::open("test-data/iqzip/ble-advertising-extra-short.iqz")
                 .expect("Failed to open source file");
-            let source = CompressedSamples::new(BufReader::new(source), SampleFormat::n210());
+            let source = Box::new(N210SampleReader::new(BufReader::new(source)));
 
             let mut setup = DecompressSetup::new(source, COMPRESSION_BINS);
             // Add channels
             for (frequency, file) in frequencies_and_files.iter_mut() {
                 setup.add_band(
-                    BandSetupBuilder::new(Box::new(file), COMPRESSION_BINS)
-                        .bins(2)
-                        .center_frequency(*frequency as f32 - 150_000_000.0)
-                        .build(),
+                    BandSetupBuilder::new(
+                        Box::new(StdioOutput::new(file)),
+                        COMPRESSION_BINS,
+                        COMPRESSION_BANDWIDTH,
+                    )
+                    .bins(2)
+                    .center_frequency(*frequency as f32 - 150_000_000.0)
+                    .build(),
                 );
             }
 

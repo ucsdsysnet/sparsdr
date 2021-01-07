@@ -20,14 +20,12 @@ use std::time::Duration;
 use super::bins::choice::choose_bins;
 use super::bins::BinRange;
 use crate::output::WriteOutput;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 
 /// Default timeout before flushing samples to output
 pub const TIMEOUT: Duration = Duration::from_millis(100);
 
 /// Setup for decompression of one band
-pub struct BandSetup {
+pub struct BandSetup<'d> {
     /// The bins to decompress
     pub bins: BinRange,
     /// The actual FFT size to use
@@ -39,10 +37,10 @@ pub struct BandSetup {
     /// Time to wait for a compressed sample before flushing output
     pub timeout: Duration,
     /// The destination to write decompressed samples to
-    pub destination: Box<dyn WriteOutput + Send>,
+    pub destination: Box<dyn WriteOutput + Send + 'd>,
 }
 
-impl BandSetup {
+impl<'d> BandSetup<'d> {
     /// Returns the bins to be decompressed for this band
     pub fn bins(&self) -> BinRange {
         self.bins.clone()
@@ -54,7 +52,7 @@ impl BandSetup {
 }
 
 /// Setup builder for decompression of one band
-pub struct BandSetupBuilder {
+pub struct BandSetupBuilder<'d> {
     /// Bandwidth of the compressed data
     compressed_bandwidth: f32,
     /// Center frequency to decompress, relative to the center of the compressed data
@@ -66,14 +64,14 @@ pub struct BandSetupBuilder {
     /// Time to wait for a compressed sample before flushing output
     timeout: Duration,
     /// The destination to write decompressed samples to
-    destination: Box<dyn WriteOutput + Send>,
+    destination: Box<dyn WriteOutput + Send + 'd>,
 }
 
-impl BandSetupBuilder {
+impl<'d> BandSetupBuilder<'d> {
     /// Creates a default band setup that will decompress a full 100 MHz spectrum and write
     /// decompressed samples to the provided source
     pub fn new(
-        destination: Box<dyn WriteOutput + Send>,
+        destination: Box<dyn WriteOutput + Send + 'd>,
         compression_bins: u16,
         compression_bandwidth: f32,
     ) -> Self {
@@ -109,7 +107,7 @@ impl BandSetupBuilder {
         }
     }
     /// Builds a setup from this builder
-    pub fn build(self) -> BandSetup {
+    pub fn build(self) -> BandSetup<'d> {
         let fft_size = self
             .bins
             .checked_next_power_of_two()

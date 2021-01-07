@@ -31,11 +31,11 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 /// Setups for the input stage, and the combined FFT and output stages
-pub struct StagesCombined {
+pub struct StagesCombined<'d> {
     /// Input stage setup
     pub input: InputSetup,
     /// FFT and output stages setup
-    pub fft_and_output: Vec<FftAndOutputSetup>,
+    pub fft_and_output: Vec<FftAndOutputSetup<'d>>,
 }
 
 /// Calculates and returns setups for the input, FFT and output stages to decompress the provided
@@ -47,19 +47,19 @@ pub struct StagesCombined {
 ///
 /// channel_capacity: the capacity of the channels connecting the input stage to each output stage
 ///
-pub fn set_up_stages_combined<B>(
+pub fn set_up_stages_combined<'d, B>(
     mut samples: Box<dyn ReadInput>,
     bands: B,
     channel_capacity: usize,
     compression_fft_size: u16,
     stop: Arc<AtomicBool>,
-) -> StagesCombined
+) -> StagesCombined<'d>
 where
-    B: IntoIterator<Item = BandSetup>,
+    B: IntoIterator<Item = BandSetup<'d>>,
 {
     let bands = bands.into_iter();
     // Each (bin range, fc_bins) gets one FFT and output stage
-    let mut ffts: BTreeMap<FftKey, FftAndOutputSetup> = BTreeMap::new();
+    let mut ffts: BTreeMap<FftKey, FftAndOutputSetup<'d>> = BTreeMap::new();
 
     // Initialize stop flag for input
     samples.set_stop_flag(Arc::clone(&stop));
@@ -113,7 +113,7 @@ where
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 struct FftKey(BinRange, i64);
 /// Creates a key from a band setup
-fn key(band_setup: &BandSetup) -> FftKey {
+fn key(band_setup: &BandSetup<'_>) -> FftKey {
     FftKey(band_setup.bins.clone(), band_setup.fc_bins as i64)
 }
 

@@ -20,23 +20,51 @@ extern crate num_complex;
 extern crate simplelog;
 extern crate sparsdr_reconstruct;
 
-use std::iter;
-
+use sparsdr_reconstruct::input::{ReadInput, Sample};
+use sparsdr_reconstruct::output::stdio::StdioOutput;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
+use std::error::Error;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 mod test_vectors;
 
 const COMPRESSION_FFT_SIZE: u16 = 2048;
+const COMPRESSION_BANDWIDTH: f32 = 100_000_000.0;
+
+struct EmptySource;
+
+impl ReadInput for EmptySource {
+    fn sample_rate(&self) -> f32 {
+        COMPRESSION_BANDWIDTH
+    }
+
+    fn bins(&self) -> u16 {
+        COMPRESSION_FFT_SIZE
+    }
+
+    fn set_stop_flag(&mut self, _stop: Arc<AtomicBool>) {
+        /* Nothing */
+    }
+
+    fn read_samples(&mut self, _samples: &mut [Sample]) -> Result<usize, Box<dyn Error>> {
+        // End of file
+        Ok(0)
+    }
+}
 
 #[test]
 fn test_empty() {
-    let empty_source = iter::empty();
     let mut destination = Vec::new();
     {
-        let band_setup = BandSetupBuilder::new(Box::new(&mut destination), COMPRESSION_FFT_SIZE)
-            .bins(2048)
-            .center_frequency(0.0);
-        let mut setup = DecompressSetup::new(empty_source, COMPRESSION_FFT_SIZE);
+        let band_setup = BandSetupBuilder::new(
+            Box::new(StdioOutput::new(&mut destination)),
+            COMPRESSION_FFT_SIZE,
+            COMPRESSION_BANDWIDTH,
+        )
+        .bins(2048)
+        .center_frequency(0.0);
+        let mut setup = DecompressSetup::new(Box::new(EmptySource), COMPRESSION_FFT_SIZE);
         setup.add_band(band_setup.build());
         decompress(setup).expect("Decompress failed");
     }

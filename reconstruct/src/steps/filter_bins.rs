@@ -277,7 +277,7 @@ mod test {
         input: Window<Logical>,
         expected: Option<Window<Logical>>,
     ) {
-        let mut filter = FilterBins::new(bins, fft_size);
+        let filter = FilterBins::new(bins, fft_size);
 
         let actual_window = filter.filter_window(input);
         if actual_window != expected {

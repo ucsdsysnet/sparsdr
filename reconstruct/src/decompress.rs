@@ -19,7 +19,6 @@
 //! Top-level decompression interface
 //!
 
-use std::io::{self, Write};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
@@ -28,7 +27,7 @@ use crossbeam_utils::thread::{self, ScopedJoinHandle};
 use crate::band_decompress::BandSetup;
 use crate::bins::BinRange;
 use crate::component_setup::set_up_stages_combined;
-use crate::input::{ReadInput, Sample};
+use crate::input::ReadInput;
 use crate::stages::fft_and_output::run_fft_and_output_stage;
 use crate::stages::input::run_input_stage;
 
@@ -36,11 +35,11 @@ use crate::stages::input::run_input_stage;
 const DEFAULT_CHANNEL_CAPACITY: usize = 0;
 
 /// Setup for decompression
-pub struct DecompressSetup {
+pub struct DecompressSetup<'d> {
     /// Compressed sample source
     source: Box<dyn ReadInput>,
     /// Bands to decompress
-    bands: Vec<BandSetup>,
+    bands: Vec<BandSetup<'d>>,
     /// Capacity of input -> FFT/output stage channels
     channel_capacity: usize,
     /// The number of FFT bins used to compress the samples
@@ -51,7 +50,7 @@ pub struct DecompressSetup {
     stop: Option<Arc<AtomicBool>>,
 }
 
-impl DecompressSetup {
+impl<'d> DecompressSetup<'d> {
     /// Creates a new decompression setup with no bands and default channel capacity
     pub fn new(source: Box<dyn ReadInput>, compression_fft_size: u16) -> Self {
         DecompressSetup {
@@ -77,21 +76,21 @@ impl DecompressSetup {
     }
 
     /// Adds a band to be decompressed to this setup
-    pub fn add_band(&mut self, band: BandSetup) -> &mut Self {
+    pub fn add_band(&mut self, band: BandSetup<'d>) -> &mut Self {
         self.bands.push(band);
         self
     }
 }
 
 /// Decompresses bands using the provided setup and returns information about the decompression
-pub fn decompress(setup: DecompressSetup) -> Result<(), Box<dyn std::error::Error + Send>> {
+pub fn decompress(setup: DecompressSetup<'_>) -> Result<(), Box<dyn std::error::Error + Send>> {
     // If a stop flag was not provided, keep running forever
     let stop = setup
         .stop
         .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
 
     // Figure out the stages
-    let mut stages = set_up_stages_combined(
+    let stages = set_up_stages_combined(
         setup.source,
         setup.bands,
         setup.channel_capacity,

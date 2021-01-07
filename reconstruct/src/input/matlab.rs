@@ -34,6 +34,11 @@ use byteorder::{ReadBytesExt, LE};
 use num_complex::Complex32;
 
 use super::Sample;
+use crate::input::ReadInput;
+use std::convert::TryInto;
+use std::error::Error;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 /// Number of complex samples in a chunk
 const CHUNK_SAMPLES: usize = 2048;
@@ -76,6 +81,41 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
+    }
+}
+
+impl<R> ReadInput for Samples<R>
+where
+    R: Read,
+{
+    fn sample_rate(&self) -> f32 {
+        // Just for testing, this probably doesn't matter
+        100_000_000.0
+    }
+
+    fn bins(&self) -> u16 {
+        CHUNK_SAMPLES.try_into().unwrap()
+    }
+
+    fn set_stop_flag(&mut self, _stop: Arc<AtomicBool>) {
+        // Do nothing
+    }
+
+    fn read_samples(
+        &mut self,
+        samples: &mut [Sample],
+    ) -> std::result::Result<usize, Box<dyn Error>> {
+        let mut samples_read = 0;
+        for sample in samples {
+            match self.next() {
+                Some(Ok(sample_read)) => *sample = sample_read,
+                Some(Err(e)) => return Err(e.into()),
+                None => break,
+            }
+            samples_read += 1;
+        }
+
+        Ok(samples_read)
     }
 }
 

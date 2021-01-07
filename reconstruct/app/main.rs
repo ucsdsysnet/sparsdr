@@ -65,14 +65,14 @@ extern crate sparsdr_reconstruct_config;
 use indicatif::ProgressBar;
 use signal_hook::{flag::register, SIGHUP, SIGINT};
 use simplelog::{Config, SimpleLogger, TermLogger, TerminalMode};
-use sparsdr_reconstruct::blocking::BlockLogger;
-use sparsdr_reconstruct::input::iqzip::CompressedSamples;
-use sparsdr_reconstruct::{decompress, BandSetup, BandSetupBuilder, DecompressSetup};
+
+
+use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
 
 mod setup;
 
 use std::error::Error;
-use std::io::Read;
+
 use std::process;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;

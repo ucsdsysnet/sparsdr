@@ -18,7 +18,7 @@
 mod uncompressed;
 
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufReader, BufWriter, Read, Result, Seek, SeekFrom, Write};
+use std::io::{BufReader, BufWriter, Read, Result, Write};
 use std::path::Path;
 
 use num_complex::Complex32;
@@ -26,7 +26,9 @@ use sparsdr_reconstruct::input::matlab;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
 
 use self::uncompressed::SAMPLE_BYTES;
-use crate::COMPRESSION_FFT_SIZE;
+use crate::{COMPRESSION_BANDWIDTH, COMPRESSION_FFT_SIZE};
+use sparsdr_reconstruct::output::stdio::StdioOutput;
+
 
 /// Creates a decompressor and tests it on some test vectors
 ///
@@ -50,7 +52,7 @@ pub fn test_with_vectors<P1, P2, P3>(
     let input_file = BufReader::new(input_file);
     let expected_file = File::open(&expected_path).expect("Failed to open expected file");
     let expected_file = BufReader::new(expected_file);
-    let mut output_file = OpenOptions::new()
+    let output_file = OpenOptions::new()
         .create(true)
         .read(true)
         .write(true)
@@ -62,24 +64,22 @@ pub fn test_with_vectors<P1, P2, P3>(
     {
         // Read samples in the MATLAB format
         let samples_in = matlab::Samples::new(input_file);
-        let mut output_file = BufWriter::new(&mut output_file);
 
-        let band_setup = BandSetupBuilder::new(Box::new(&mut output_file), COMPRESSION_FFT_SIZE)
-            .center_frequency(center_frequency)
-            .bins(bins);
-        let mut setup = DecompressSetup::new(samples_in, COMPRESSION_FFT_SIZE);
+        let band_setup = BandSetupBuilder::new(
+            Box::new(StdioOutput::new(BufWriter::new(output_file))),
+            COMPRESSION_FFT_SIZE,
+            COMPRESSION_BANDWIDTH,
+        )
+        .center_frequency(center_frequency)
+        .bins(bins);
+        let mut setup = DecompressSetup::new(Box::new(samples_in), COMPRESSION_FFT_SIZE);
         setup.add_band(band_setup.build());
 
-        let info = decompress(setup).expect("Decompress failed");
-
-        eprintln!("{:?}", info);
+        decompress(setup).expect("Decompress failed");
     }
-    output_file.flush().expect("Failed to flush output");
 
-    // Seek back to the beginning of the output to compare
-    output_file
-        .seek(SeekFrom::Start(0))
-        .expect("Output seek failed");
+    // Reopen the output file to compare
+    let output_file = File::open(&actual_path).expect("Failed to open output file");
 
     // Check file sizes and sample counts
     let expected_size = file_size(expected_path).expect("Failed to get expected file size");

@@ -65,7 +65,7 @@ use std::ops::Not;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-pub struct FftAndOutputSetup {
+pub struct FftAndOutputSetup<'d> {
     /// Source of windows
     pub source: Receiver<Vec<Window<Logical>>>,
     /// The bins to decompress
@@ -79,36 +79,38 @@ pub struct FftAndOutputSetup {
     /// Time to wait for a compressed sample before flushing output
     pub timeout: Duration,
     /// The output setups
-    pub outputs: Vec<OutputSetup>,
+    pub outputs: Vec<OutputSetup<'d>>,
     /// The stop flag
     pub stop: Arc<AtomicBool>,
 }
 
-impl FftAndOutputSetup {
+impl<'d> FftAndOutputSetup<'d> {
     /// Returns false if self.stop is true, returns false otherwise
     pub fn running(&self) -> bool {
         self.stop.load(Ordering::Relaxed).not()
     }
 }
 
-pub struct OutputSetup {
+pub struct OutputSetup<'d> {
     /// Fractional part of center frequency offset, in bins
     pub bin_offset: f32,
     /// The destination to write decompressed samples to
-    pub destination: Box<dyn WriteOutput + Send>,
+    pub destination: Box<dyn WriteOutput + Send + 'd>,
 }
 
 /// Frequency correction and output for one band
-struct OutputChain {
+struct OutputChain<'d> {
     frequency_correct: FrequencyCorrect,
     /// The destination to write decompressed samples to
-    destination: Box<dyn WriteOutput + Send>,
+    destination: Box<dyn WriteOutput + Send + 'd>,
 }
 
 /// Runs the FFT and output stages using the provided setup
 ///
 /// On success, this returns the total number of samples written.
-pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup) -> Result<(), Box<dyn Error + Send>> {
+pub fn run_fft_and_output_stage(
+    mut setup: FftAndOutputSetup<'_>,
+) -> Result<(), Box<dyn Error + Send>> {
     // Set up steps
     let filter_bins = FilterBins::new(setup.bins.clone(), setup.fft_size);
     let shift = Shift::new(setup.fft_size);
@@ -119,7 +121,7 @@ pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup) -> Result<(), Box<
     );
     let mut overlap = Overlap::new();
     let fft_size = setup.fft_size;
-    let mut output_chains: Vec<OutputChain> = setup
+    let mut output_chains: Vec<OutputChain<'_>> = setup
         .outputs
         .drain(..)
         .map(|output_setup| OutputChain {
