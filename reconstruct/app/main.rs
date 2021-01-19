@@ -53,7 +53,6 @@
 // Keep extern crates, like in 2015
 #![allow(unused_extern_crates)]
 
-#[macro_use]
 extern crate clap;
 extern crate indicatif;
 extern crate log;
@@ -65,7 +64,6 @@ extern crate sparsdr_reconstruct_config;
 use indicatif::ProgressBar;
 use signal_hook::{flag::register, SIGHUP, SIGINT};
 use simplelog::{Config, SimpleLogger, TermLogger, TerminalMode};
-
 
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
 

@@ -53,13 +53,15 @@ impl Grouper {
         let mut samples = samples.read_cursor();
         let mut windows = windows_out.write_cursor();
 
-        while !windows.is_empty() {
+        while let Some(current_window) = windows.current() {
             for sample in samples.by_ref() {
                 if let Some(new_window) = self.group_one_sample(sample) {
                     // Possible performance optimization: Re-use the replaced window to take
                     // advantage of its memory allocation
-                    windows.write(new_window);
-                    // Break out of the samples loop and check if windows is empty
+                    *current_window = new_window;
+                    // Mark the window as written
+                    windows.advance();
+                    // Break out of the sample loop and check if we can write another window
                     break;
                 }
             }
@@ -116,7 +118,10 @@ impl Grouper {
         }
     }
 
-    fn take_current(&mut self) -> Option<Window> {
+    /// Removes and returns the current window, if any exists
+    ///
+    /// This can be used during shutdown to get the last few samples.
+    pub fn take_current(&mut self) -> Option<Window> {
         self.window.take()
     }
 }

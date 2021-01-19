@@ -21,5 +21,3 @@
 
 pub mod fft_and_output;
 pub mod input;
-
-mod band_receive;

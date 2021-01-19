@@ -107,7 +107,6 @@ pub mod window;
 
 // Private modules
 mod band_decompress;
-mod channel_ext;
 mod component_setup;
 mod cursor;
 mod decompress;

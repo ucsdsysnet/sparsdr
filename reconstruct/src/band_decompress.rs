@@ -22,7 +22,7 @@ use super::bins::BinRange;
 use crate::output::WriteOutput;
 
 /// Default timeout before flushing samples to output
-pub const TIMEOUT: Duration = Duration::from_millis(100);
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(100);
 
 /// Setup for decompression of one band
 pub struct BandSetup<'d> {
@@ -35,7 +35,9 @@ pub struct BandSetup<'d> {
     /// Fractional part of center frequency offset, in bins
     pub bin_offset: f32,
     /// Time to wait for a compressed sample before flushing output
-    pub timeout: Duration,
+    ///
+    /// If this is None, the output will never be flushed until there are no more samples.
+    pub timeout: Option<Duration>,
     /// The destination to write decompressed samples to
     pub destination: Box<dyn WriteOutput + Send + 'd>,
 }
@@ -62,7 +64,9 @@ pub struct BandSetupBuilder<'d> {
     /// The number of bins used to compress the signals
     compression_bins: u16,
     /// Time to wait for a compressed sample before flushing output
-    timeout: Duration,
+    ///
+    /// If this is None, the output will never be flushed until there are no more samples.
+    timeout: Option<Duration>,
     /// The destination to write decompressed samples to
     destination: Box<dyn WriteOutput + Send + 'd>,
 }
@@ -80,7 +84,7 @@ impl<'d> BandSetupBuilder<'d> {
             center_frequency: 0.0,
             bins: compression_bins,
             compression_bins,
-            timeout: TIMEOUT,
+            timeout: Some(DEFAULT_TIMEOUT),
             destination,
         }
     }
@@ -96,7 +100,9 @@ impl<'d> BandSetupBuilder<'d> {
         BandSetupBuilder { bins, ..self }
     }
     /// Sets the time to wait for a compressed sample before flushing output
-    pub fn timeout(self, timeout: Duration) -> Self {
+    ///
+    /// If the timeout is None, the output will never be flushed until there are no more samples.
+    pub fn timeout(self, timeout: Option<Duration>) -> Self {
         BandSetupBuilder { timeout, ..self }
     }
     /// Sets the bandwidth of the compressed data

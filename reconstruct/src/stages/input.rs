@@ -26,6 +26,8 @@ use sparsdr_bin_mask::BinMask;
 
 use crate::bins::BinRange;
 use crate::input::{ReadInput, Sample};
+use crate::steps::group::Grouper;
+use crate::steps::shift::Shift;
 use crate::window::{Logical, Window};
 use crossbeam_channel::Sender;
 use std::error::Error;
@@ -85,25 +87,89 @@ fn running(stop: &AtomicBool) -> bool {
     stop.load(Ordering::Relaxed).not()
 }
 
+/// Repeatedly calls read_samples() on the provided sample source until the provided buffer is
+/// full
+///
+/// If the sample source returns Ok(0) indicating an end of file, the buffer will not be
+/// completely filled.
+///
+/// This function returns the number of samples read into the buffer.
+fn read_samples_exact(
+    source: &mut dyn ReadInput,
+    buffer: &mut [Sample],
+    stop: &AtomicBool,
+) -> Result<usize, Box<dyn Error>> {
+    let mut samples_read = 0;
+    while samples_read != buffer.len() && running(stop) {
+        let remaining = &mut buffer[samples_read..];
+        let samples_read_this_time = source.read_samples(remaining)?;
+        if samples_read_this_time == 0 {
+            // Reached end of file
+            break;
+        } else {
+            samples_read += samples_read_this_time;
+        }
+    }
+
+    Ok(samples_read)
+}
+
 pub fn run_input_stage(mut setup: InputSetup, stop: Arc<AtomicBool>) -> Result<(), Box<dyn Error>> {
+    // Steps
+    let mut grouper = Grouper::new(usize::from(setup.fft_size));
+    let shift = Shift::new(setup.fft_size);
+
+    // Buffers
+    let buffer_size = 64usize;
+    let sample_buffer_size = usize::from(setup.fft_size) * buffer_size;
+    let mut samples_in = Vec::with_capacity(sample_buffer_size);
+    let mut grouped_windows = Vec::with_capacity(buffer_size);
+    let mut shifted_windows = Vec::with_capacity(buffer_size);
+
     while running(&stop) {
-        let buffer_size = 64usize;
-        let mut samples_in = vec![
-            Sample {
-                time: 0,
-                index: 0,
-                amplitude: Default::default()
-            };
-            buffer_size * usize::from(setup.fft_size)
-        ];
-        let samples_read = setup.source.read_samples(&mut samples_in)?;
-        if samples_read == 0 {
-            // End of file
+        let mut last_run = false;
+        // Re-expand buffers
+        samples_in.resize(sample_buffer_size, Sample::default());
+
+        // Read samples from the source until the buffer is full
+        let samples_read_in = read_samples_exact(&mut *setup.source, &mut samples_in, &stop)?;
+        samples_in.truncate(samples_read_in);
+
+        if samples_read_in != sample_buffer_size {
+            // Couldn't read a full buffer of samples, which indicates that no more samples will
+            // come later. Exit at the end of this loop.
+            last_run = true;
+        }
+
+        // Group (repeat until all samples have been consumed)
+        let mut samples_grouped = 0;
+        while samples_grouped != samples_in.len() {
+            grouped_windows.resize(buffer_size, Window::default());
+            let remaining_samples_in = &samples_in[samples_grouped..];
+            let group_status = grouper.group(&remaining_samples_in, &mut grouped_windows);
+            samples_grouped += group_status.samples_consumed;
+
+            // Shift windows
+            grouped_windows.truncate(group_status.windows_produced);
+            shifted_windows.resize(group_status.windows_produced, Window::default());
+            shift.shift_windows(&mut grouped_windows, &mut shifted_windows);
+
+            // Send windows to FFT/output stages that are interested
+            for destination in setup.destinations.iter() {
+                destination.send_if_interested(&shifted_windows)?;
+            }
+        }
+
+        if last_run {
+            // Get out the final window and process it
+            if let Some(final_window) = grouper.take_current() {
+                let shifted_final_window = shift.shift_window(final_window);
+                for destination in setup.destinations.iter() {
+                    destination.send_if_interested(std::slice::from_ref(&shifted_final_window))?;
+                }
+            }
             break;
         }
-        samples_in.truncate(samples_read);
-        // Group
-        // TODO
     }
 
     Ok(())

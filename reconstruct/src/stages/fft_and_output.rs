@@ -77,7 +77,9 @@ pub struct FftAndOutputSetup<'d> {
     /// Floor of the center frequency offset, in bins
     pub fc_bins: f32,
     /// Time to wait for a compressed sample before flushing output
-    pub timeout: Duration,
+    ///
+    /// If this is None, the output will never be flushed until there are no more samples.
+    pub timeout: Option<Duration>,
     /// The output setups
     pub outputs: Vec<OutputSetup<'d>>,
     /// The stop flag
@@ -88,6 +90,13 @@ impl<'d> FftAndOutputSetup<'d> {
     /// Returns false if self.stop is true, returns false otherwise
     pub fn running(&self) -> bool {
         self.stop.load(Ordering::Relaxed).not()
+    }
+
+    pub fn receive_windows(&self) -> Result<Vec<Window<Logical>>, RecvTimeoutError> {
+        match self.timeout.as_ref() {
+            Some(timeout) => self.source.recv_timeout(timeout.clone()),
+            None => self.source.recv().map_err(From::from),
+        }
     }
 }
 
@@ -143,7 +152,7 @@ pub fn run_fft_and_output_stage(
 
     // Run everything
     while setup.running() {
-        match setup.source.recv_timeout(setup.timeout) {
+        match setup.receive_windows() {
             Ok(mut windows_before_shift) => {
                 // Feed windows in to process
                 filter_bins.filter_windows(&mut windows_before_shift);
@@ -189,6 +198,16 @@ pub fn run_fft_and_output_stage(
                 }
             }
             Err(RecvTimeoutError::Disconnected) => {
+                // Flush samples: Overlap and outputs
+                if let Some(overlap_flushed) = overlap.flush() {
+                    for output in output_chains.iter_mut() {
+                        let mut window = overlap_flushed.clone();
+                        output
+                            .frequency_correct
+                            .correct_samples(window.samples_mut());
+                        output.destination.write_samples(window.samples())?;
+                    }
+                }
                 // No more windows will appear, so exit
                 return Ok(());
             }

@@ -64,7 +64,7 @@ pub trait ReadInput {
 
 /// A compressed frequency-domain sample in a format compatible with SparSDR implementations
 /// on all supported hardware
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Sample {
     /// A timestamp of the FFT that produced this sample

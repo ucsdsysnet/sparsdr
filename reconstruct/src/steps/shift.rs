@@ -52,7 +52,7 @@ impl Shift {
     }
 
     /// Shifts all samples in a window from one ordering to the other
-    fn shift_window<ORD>(&self, mut window: Window<ORD>) -> Window<ORD::Other>
+    pub fn shift_window<ORD>(&self, mut window: Window<ORD>) -> Window<ORD::Other>
     where
         ORD: Ordering,
     {

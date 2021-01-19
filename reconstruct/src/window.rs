@@ -37,12 +37,12 @@ use super::input::Sample;
 use super::bins::BinRange;
 
 /// Marker for FFT-native bin ordering
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Fft {}
 
 /// Marker for logical bin ordering (lowest to highest frequency)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Logical {}
 
@@ -81,7 +81,7 @@ impl fmt::Display for Tag {
 }
 
 /// A window of frequency-domain data
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Window<Ord = Fft> {
     /// The timestamp of this window, in 1024-sample half-windows
@@ -99,7 +99,7 @@ pub struct Window<Ord = Fft> {
 }
 
 /// A window of time-domain samples
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TimeWindow {
     /// The timestamp of this window, in 1024-sample half-windows
     time: u64,
