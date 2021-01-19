@@ -34,30 +34,30 @@ fn benchmark_macro(c: &mut Criterion) {
                 .expect("Failed to open source file");
             let source = CompressedSamples::new(BufReader::new(source));
 
-            let mut ch37_out =
+            let ch37_out =
                 BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
-            let mut ch38_out =
+            let ch38_out =
                 BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
-            let mut ch39_out =
+            let ch39_out =
                 BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
 
             let mut setup = DecompressSetup::new(source);
             // Add channels
             setup
                 .add_band(
-                    BandSetupBuilder::new(&mut ch37_out)
+                    BandSetupBuilder::new(Box::new(ch37_out))
                         .bins(64)
                         .center_frequency(-48000000.0)
                         .build(),
                 )
                 .add_band(
-                    BandSetupBuilder::new(&mut ch38_out)
+                    BandSetupBuilder::new(Box::new(ch38_out))
                         .bins(64)
                         .center_frequency(-24000000.0)
                         .build(),
                 )
                 .add_band(
-                    BandSetupBuilder::new(&mut ch39_out)
+                    BandSetupBuilder::new(Box::new(ch39_out))
                         .bins(64)
                         .center_frequency(30000000.0)
                         .build(),
@@ -88,7 +88,7 @@ fn benchmark_macro(c: &mut Criterion) {
             // Add channels
             for (frequency, file) in frequencies_and_files.iter_mut() {
                 setup.add_band(
-                    BandSetupBuilder::new(file)
+                    BandSetupBuilder::new(Box::new(file))
                         .bins(2)
                         .center_frequency(*frequency as f32 - 150_000_000.0)
                         .build(),

@@ -252,39 +252,6 @@ fn benchmark_window(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
-    c.bench_function("window_clone_arc", |b| {
-        b.iter_batched(
-            || {
-                // Create a window, which uses an Arc Arcow variant
-                let mut window = Window::new(0, 2048);
-                // Modify the window to make it owned
-                window.bins_mut()[0].re = 3.91;
-                window
-            },
-            |mut window| {
-                let _window1 = window.clone_arc();
-                let _window2 = window.clone_arc();
-            },
-            BatchSize::SmallInput,
-        )
-    });
-}
-
-fn benchmark_write(c: &mut Criterion) {
-    c.bench_function("step_write", |b| {
-        b.iter_batched(
-            || {
-                let window = TimeWindow::new(0, vec![Complex32::new(0.0, 0.0); 2048]);
-                let windows = iter::repeat(window).take(100);
-                windows
-            },
-            |windows| {
-                let destination = std::io::sink();
-                writer::write_windows(destination, windows).unwrap();
-            },
-            BatchSize::SmallInput,
-        )
-    });
 }
 
 criterion_group!(
@@ -297,6 +264,5 @@ criterion_group!(
     benchmark_overlap,
     benchmark_phase_correct,
     benchmark_shift,
-    benchmark_write,
 );
 criterion_main!(benches);
