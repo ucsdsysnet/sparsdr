@@ -18,7 +18,7 @@
 mod uncompressed;
 
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufReader, BufWriter, Read, Result, Write};
+use std::io::{BufReader, BufWriter, Read, Result};
 use std::path::Path;
 
 use num_complex::Complex32;
@@ -28,7 +28,6 @@ use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
 use self::uncompressed::SAMPLE_BYTES;
 use crate::{COMPRESSION_BANDWIDTH, COMPRESSION_FFT_SIZE};
 use sparsdr_reconstruct::output::stdio::StdioOutput;
-
 
 /// Creates a decompressor and tests it on some test vectors
 ///
@@ -71,7 +70,9 @@ pub fn test_with_vectors<P1, P2, P3>(
             COMPRESSION_BANDWIDTH,
         )
         .center_frequency(center_frequency)
-        .bins(bins);
+        .bins(bins)
+        // Don't flush samples on timeout (this causes inconsistent test results)
+        .timeout(None);
         let mut setup = DecompressSetup::new(Box::new(samples_in), COMPRESSION_FFT_SIZE);
         setup.add_band(band_setup.build());
 

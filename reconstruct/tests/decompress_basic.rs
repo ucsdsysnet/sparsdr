@@ -98,15 +98,14 @@ fn test_fewer_bins_on_center() {
 /// Decompression with fewer than 2048 bins and an on-bin frequency offset
 ///
 /// Center frequency to be decompressed is 64 bins beyond the original center frequency
-// FIXME bin and non-bin have their names reversed
 #[test]
 fn test_bin_frequency_offset() {
     test_vectors::test_with_vectors(
         "test-data/bin-frequency-offset/STFT_testvectors_0fc",
         "test-data/bin-frequency-offset/x_istft_f_testvectors_0fc-32",
         "test-data/bin-frequency-offset/decompressed.iq",
-        64.5 * 100e6 / 2048.0,
-        48,
+        64.0 * 100e6 / 2048.0,
+        46,
     );
 }
 
@@ -119,8 +118,8 @@ fn test_non_bin_frequency_offset() {
         "test-data/non-bin-frequency-offset/STFT_testvectors_0fc",
         "test-data/non-bin-frequency-offset/x_istft_f_testvectors_0fc-32",
         "test-data/non-bin-frequency-offset/decompressed.iq",
-        64.0 * 100e6 / 2048.0,
-        46,
+        64.5 * 100e6 / 2048.0,
+        48,
     );
 }
 
