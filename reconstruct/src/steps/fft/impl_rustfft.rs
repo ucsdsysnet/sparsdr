@@ -19,38 +19,49 @@
 //! An FFT implementation that uses rustfft
 //!
 
+use std::cmp;
 use std::sync::Arc;
 
 use num_complex::Complex32;
 use num_traits::Zero;
-use rustfft::{FFTplanner, FFT};
+use rustfft::{Fft, FftDirection, FftPlanner};
 
-use crate::window::{Fft, TimeWindow, Window};
+use crate::window::Fft as FftOrder;
+use crate::window::{TimeWindow, Window};
 
 /// rustfft FFT implementation
 pub struct RustFftFft {
     /// FFT calculator
-    fft: Arc<dyn FFT<f32>>,
+    fft: Arc<dyn Fft<f32>>,
     /// Scratch space used to hold the output of an FFT operation
     scratch: Vec<Complex32>,
 }
 
 impl RustFftFft {
     pub fn new(fft_size: usize) -> Self {
+        let fft = FftPlanner::new().plan_fft(fft_size, FftDirection::Inverse);
+        let scratch_length = cmp::max(
+            fft.get_outofplace_scratch_len(),
+            fft.get_inplace_scratch_len(),
+        );
         RustFftFft {
-            fft: FFTplanner::new(true).plan_fft(fft_size),
-            scratch: vec![Complex32::zero(); fft_size],
+            fft,
+            scratch: vec![Complex32::zero(); scratch_length],
         }
     }
-    pub fn run(&mut self, mut source: Window<Fft>) -> TimeWindow {
-        self.fft.process(source.bins_mut(), &mut self.scratch);
+    pub fn run(&mut self, mut source: Window<FftOrder>) -> TimeWindow {
+        self.fft
+            .process_with_scratch(source.bins_mut(), &mut self.scratch);
         let mut time_window = source.into_time_domain();
         time_window.samples_mut().copy_from_slice(&self.scratch);
         time_window
     }
 
     pub fn run2(&mut self, source: &mut Window, destination: &mut TimeWindow) {
-        self.fft
-            .process(source.bins_mut(), destination.samples_mut());
+        self.fft.process_outofplace_with_scratch(
+            source.bins_mut(),
+            destination.samples_mut(),
+            &mut self.scratch,
+        );
     }
 }

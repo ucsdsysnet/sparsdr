@@ -96,9 +96,10 @@ fn benchmark_macro(c: &mut Criterion) {
         })
     });
 
+    // This benchmark takes a few seconds to run. I usually run it with only 10 samples.
     c.bench_function("macro_many_narrow_channels", |f| {
         f.iter(|| {
-            let mut frequencies_and_files: Vec<(u32, NullOutput)> = (118_000_000..=136_975_000)
+            let frequencies_and_files: Vec<(u32, NullOutput)> = (118_000_000..=136_975_000)
                 .step_by(25_000)
                 .map(|frequency| (frequency, NullOutput))
                 .collect();
