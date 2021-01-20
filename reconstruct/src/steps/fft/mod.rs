@@ -17,7 +17,7 @@
 
 //! The inverse FFT step
 
-mod hanning;
+mod hann;
 #[cfg(feature = "fftw")]
 mod impl_fftw;
 #[cfg(not(feature = "fftw"))]
@@ -25,7 +25,7 @@ mod impl_rustfft;
 
 use std::cmp;
 
-use self::hanning::HANNING_2048;
+use self::hann::HannWindow;
 use crate::window::{Status, TimeWindow, Window};
 
 #[cfg(feature = "fftw")]
@@ -53,9 +53,7 @@ impl Fft {
         let decimation = compression_fft_size / fft_size;
         info!("Decimation {}", decimation);
         // Select every decimation-th element for the Hanning window and sum
-        let window_sum = HANNING_2048
-            .iter()
-            .cloned()
+        let window_sum = HannWindow::new(compression_fft_size)
             .step_by(decimation)
             .sum::<f32>();
         info!("Window sum {}", window_sum);
