@@ -194,6 +194,7 @@ pub fn run_fft_and_output_stage(
                             .frequency_correct
                             .correct_samples(window.samples_mut());
                         output.destination.write_samples(window.samples())?;
+                        output.destination.flush()?;
                     }
                 }
             }
@@ -206,6 +207,7 @@ pub fn run_fft_and_output_stage(
                             .frequency_correct
                             .correct_samples(window.samples_mut());
                         output.destination.write_samples(window.samples())?;
+                        output.destination.flush()?;
                     }
                 }
                 // No more windows will appear, so exit
