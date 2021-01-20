@@ -45,21 +45,14 @@ pub struct Fft {
 impl Fft {
     /// Creates a new FFT step
     pub fn new(fft_size: usize, compression_fft_size: usize) -> Self {
-        assert!(
-            compression_fft_size <= 2048,
-            "Compression FFTs larger than 2048 are not supported"
-        );
         let fft_impl = FftImpl::new(fft_size);
         let decimation = compression_fft_size / fft_size;
-        info!("Decimation {}", decimation);
         // Select every decimation-th element for the Hanning window and sum
         let window_sum = HannWindow::new(compression_fft_size)
             .step_by(decimation)
             .sum::<f32>();
-        info!("Window sum {}", window_sum);
         let hop = compression_fft_size / 2 / decimation;
         let scale = hop as f32 / window_sum / (decimation as f32 * fft_size as f32);
-        info!("Scale {}", scale);
 
         Fft { fft_impl, scale }
     }
