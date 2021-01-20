@@ -50,7 +50,7 @@ impl WriteOutput for NullOutput {
 fn benchmark_macro(c: &mut Criterion) {
     c.bench_function("macro_ble_advertising_channels", |f| {
         f.iter(|| {
-            let source = File::open("test-data/iqzip/ble-advertising-short.iqz")
+            let source = File::open("test-data/iqzip/ble-advertising.iqz")
                 .expect("Failed to open source file");
             let source = N210SampleReader::new(BufReader::new(source));
 
@@ -103,7 +103,7 @@ fn benchmark_macro(c: &mut Criterion) {
                 .map(|frequency| (frequency, NullOutput))
                 .collect();
 
-            let source = File::open("test-data/iqzip/ble-advertising-extra-short.iqz")
+            let source = File::open("test-data/iqzip/ble-advertising.iqz")
                 .expect("Failed to open source file");
             let source = Box::new(N210SampleReader::new(BufReader::new(source)));
 
