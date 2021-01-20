@@ -52,7 +52,7 @@ debug = true
 
 # Benchmarking section
 [dev-dependencies]
-criterion = "0.2.10"
+criterion = "0.3.3"
 tempfile = "3.0.6"
 
 [[bench]]
