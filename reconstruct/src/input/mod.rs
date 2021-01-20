@@ -20,7 +20,6 @@
 //!
 
 pub mod format;
-pub mod iqzip;
 pub mod matlab;
 pub mod n210;
 

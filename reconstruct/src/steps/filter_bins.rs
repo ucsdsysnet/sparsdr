@@ -17,13 +17,11 @@
 
 //! Bin filtering
 
-use std::slice;
-
 use num_complex::Complex32;
 use num_traits::Zero;
 
 use crate::bins::BinRange;
-use crate::window::{Logical, Status, Window};
+use crate::window::{Logical, Window};
 
 /// Filters Samples and applies an offset to index values
 pub struct FilterBins {
@@ -41,21 +39,9 @@ impl FilterBins {
         FilterBins { bins, fft_size }
     }
 
-    /// Filters a window and moves the bins to new positions in the window
-    ///
-    /// Returns None if the window contains no active bins in this filter's bin range
-    fn filter_window(&self, mut window: Window<Logical>) -> Option<Window<Logical>> {
-        debug_assert!(usize::from(self.bins.end()) <= window.bins().len());
-        let matches = matches_range(&self.bins, window.bins());
-        if matches {
-            self.filter_windows(slice::from_mut(&mut window));
-            Some(window)
-        } else {
-            None
-        }
-    }
-
     /// Filters the bins in each window in the provided slice
+    ///
+    /// If a window does not contain any matching bins, all of its bin values will be set to zero.
     pub fn filter_windows(&self, windows: &mut [Window<Logical>]) {
         for window in windows {
             // Need to truncate the window to self.fft_size bins, and move values in the range
@@ -79,48 +65,6 @@ impl FilterBins {
 
             // Truncate
             window.truncate_bins(usize::from(self.fft_size));
-        }
-    }
-}
-
-/// Returns true if any value at an index within the provided bin range is non-zero
-fn matches_range(range: &BinRange, bins: &[Complex32]) -> bool {
-    bins[range.as_usize_range()].iter().any(|v| !v.is_zero())
-}
-
-/// An iterator adapter that filters bins of windows
-pub struct FilterBinsIter<I> {
-    /// Inner iterator
-    inner: I,
-    /// Filter
-    filter: FilterBins,
-}
-
-impl<I> FilterBinsIter<I> {
-    /// Creates a window-bin-filtering iterator adapter
-    pub fn new(inner: I, bins: BinRange, fft_size: u16) -> Self {
-        FilterBinsIter {
-            inner,
-            filter: FilterBins::new(bins, fft_size),
-        }
-    }
-}
-
-impl<I> Iterator for FilterBinsIter<I>
-where
-    I: Iterator<Item = Status<Window<Logical>>>,
-{
-    type Item = Status<Window<Logical>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let window: Window<Logical> = try_status!(self.inner.next());
-
-            if let Some(filtered) = self.filter.filter_window(window) {
-                return Some(Status::Ok(filtered));
-            } else {
-                // Continue and look for the next window
-            }
         }
     }
 }
@@ -274,18 +218,20 @@ mod test {
     fn check_windows(
         bins: BinRange,
         fft_size: u16,
-        input: Window<Logical>,
+        mut input: Window<Logical>,
         expected: Option<Window<Logical>>,
     ) {
         let filter = FilterBins::new(bins, fft_size);
 
-        let actual_window = filter.filter_window(input);
-        if actual_window != expected {
-            if let (Some(actual), Some(expected)) = (actual_window, expected) {
-                println!("Expected: {}", expected.show_non_empty());
-                println!("Actual:   {}", actual.show_non_empty());
+        filter.filter_windows(std::slice::from_mut(&mut input));
+        let actual_window = input;
+        if let Some(expected) = expected {
+            assert_eq!(actual_window, expected);
+        } else {
+            // Expected is none, so the actual window should be all zero
+            for bin in actual_window.bins() {
+                assert_eq!(*bin, Complex32::zero());
             }
-            panic!("Windows don't match");
         }
     }
 }

@@ -46,21 +46,9 @@ impl FftwFft {
             fft_output: AlignedVec::new(fft_size),
         }
     }
-    pub fn run(&mut self, source: Window) -> TimeWindow {
-        // Copy bins into aligned input
-        self.fft_input.copy_from_slice(source.bins());
 
-        // Run FFT with scratch as output
-        self.fft
-            .c2c(&mut self.fft_input, &mut self.fft_output)
-            .expect("FFT failed");
-        // Copy output
-        let mut output = source.into_time_domain();
-        output.samples_mut().copy_from_slice(&self.fft_output);
-        output
-    }
-
-    pub fn run2(&mut self, source: &mut Window, destination: &mut TimeWindow) {
+    /// Runs an out-of-place FFT from one window to another
+    pub fn run(&mut self, source: &mut Window, destination: &mut TimeWindow) {
         // Copy bins into aligned input
         self.fft_input.copy_from_slice(source.bins());
 

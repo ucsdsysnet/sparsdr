@@ -22,7 +22,7 @@ use std::f32::consts::PI;
 use num_complex::Complex32;
 use num_traits::One;
 
-use crate::window::{Status, Window};
+use crate::window::Window;
 
 //
 // Details of the optimization used to calculate multiplication values:
@@ -70,40 +70,5 @@ impl PhaseCorrect {
         for window in windows {
             self.correct_window(window);
         }
-    }
-}
-
-/// An iterator adapter that applies a phase correction to frequency-domain windows
-pub struct PhaseCorrectIter<I> {
-    /// Inner iterator of Windows
-    inner: I,
-    /// Phase correction
-    corrector: PhaseCorrect,
-}
-
-impl<I> PhaseCorrectIter<I> {
-    /// Creates a phase corrector
-    ///
-    /// fc_bins: The whole-number part of the frequency offset in bins
-    pub fn new(inner: I, fc_bins: f32) -> Self {
-        PhaseCorrectIter {
-            inner,
-            corrector: PhaseCorrect::new(fc_bins),
-        }
-    }
-}
-
-impl<I> Iterator for PhaseCorrectIter<I>
-where
-    I: Iterator<Item = Status<Window>>,
-{
-    type Item = Status<Window>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut window: Window = try_status!(self.inner.next());
-
-        self.corrector.correct_window(&mut window);
-
-        Some(Status::Ok(window))
     }
 }

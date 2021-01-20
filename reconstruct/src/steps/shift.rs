@@ -17,9 +17,7 @@
 
 //! The shift step
 
-use std::io::Result;
-
-use crate::window::{Fft, Logical, Ordering, Status, Window};
+use crate::window::{Ordering, Window};
 
 /// Shifts data samples between FFT ordering and logical ordering
 ///
@@ -102,73 +100,11 @@ impl Shift {
     }
 }
 
-/// An iterator adapter that applies the shift to windows
-pub struct ShiftIter<I> {
-    /// Inner iterator
-    inner: I,
-    /// Shift logic
-    shift: Shift,
-}
-
-impl<I> ShiftIter<I> {
-    /// Creates a shift iterator for the provided FFT size
-    pub fn new(inner: I, size: u16) -> Self {
-        ShiftIter {
-            inner,
-            shift: Shift::new(size),
-        }
-    }
-}
-
-impl<I> Iterator for ShiftIter<I>
-where
-    I: Iterator<Item = Status<Window<Logical>>>,
-{
-    type Item = Status<Window<Fft>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let window: Window<Logical> = try_status!(self.inner.next());
-        let window: Window<Fft> = self.shift.shift_window(window);
-        Some(Status::Ok(window))
-    }
-}
-
-/// An iterator adapter that applies the shift to windows
-pub struct ShiftWindowResultIter<I> {
-    /// Inner iterator
-    inner: I,
-    /// Shift logic
-    shift: Shift,
-}
-
-impl<I> ShiftWindowResultIter<I> {
-    /// Creates a window shift iterator for the provided FFT size
-    pub fn new(inner: I, size: u16) -> Self {
-        ShiftWindowResultIter {
-            inner,
-            shift: Shift::new(size),
-        }
-    }
-}
-
-impl<I, Ord> Iterator for ShiftWindowResultIter<I>
-where
-    I: Iterator<Item = Result<Window<Ord>>>,
-    Ord: Ordering,
-{
-    type Item = Result<Window<Ord::Other>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let window = try_option_result!(self.inner.next());
-        let window = self.shift.shift_window(window);
-        Some(Ok(window))
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::input::Sample;
+    use crate::window::{Fft, Logical};
     use num_complex::Complex32;
     use num_traits::Zero;
 

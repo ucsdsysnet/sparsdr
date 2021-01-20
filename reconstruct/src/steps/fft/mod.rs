@@ -26,7 +26,7 @@ mod impl_rustfft;
 use std::cmp;
 
 use self::hann::HannWindow;
-use crate::window::{Status, TimeWindow, Window};
+use crate::window::{TimeWindow, Window};
 
 #[cfg(feature = "fftw")]
 type FftImpl = self::impl_fftw::FftwFft;
@@ -66,7 +66,7 @@ impl Fft {
         let windows_out = &mut windows_out[..count];
         // FFT
         for (window_in, window_out) in windows_in.iter_mut().zip(windows_out.iter_mut()) {
-            self.fft_impl.run2(window_in, window_out);
+            self.fft_impl.run(window_in, window_out);
             window_out.set_time(window_in.time());
         }
         // Scale
@@ -76,42 +76,5 @@ impl Fft {
             }
         }
         count
-    }
-}
-
-/// An iterator adapter that uses an inverse FFT to convert frequency-domain windows
-/// into time-domain windows
-pub struct FftIter<I> {
-    /// Iterator that yields Windows
-    inner: I,
-    /// FFT implementation
-    fft: Fft,
-}
-
-impl<I> FftIter<I> {
-    /// Creates a new FFT step
-    pub fn new(inner: I, fft_size: usize, compression_fft_size: usize) -> Self {
-        FftIter {
-            inner,
-            fft: Fft::new(fft_size, compression_fft_size),
-        }
-    }
-}
-
-impl<I> Iterator for FftIter<I>
-where
-    I: Iterator<Item = Status<Window>>,
-{
-    type Item = Status<TimeWindow>;
-    fn next(&mut self) -> Option<Self::Item> {
-        let window: Window = try_status!(self.inner.next());
-
-        let mut time_window = self.fft.fft_impl.run(window);
-        // Scale outputs
-        for output_value in time_window.samples_mut() {
-            *output_value *= self.fft.scale;
-        }
-
-        Some(Status::Ok(time_window))
     }
 }

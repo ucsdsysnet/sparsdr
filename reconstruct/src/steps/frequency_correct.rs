@@ -82,34 +82,3 @@ impl FrequencyCorrect {
         }
     }
 }
-
-/// An iterator adapter that applies a frequency correction to time-domain samples
-pub struct FrequencyCorrectIter<I> {
-    /// Inner iterator over TimeWindows
-    inner: I,
-    /// Frequency corrector
-    corrector: FrequencyCorrect,
-}
-
-impl<I> FrequencyCorrectIter<I> {
-    /// Creates a frequency corrector
-    pub fn new(inner: I, bin_offset: f32, fft_size: u16) -> Self {
-        FrequencyCorrectIter {
-            inner,
-            corrector: FrequencyCorrect::new(bin_offset, fft_size),
-        }
-    }
-}
-
-impl<I> Iterator for FrequencyCorrectIter<I>
-where
-    I: Iterator<Item = TimeWindow>,
-{
-    type Item = TimeWindow;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut window: TimeWindow = self.inner.next()?;
-        self.corrector.correct_samples(window.samples_mut());
-        Some(window)
-    }
-}

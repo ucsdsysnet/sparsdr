@@ -19,7 +19,6 @@
 //! An FFT implementation that uses rustfft
 //!
 
-use std::cmp;
 use std::sync::Arc;
 
 use num_complex::Complex32;
@@ -40,24 +39,15 @@ pub struct RustFftFft {
 impl RustFftFft {
     pub fn new(fft_size: usize) -> Self {
         let fft = FftPlanner::new().plan_fft(fft_size, FftDirection::Inverse);
-        let scratch_length = cmp::max(
-            fft.get_outofplace_scratch_len(),
-            fft.get_inplace_scratch_len(),
-        );
+        let scratch_length = fft.get_outofplace_scratch_len();
         RustFftFft {
             fft,
             scratch: vec![Complex32::zero(); scratch_length],
         }
     }
-    pub fn run(&mut self, mut source: Window<FftOrder>) -> TimeWindow {
-        self.fft
-            .process_with_scratch(source.bins_mut(), &mut self.scratch);
-        let mut time_window = source.into_time_domain();
-        time_window.samples_mut().copy_from_slice(&self.scratch);
-        time_window
-    }
 
-    pub fn run2(&mut self, source: &mut Window, destination: &mut TimeWindow) {
+    /// Runs an out-of-place FFT from one window to another
+    pub fn run(&mut self, source: &mut Window, destination: &mut TimeWindow) {
         self.fft.process_outofplace_with_scratch(
             source.bins_mut(),
             destination.samples_mut(),

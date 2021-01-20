@@ -19,8 +19,6 @@
 
 pub mod overflow;
 
-use std::io;
-
 use num_complex::Complex32;
 
 use self::overflow::Overflow;
@@ -133,47 +131,4 @@ pub struct GroupResult {
     pub samples_consumed: usize,
     /// Number of windows produced
     pub windows_produced: usize,
-}
-
-/// An iterator adapter tha groups FFT samples into timestamped windows and handles time overflow
-pub struct GroupIter<I> {
-    /// Inner iterator that yields Samples
-    inner: I,
-    /// Grouper logic
-    grouper: Grouper,
-}
-
-impl<I> GroupIter<I> {
-    /// Creates a new grouper to create groups of the specified FFT size
-    pub fn new(inner: I, fft_size: usize) -> Self {
-        GroupIter {
-            inner,
-            grouper: Grouper::new(fft_size),
-        }
-    }
-}
-
-impl<I> Iterator for GroupIter<I>
-where
-    I: Iterator<Item = io::Result<Sample>>,
-{
-    type Item = io::Result<Window>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            // Read a sample
-            let sample = match self.inner.next() {
-                Some(Ok(sample)) => sample,
-                Some(Err(e)) => return Some(Err(e)),
-                None => {
-                    // No more samples. Return the current window, if any
-                    debug!("End of samples, returning window");
-                    return self.grouper.take_current().map(Ok);
-                }
-            };
-            if let Some(window) = self.grouper.group_one_sample(&sample) {
-                break Some(Ok(window));
-            }
-        }
-    }
 }
