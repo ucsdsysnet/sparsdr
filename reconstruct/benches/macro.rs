@@ -21,7 +21,7 @@ extern crate sparsdr_reconstruct;
 extern crate tempfile;
 
 use std::fs::File;
-use std::io::{BufReader, BufWriter};
+use std::io::{self, BufReader, BufWriter, Sink};
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use sparsdr_reconstruct::input::iqzip::CompressedSamples;
@@ -30,16 +30,13 @@ use sparsdr_reconstruct::{BandSetupBuilder, DecompressSetup};
 fn benchmark_macro(c: &mut Criterion) {
     c.bench_function("macro_ble_advertising_channels", |f| {
         f.iter(|| {
-            let source = File::open("test-data/iqzip/ble-advertising-short.iqz")
+            let source = File::open("test-data/iqzip/ble-advertising.iqz")
                 .expect("Failed to open source file");
             let source = CompressedSamples::new(BufReader::new(source));
 
-            let ch37_out =
-                BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
-            let ch38_out =
-                BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
-            let ch39_out =
-                BufWriter::new(tempfile::tempfile().expect("Failed to create temporary file"));
+            let ch37_out = io::sink();
+            let ch38_out = io::sink();
+            let ch39_out = io::sink();
 
             let mut setup = DecompressSetup::new(source);
             // Add channels
@@ -69,18 +66,15 @@ fn benchmark_macro(c: &mut Criterion) {
 
     c.bench_function("macro_many_narrow_channels", |f| {
         f.iter(|| {
-            let mut frequencies_and_files: Vec<(u32, BufWriter<File>)> = (118_000_000
-                ..=136_975_000)
+            let mut frequencies_and_files: Vec<(u32, Sink)> = (118_000_000..=136_975_000)
                 .step_by(25_000)
                 .map(|frequency| {
-                    let file = BufWriter::new(
-                        tempfile::tempfile().expect("Failed to create temporary file"),
-                    );
+                    let file = io::sink();
                     (frequency, file)
                 })
                 .collect();
 
-            let source = File::open("test-data/iqzip/ble-advertising-extra-short.iqz")
+            let source = File::open("test-data/iqzip/ble-advertising.iqz")
                 .expect("Failed to open source file");
             let source = CompressedSamples::new(BufReader::new(source));
 
