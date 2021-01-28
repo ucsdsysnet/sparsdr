@@ -64,7 +64,6 @@ extern crate num_traits;
 extern crate log;
 extern crate crossbeam_channel;
 extern crate crossbeam_utils;
-extern crate libc;
 #[cfg(not(feature = "fftw"))]
 extern crate rustfft;
 extern crate sparsdr_bin_mask;

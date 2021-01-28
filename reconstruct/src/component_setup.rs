@@ -33,7 +33,7 @@ use std::sync::Arc;
 /// Setups for the input stage, and the combined FFT and output stages
 pub struct StagesCombined<'d> {
     /// Input stage setup
-    pub input: InputSetup,
+    pub input: InputSetup<'d>,
     /// FFT and output stages setup
     pub fft_and_output: Vec<FftAndOutputSetup<'d>>,
 }
@@ -48,7 +48,7 @@ pub struct StagesCombined<'d> {
 /// channel_capacity: the capacity of the channels connecting the input stage to each output stage
 ///
 pub fn set_up_stages_combined<'d, B>(
-    mut samples: Box<dyn ReadInput>,
+    mut samples: Box<dyn ReadInput + 'd>,
     bands: B,
     channel_capacity: usize,
     compression_fft_size: u16,

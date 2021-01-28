@@ -23,16 +23,18 @@ use std::error::Error;
 use std::{cmp, mem};
 
 use uhd::{
-    ReceiveStreamer, StreamArgs, StreamCommand, StreamCommandType, StreamTime, TuneRequest,
-    TuneResult, Usrp,
+    ReceiveErrorKind, ReceiveStreamer, StreamArgs, StreamCommand, StreamCommandType, StreamTime,
+    TuneRequest, TuneResult, Usrp,
 };
 
 use super::format::n210::{parse_sample, N210Sample, SAMPLE_BYTES};
 use super::{ReadInput, Sample};
 use num_complex::Complex;
 use std::convert::TryInto;
+use std::ops::Not;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Instant;
 
 /// Size of FFT used for compression
 const BINS: u16 = 2048;
@@ -84,6 +86,11 @@ pub struct N210<'usrp> {
     channel: usize,
     /// Stop flag
     stop: Arc<AtomicBool>,
+
+    // Diagnostics section
+    /// The time when the last data sample was received (or when read_samples() was first called,
+    /// if no data sample has been received yet)
+    last_data_sample_time: Option<Instant>,
 }
 
 impl<'usrp> N210<'usrp> {
@@ -103,6 +110,7 @@ impl<'usrp> N210<'usrp> {
             mboard,
             channel,
             stop: Arc::new(AtomicBool::new(false)),
+            last_data_sample_time: None,
         })
     }
 
@@ -243,7 +251,6 @@ impl ReadInput for N210<'_> {
     }
 
     fn start(&mut self) -> Result<(), Box<dyn Error>> {
-        self.set_compression_enabled(true)?;
         self.start_all()?;
         // Start sending samples now and expect to continue forever
         self.stream.send_command(&StreamCommand {
@@ -258,9 +265,12 @@ impl ReadInput for N210<'_> {
     }
 
     fn read_samples(&mut self, samples: &mut [Sample]) -> Result<usize, Box<dyn Error>> {
-        if self.stop.load(Ordering::Relaxed) {
-            return Ok(0);
-        }
+        let now = Instant::now();
+        let last_data_sample_time = self
+            .last_data_sample_time
+            .clone()
+            .unwrap_or_else(|| now.clone());
+
         // Calculate the number of Complex<i16>s to read. This uses double samples.len()
         // because each sample is 8 bytes (two Complex<i16>s)
         let raw_sample_count = cmp::min(samples.len() * 2, RECEIVE_BUFFER_SIZE);
@@ -268,30 +278,70 @@ impl ReadInput for N210<'_> {
         let mut raw_buffer = &mut raw_buffer[..raw_sample_count];
         // Need to loop in case all the samples received are average samples.
         // The loop will exit if at least one data sample was received.
-        loop {
+        while self.stop.load(Ordering::Relaxed).not() {
             // TODO: Set timeout correctly, detect and handle overflow
-            let metadata = self.stream.receive(&mut [&mut raw_buffer], 0.1, false)?;
-            if metadata.out_of_sequence() {
-                warn!("Dropped or out-of-sequence packet from USRP");
-            }
-            if let Some(e) = metadata.last_error() {
-                return Err(e.into());
-            }
-            let raw_received = complex_to_bytes(&raw_buffer[..metadata.samples()]);
-            // Parse samples, get data samples only, convert to generic samples, copy into output buffer
-            let samples_out = raw_received
-                .chunks_exact(SAMPLE_BYTES)
-                .map(|chunk| parse_sample(chunk.try_into().unwrap()))
-                .filter_map(N210Sample::into_data)
-                .zip(samples.iter_mut())
-                .map(|(sample, buffer_item)| {
-                    *buffer_item = sample.into();
-                })
-                .count();
-            if samples_out != 0 {
-                return Ok(samples_out);
+            let metadata = self.stream.receive(&mut [&mut raw_buffer], 1.0, false)?;
+            match metadata.last_error() {
+                Some(e) => {
+                    match e.kind() {
+                        ReceiveErrorKind::Timeout => {
+                            // If a SIGINT/SIGHUP was received, UHD will return a Timeout error. The stop flag
+                            // will also be set, so this is not an error.
+                            if self.stop.load(Ordering::Relaxed) {
+                                // Interrupted, no more samples
+                                return Ok(0);
+                            } else {
+                                log::warn!("UHD RX timed out. Overflow has probably happened.");
+                                log::info!("Recovering from overflow");
+                                self.stop_all()?;
+                                self.stream.send_command(&StreamCommand {
+                                    command_type: StreamCommandType::StopContinuous,
+                                    time: StreamTime::Now,
+                                })?;
+                                self.start_all()?;
+                                self.stream.send_command(&StreamCommand {
+                                    command_type: StreamCommandType::StartContinuous,
+                                    time: StreamTime::Now,
+                                })?;
+                            }
+                        }
+                        ReceiveErrorKind::OutOfSequence => {
+                            log::warn!("UHD RX out of sequence");
+                        }
+                        _ => {
+                            log::error!("UHD RX error: {}", e);
+                            return Err(e.into());
+                        }
+                    }
+                }
+                None => {
+                    // Got some samples
+                    let raw_received = complex_to_bytes(&raw_buffer[..metadata.samples()]);
+                    // Parse samples, get data samples only, convert to generic samples, copy into output buffer
+                    let samples_out = raw_received
+                        .chunks_exact(SAMPLE_BYTES)
+                        .map(|chunk| parse_sample(chunk.try_into().unwrap()))
+                        .filter_map(N210Sample::into_data)
+                        .zip(samples.iter_mut())
+                        .map(|(sample, buffer_item)| {
+                            *buffer_item = sample.into();
+                        })
+                        .count();
+                    if samples_out != 0 {
+                        self.last_data_sample_time = Some(Instant::now());
+                        return Ok(samples_out);
+                    } else {
+                        // Didn't get any data samples. Check the time since the last data sample.
+                        let time_since_data_sample = now - last_data_sample_time;
+                        if time_since_data_sample.as_secs() > 1 {
+                            log::warn!("More than 1 second since last data sample");
+                        }
+                    }
+                }
             }
         }
+        // Exited loop because stop flag was set
+        Ok(0)
     }
 }
 

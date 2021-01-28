@@ -1,0 +1,25 @@
+# Reconstruct configuration file that reads from a USRP and sends things over UDP
+
+[source]
+type = "n210"
+frequency = 131e6
+gain = 31.5
+antenna = "TX/RX"
+args = { addr = "192.168.10.2" }
+
+# Set lower thresholds for testing
+[[source.compression.thresholds]]
+bins = { start = 0, end = 2048 }
+threshold = 100000
+
+[ui]
+log_level = "Debug"
+
+# 131.550, 97.656 25 kHz
+[[bands]]
+bins = 2
+frequency = 0.550e6
+
+[bands.destination]
+type = "udp"
+remote_address = "127.0.0.1:9930"

@@ -37,7 +37,7 @@ const DEFAULT_CHANNEL_CAPACITY: usize = 0;
 /// Setup for decompression
 pub struct DecompressSetup<'d> {
     /// Compressed sample source
-    source: Box<dyn ReadInput>,
+    source: Box<dyn ReadInput + 'd>,
     /// Bands to decompress
     bands: Vec<BandSetup<'d>>,
     /// Capacity of input -> FFT/output stage channels
@@ -52,7 +52,7 @@ pub struct DecompressSetup<'d> {
 
 impl<'d> DecompressSetup<'d> {
     /// Creates a new decompression setup with no bands and default channel capacity
-    pub fn new(source: Box<dyn ReadInput>, compression_fft_size: u16) -> Self {
+    pub fn new(source: Box<dyn ReadInput + 'd>, compression_fft_size: u16) -> Self {
         DecompressSetup {
             source,
             bands: Vec::new(),

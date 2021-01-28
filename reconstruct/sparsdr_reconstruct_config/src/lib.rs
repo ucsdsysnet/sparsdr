@@ -85,11 +85,79 @@ pub enum Format {
 }
 
 /// Options for capturing and compressing signals
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Compression {
+    /// Thresholds for ranges of bins
+    #[serde(default)]
     pub thresholds: Vec<ThresholdRange>,
+    /// Bins to mask
+    ///
+    /// Masked bins will not be sent from the USRP to the host.
+    ///
+    /// Regardless of this value, bins 0, 1, and (FFT size - 1) will always be masked. These bins
+    /// are nearly always active because they are at the radio's center frequency. When the FFT
+    /// size is 2048, these three bins span about 146 kHz.
+    #[serde(default)]
     pub masks: Vec<Range<u16>>,
+    /// Base-2 logarithm of the FFT size used for compression
+    ///
+    /// This should normally be 11 (corresponding to 2048 bins). Other values have not been tested.
+    #[serde(default = "default_fft_size_logarithm")]
+    pub fft_size_logarithm: u32,
+    /// FFT scaling (what is this?)
+    #[serde(default = "default_fft_scaling")]
+    pub fft_scaling: u32,
+    /// The weight factor used when updating averages, between 0 and 1. One extreme changes the
+    /// average each time an FFT is run, and the other extreme never changes the average.
+    /// Which is which?
+    #[serde(
+        default = "default_average_weight",
+        deserialize_with = "crate::custom_de::deserialize_0_1"
+    )]
+    pub average_weight: f32,
+    /// The interval between average samples that the USRP sends
+    ///
+    /// What units is this in?
+    ///
+    /// This value will be rounded down to the nearest power of two.
+    #[serde(default = "default_average_interval")]
+    pub average_sample_interval: u32,
+}
+
+/// Returns the default size (11 => 2^11 = 2048 bins)
+fn default_fft_size_logarithm() -> u32 {
+    11
+}
+
+/// Returns the default FFT scaling
+fn default_fft_scaling() -> u32 {
+    // Why this value?
+    0x6ab
+}
+
+/// Returns the default average sample interval
+fn default_average_interval() -> u32 {
+    // 2^12
+    1 << 12
+}
+
+/// Returns the default average weight
+fn default_average_weight() -> f32 {
+    0.85
+}
+
+impl Default for Compression {
+    fn default() -> Self {
+        Compression {
+            thresholds: Default::default(),
+            masks: Default::default(),
+            fft_size_logarithm: default_fft_size_logarithm(),
+            fft_scaling: default_fft_scaling(),
+            average_weight: default_average_weight(),
+            average_sample_interval: default_average_interval(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -103,8 +171,14 @@ pub struct ThresholdRange {
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Band {
+    /// Number of FFT bins used for reconstruction
+    ///
+    /// The minimum value is 2, and the maximum is the FFT size used for compression.
     pub bins: u16,
+    /// The frequency to reconstruct for this band, in hertz relative to the center frequency
+    /// used for compression
     pub frequency: f32,
+    /// The output to write reconstructed samples to
     pub destination: Output,
 }
 

@@ -287,6 +287,7 @@ type = 'stdout'
                         },
                     ],
                     masks: vec![0..120, 2000..2048],
+                    ..Compression::default()
                 },
                 args: {
                     let mut args = BTreeMap::new();

@@ -34,9 +34,9 @@ use std::error::Error;
 use std::ops::Not;
 
 /// The setup for the input stage
-pub struct InputSetup {
+pub struct InputSetup<'input> {
     /// Source of compressed samples
-    pub source: Box<dyn ReadInput>,
+    pub source: Box<dyn ReadInput + 'input>,
     /// Send half of channels used to send windows to all FFT stages
     pub destinations: Vec<ToFft>,
     /// The number of FFT bins used to compress the samples
@@ -75,7 +75,7 @@ impl ToFft {
                 // Couldn't send because the channel has been disconnected
                 io::Error::new(
                     io::ErrorKind::Other,
-                    "A decompression thread has exited unexpectedly",
+                    "A band reconstruction thread has exited unexpectedly",
                 )
             })?;
             Ok(true)
@@ -114,18 +114,24 @@ fn read_samples_exact(
     Ok(samples_read)
 }
 
-pub fn run_input_stage(mut setup: InputSetup, stop: Arc<AtomicBool>) -> Result<(), Box<dyn Error>> {
+pub fn run_input_stage(
+    mut setup: InputSetup<'_>,
+    stop: Arc<AtomicBool>,
+) -> Result<(), Box<dyn Error>> {
     // Steps
     let mut grouper = Grouper::new(usize::from(setup.fft_size));
     let shift = Shift::new(setup.fft_size);
 
     // Buffers
-    let buffer_size = 64usize;
+    // buffer_size: The number of windows to read at a time
+    let buffer_size = 32usize;
     let sample_buffer_size = usize::from(setup.fft_size) * buffer_size;
     let mut samples_in = Vec::with_capacity(sample_buffer_size);
     let mut grouped_windows = Vec::with_capacity(buffer_size);
     let mut shifted_windows = Vec::with_capacity(buffer_size);
 
+    // Prepare the source
+    setup.source.start()?;
     while running(&stop) {
         let mut last_run = false;
         // Re-expand buffers

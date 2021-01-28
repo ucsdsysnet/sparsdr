@@ -85,8 +85,11 @@ fn run() -> Result<(), Box<dyn Error>> {
     if let Err(e) = log_status {
         eprintln!("Failed to set up simpler logger: {}", e);
     }
+    // Create a setup and call run_with_setup
+    Setup::run_from_config(&config, run_with_setup)
+}
 
-    let setup = Setup::from_config(&config)?;
+fn run_with_setup(setup: Setup<'_>) -> Result<(), Box<dyn Error>> {
     let compression_bins = setup.source.bins();
     let compression_bandwidth = setup.source.sample_rate();
 

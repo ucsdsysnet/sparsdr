@@ -115,9 +115,18 @@ struct OutputChain<'d> {
 }
 
 /// Runs the FFT and output stages using the provided setup
-///
-/// On success, this returns the total number of samples written.
-pub fn run_fft_and_output_stage(
+pub fn run_fft_and_output_stage(setup: FftAndOutputSetup<'_>) -> Result<(), Box<dyn Error + Send>> {
+    let this_thread = std::thread::current();
+    let thread_name = this_thread.name();
+    let status = run_fft_and_output_stage_inner(setup);
+    match &status {
+        Ok(()) => log::info!("Reconstruction thread {:?} clean exit", thread_name),
+        Err(e) => log::error!("Reconstruction thread {:?} error: {}", thread_name, e),
+    }
+    status
+}
+
+pub fn run_fft_and_output_stage_inner(
     mut setup: FftAndOutputSetup<'_>,
 ) -> Result<(), Box<dyn Error + Send>> {
     // Set up steps

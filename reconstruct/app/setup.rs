@@ -37,9 +37,9 @@ use uhd::{TuneRequest, Usrp};
 /// The setup for a decompression operation
 ///
 /// A Setup is created from the command-line arguments (Args)
-pub struct Setup {
+pub struct Setup<'source> {
     /// Source for compressed samples
-    pub source: Box<dyn ReadInput>,
+    pub source: Box<dyn ReadInput + 'source>,
     /// Size of the source file in bytes, if known
     pub source_length: Option<u64>,
     /// Log level
@@ -62,14 +62,22 @@ pub struct BandSetup {
     pub destination: Box<dyn WriteOutput + Send>,
 }
 
-impl Setup {
-    pub fn from_config(config: &Config) -> Result<Self, Box<dyn Error>> {
+impl<'source> Setup<'source> {
+    /// Creates a setup from a configuration and passes it to the provided operation
+    pub fn run_from_config<F, R>(config: &Config, operation: F) -> Result<R, Box<dyn Error>>
+    where
+        F: FnOnce(Setup<'_>) -> Result<R, Box<dyn Error>>,
+    {
+        // Storage for values that have references stored in the setup
+        let stdin_storage: Stdin;
+        let usrp_storage: Option<Usrp>;
+
+        // Convert config
         let source: Box<dyn ReadInput> = match &config.source {
             Input::Stdin { format } => {
                 // stdin already has a BufReader
-                // Use leak to create a lock with 'static lifetime.
-                let stdin: &'static Stdin = Box::leak(Box::new(io::stdin()));
-                let lock = stdin.lock();
+                stdin_storage = io::stdin();
+                let lock = stdin_storage.lock();
                 match format {
                     Format::N210 => Box::new(N210SampleReader::new(lock)),
                     Format::Pluto => unimplemented!("Pluto format is not yet implemented"),
@@ -101,20 +109,43 @@ impl Setup {
                 if let Some(antenna) = antenna.as_deref() {
                     usrp.set_rx_antenna(antenna, 0)?;
                 }
-                // Leak to get a 'static Usrp
-                let usrp: &'static Usrp = Box::leak(Box::new(usrp));
-                let n210 = N210::new(usrp, 0, 0)?;
-                // Compression setup
-                for mask_range in &compression.masks {
-                    for bin in mask_range.clone() {
-                        n210.set_mask_enabled(bin, true)?;
-                    }
-                }
+                // Set the sample rate (this is required for correct functionality. It will cause
+                // UHD to display warnings that should be ignored).
+                usrp.set_rx_sample_rate(100_000_000.0, 0)?;
+                // Put the USRP in the higher-up storage
+                usrp_storage = Some(usrp);
+                let n210 = N210::new(usrp_storage.as_ref().unwrap(), 0, 0)?;
+                // Compression setup: Follow the steps in uhd_rx_compressed_cfile
+                // https://github.com/ucsdsysnet/sparsdr/blob/master/examples/uhd_rx_compressed_cfile/uhd_compressed_rx_cfile
+                n210.set_compression_enabled(true)?;
+                n210.stop_all()?;
+                n210.set_fft_size(compression.fft_size_logarithm)?;
+                n210.set_fft_scaling(compression.fft_scaling)?;
+
                 for threshold_range in &compression.thresholds {
                     for bin in threshold_range.bins.clone() {
                         n210.set_threshold(bin, threshold_range.threshold)?;
                     }
                 }
+
+                // Clear all masks
+                let fft_size = 1u16 << compression.fft_size_logarithm;
+                for bin in 0..fft_size {
+                    n210.set_mask_enabled(bin, false)?;
+                }
+                // Set configured masks
+                for mask_range in &compression.masks {
+                    for bin in mask_range.clone() {
+                        n210.set_mask_enabled(bin, true)?;
+                    }
+                }
+                // Set masks for bins 0, 1, and -1
+                n210.set_mask_enabled(0, true)?;
+                n210.set_mask_enabled(1, true)?;
+                n210.set_mask_enabled(fft_size - 1, true)?;
+
+                n210.set_average_weight(compression.average_weight)?;
+                n210.set_average_packet_interval(compression.average_sample_interval)?;
 
                 Box::new(n210)
             }
@@ -140,14 +171,17 @@ impl Setup {
             .map(BandSetup::from_config)
             .collect::<Result<Vec<BandSetup>, Box<dyn Error>>>()?;
 
-        Ok(Setup {
+        let setup = Setup {
             source,
             source_length,
             log_level,
             bands,
             progress_bar,
             channel_capacity,
-        })
+        };
+
+        // Run the provided closure
+        operation(setup)
     }
 }
 
@@ -219,10 +253,35 @@ impl BandSetup {
             },
         };
 
+        if config.bins < 2 {
+            return Err(SetupError(format!(
+                "Can't reconstruct a band with {} bins (the minimum number of bins is 2)",
+                config.bins
+            ))
+            .into());
+        }
+
         Ok(BandSetup {
             bins: config.bins,
             center_frequency: config.frequency,
             destination,
         })
+    }
+}
+
+/// Errors that occur when creating a setup
+#[derive(Debug, Clone)]
+struct SetupError(String);
+
+impl Error for SetupError {}
+
+mod fmt {
+    use super::SetupError;
+    use std::fmt;
+
+    impl fmt::Display for SetupError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "Setup error: {}", self.0)
+        }
     }
 }

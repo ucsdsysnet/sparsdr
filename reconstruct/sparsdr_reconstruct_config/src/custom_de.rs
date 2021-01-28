@@ -19,7 +19,7 @@
 //! Custom deserialization functions
 //!
 
-use serde::de::{DeserializeSeed, Error, MapAccess, Visitor};
+use serde::de::{DeserializeSeed, Error, MapAccess, Unexpected, Visitor};
 use serde::{Deserialize, Deserializer};
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
@@ -148,4 +148,31 @@ where
         }
     }
     deserializer.deserialize_map(MapVisitor)
+}
+
+/// Deserializes an f32 in the range `[0, 1]`
+pub fn deserialize_0_1<'de, D>(deserializer: D) -> Result<f32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Float01Visitor;
+    impl<'de1> Visitor<'de1> for Float01Visitor {
+        type Value = f32;
+
+        fn expecting(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+            write!(formatter, "a floating-point number in the range [0, 1]")
+        }
+
+        fn visit_f32<E>(self, v: f32) -> Result<Self::Value, E>
+        where
+            E: Error,
+        {
+            if v >= 0.0 && v <= 1.0 {
+                Ok(v)
+            } else {
+                Err(Error::invalid_value(Unexpected::Float(f64::from(v)), &self))
+            }
+        }
+    }
+    deserializer.deserialize_f32(Float01Visitor)
 }

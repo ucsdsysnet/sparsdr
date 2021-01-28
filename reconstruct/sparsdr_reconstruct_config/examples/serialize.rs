@@ -21,7 +21,8 @@ extern crate toml;
 use std::path::PathBuf;
 
 use sparsdr_reconstruct_config::{
-    Band, Compression, Config, Format, Input, Output, UdpHeaderFormat, UserInterface,
+    Band, Compression, Config, Format, Input, Output, ThresholdRange, UdpHeaderFormat,
+    UserInterface,
 };
 use std::collections::BTreeMap;
 
@@ -71,12 +72,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             gain: None,
             antenna: Some("RX2".to_owned()),
             compression: Compression {
-                thresholds: vec![],
-                // thresholds: vec![ThresholdRange {
-                //     bins: 10..20,
-                //     threshold: 10_000,
-                // }],
-                masks: vec![], //vec![0..10],
+                thresholds: vec![ThresholdRange {
+                    bins: 10..20,
+                    threshold: 10_000,
+                }],
+                masks: vec![],
+                ..Compression::default()
             },
         },
         ui: UserInterface::default(),
