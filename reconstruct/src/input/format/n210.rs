@@ -59,7 +59,7 @@ where
         // Read samples until a data sample is read
         loop {
             let status = self.source.read_exact(&mut buffer);
-            log::debug!("read_exact_interruptible returned {:?}", status);
+            log::debug!("read_exact returned {:?}", status);
             // Check errors
             if let Err(e) = status {
                 break match e.kind() {

@@ -114,7 +114,7 @@ impl<'source> Setup<'source> {
                 usrp.set_rx_sample_rate(100_000_000.0, 0)?;
                 // Put the USRP in the higher-up storage
                 usrp_storage = Some(usrp);
-                let n210 = N210::new(usrp_storage.as_ref().unwrap(), 0, 0)?;
+                let mut n210 = N210::new(usrp_storage.as_ref().unwrap(), 0, 0)?;
                 // Compression setup: Follow the steps in uhd_rx_compressed_cfile
                 // https://github.com/ucsdsysnet/sparsdr/blob/master/examples/uhd_rx_compressed_cfile/uhd_compressed_rx_cfile
                 n210.set_compression_enabled(true)?;

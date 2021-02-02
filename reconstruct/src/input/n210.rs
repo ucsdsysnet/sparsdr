@@ -91,6 +91,9 @@ pub struct N210<'usrp> {
     /// The time when the last data sample was received (or when read_samples() was first called,
     /// if no data sample has been received yet)
     last_data_sample_time: Option<Instant>,
+    average_collector: AverageCollector,
+    /// If a mask is enabled for each bin
+    masks_enabled: [bool; 2048],
 }
 
 impl<'usrp> N210<'usrp> {
@@ -111,23 +114,25 @@ impl<'usrp> N210<'usrp> {
             channel,
             stop: Arc::new(AtomicBool::new(false)),
             last_data_sample_time: None,
+            average_collector: AverageCollector::new(),
+            masks_enabled: [false; 2048],
         })
     }
 
     /// Sets the center frequency for receiving
-    pub fn set_frequency(&self, frequency: &TuneRequest) -> Result<TuneResult, uhd::Error> {
+    pub fn set_frequency(&mut self, frequency: &TuneRequest) -> Result<TuneResult, uhd::Error> {
         self.usrp.set_rx_frequency(frequency, self.channel)
     }
 
     /// Sets the antenna used to receive
-    pub fn set_antenna(&self, antenna: &str) -> Result<(), uhd::Error> {
+    pub fn set_antenna(&mut self, antenna: &str) -> Result<(), uhd::Error> {
         self.usrp.set_rx_antenna(antenna, self.channel)
     }
 
     /// Sets the receive gain for the gain element with the provided name
     ///
     /// If name is empty, a gain element will be chosen automatically.
-    pub fn set_gain(&self, gain: f64, name: &str) -> Result<(), uhd::Error> {
+    pub fn set_gain(&mut self, gain: f64, name: &str) -> Result<(), uhd::Error> {
         self.usrp.set_rx_gain(gain, self.channel, name)
     }
 
@@ -135,31 +140,31 @@ impl<'usrp> N210<'usrp> {
     ///
     /// When compression is disabled, the USRP will send uncompressed samples as if it were using
     /// the standard FPGA image.
-    pub fn set_compression_enabled(&self, enabled: bool) -> Result<(), uhd::Error> {
+    pub fn set_compression_enabled(&mut self, enabled: bool) -> Result<(), uhd::Error> {
         self.usrp
             .set_user_register(registers::ENABLE_COMPRESSION, enabled as u32, self.mboard)
     }
 
     /// Enables/disables running the FFT
-    pub fn set_fft_enabled(&self, enabled: bool) -> Result<(), uhd::Error> {
+    pub fn set_fft_enabled(&mut self, enabled: bool) -> Result<(), uhd::Error> {
         self.usrp
             .set_user_register(registers::RUN_FFT, enabled as u32, self.mboard)
     }
 
     /// Enables/disables sending of FFT samples
-    pub fn set_fft_send_enabled(&self, enabled: bool) -> Result<(), uhd::Error> {
+    pub fn set_fft_send_enabled(&mut self, enabled: bool) -> Result<(), uhd::Error> {
         self.usrp
             .set_user_register(registers::FFT_SEND, enabled as u32, self.mboard)
     }
 
     /// Enables/disables sending of average samples
-    pub fn set_average_send_enabled(&self, enabled: bool) -> Result<(), uhd::Error> {
+    pub fn set_average_send_enabled(&mut self, enabled: bool) -> Result<(), uhd::Error> {
         self.usrp
             .set_user_register(registers::AVG_SEND, enabled as u32, self.mboard)
     }
 
     /// Enables the FFT, sending of FFT samples, and sending of average samples
-    pub fn start_all(&self) -> Result<(), uhd::Error> {
+    pub fn start_all(&mut self) -> Result<(), uhd::Error> {
         self.set_fft_send_enabled(true)?;
         self.set_average_send_enabled(true)?;
         self.set_fft_enabled(true)?;
@@ -167,7 +172,7 @@ impl<'usrp> N210<'usrp> {
     }
 
     /// Disables the FFT, sending of FFT samples, and sending of average samples
-    pub fn stop_all(&self) -> Result<(), uhd::Error> {
+    pub fn stop_all(&mut self) -> Result<(), uhd::Error> {
         self.set_fft_send_enabled(false)?;
         self.set_average_send_enabled(false)?;
         self.set_fft_enabled(false)?;
@@ -175,13 +180,13 @@ impl<'usrp> N210<'usrp> {
     }
 
     /// Sets the number of bins used for the FFT
-    pub fn set_fft_size(&self, size: u32) -> Result<(), uhd::Error> {
+    pub fn set_fft_size(&mut self, size: u32) -> Result<(), uhd::Error> {
         self.usrp
             .set_user_register(registers::FFT_SIZE, size, self.mboard)
     }
 
     /// Sets the FFT scaling factor (what is this?)
-    pub fn set_fft_scaling(&self, scaling: u32) -> Result<(), uhd::Error> {
+    pub fn set_fft_scaling(&mut self, scaling: u32) -> Result<(), uhd::Error> {
         self.usrp
             .set_user_register(registers::SCALING, scaling, self.mboard)
     }
@@ -189,7 +194,7 @@ impl<'usrp> N210<'usrp> {
     /// Sets the threshold for one bin
     ///
     /// TODO: Threshold units and more documentation
-    pub fn set_threshold(&self, index: u16, threshold: u32) -> Result<(), uhd::Error> {
+    pub fn set_threshold(&mut self, index: u16, threshold: u32) -> Result<(), uhd::Error> {
         // Register format:
         // Bits 31:21 : index (11 bits)
         // Bits 20:0 : threshold shifted right by 11 bits (21 bits)
@@ -203,7 +208,8 @@ impl<'usrp> N210<'usrp> {
     }
 
     /// Enables or disables masking for one bin
-    pub fn set_mask_enabled(&self, index: u16, enabled: bool) -> Result<(), uhd::Error> {
+    pub fn set_mask_enabled(&mut self, index: u16, enabled: bool) -> Result<(), uhd::Error> {
+        self.masks_enabled[usize::from(index)] = enabled;
         // Register format:
         // Bits 31:1 : index (31 bits)
         // Bit 0 : set mask (1) / clear mask (0)
@@ -216,7 +222,7 @@ impl<'usrp> N210<'usrp> {
     /// Sets the average weight
     ///
     /// TODO: What is this?, more documentation
-    pub fn set_average_weight(&self, weight: f32) -> Result<(), uhd::Error> {
+    pub fn set_average_weight(&mut self, weight: f32) -> Result<(), uhd::Error> {
         assert!(
             weight >= 0.0 && weight <= 1.0,
             "weight must be in the range [0, 1]"
@@ -231,7 +237,7 @@ impl<'usrp> N210<'usrp> {
     /// Sets the interval between sets of average samples
     ///
     /// TODO: What units?
-    pub fn set_average_packet_interval(&self, interval: u32) -> Result<(), uhd::Error> {
+    pub fn set_average_packet_interval(&mut self, interval: u32) -> Result<(), uhd::Error> {
         assert_ne!(interval, 0, "interval must not be 0");
 
         // Register format: ceiling of the base-2 logarithm of the interval
@@ -265,12 +271,6 @@ impl ReadInput for N210<'_> {
     }
 
     fn read_samples(&mut self, samples: &mut [Sample]) -> Result<usize, Box<dyn Error>> {
-        let now = Instant::now();
-        let last_data_sample_time = self
-            .last_data_sample_time
-            .clone()
-            .unwrap_or_else(|| now.clone());
-
         // Calculate the number of Complex<i16>s to read. This uses double samples.len()
         // because each sample is 8 bytes (two Complex<i16>s)
         let raw_sample_count = cmp::min(samples.len() * 2, RECEIVE_BUFFER_SIZE);
@@ -279,6 +279,14 @@ impl ReadInput for N210<'_> {
         // Need to loop in case all the samples received are average samples.
         // The loop will exit if at least one data sample was received.
         while self.stop.load(Ordering::Relaxed).not() {
+            let now = Instant::now();
+            let last_data_sample_time = match self.last_data_sample_time {
+                Some(time) => time,
+                None => {
+                    self.last_data_sample_time = Some(now);
+                    now
+                }
+            };
             // TODO: Set timeout correctly, detect and handle overflow
             let metadata = self.stream.receive(&mut [&mut raw_buffer], 1.0, false)?;
             match metadata.last_error() {
@@ -306,7 +314,7 @@ impl ReadInput for N210<'_> {
                             }
                         }
                         ReceiveErrorKind::OutOfSequence => {
-                            log::warn!("UHD RX out of sequence");
+                            // UHD has already printed a "D", don't need to do anything else.
                         }
                         _ => {
                             log::error!("UHD RX error: {}", e);
@@ -321,6 +329,12 @@ impl ReadInput for N210<'_> {
                     let samples_out = raw_received
                         .chunks_exact(SAMPLE_BYTES)
                         .map(|chunk| parse_sample(chunk.try_into().unwrap()))
+                        .inspect(|sample| {
+                            if let N210Sample::Average(average_sample) = sample {
+                                self.average_collector
+                                    .record_average(average_sample.index, average_sample.magnitude);
+                            }
+                        })
                         .filter_map(N210Sample::into_data)
                         .zip(samples.iter_mut())
                         .map(|(sample, buffer_item)| {
@@ -328,13 +342,34 @@ impl ReadInput for N210<'_> {
                         })
                         .count();
                     if samples_out != 0 {
-                        self.last_data_sample_time = Some(Instant::now());
+                        log::info!("Got {} data samples", samples_out);
+                        self.last_data_sample_time = Some(now);
                         return Ok(samples_out);
                     } else {
                         // Didn't get any data samples. Check the time since the last data sample.
                         let time_since_data_sample = now - last_data_sample_time;
                         if time_since_data_sample.as_secs() > 1 {
-                            log::warn!("More than 1 second since last data sample");
+                            // log::warn!("More than 1 second since last data sample");
+
+                            // Print average information for non-masked bins
+                            print!("Averages:");
+                            for (bin, (magnitude, masked)) in self
+                                .average_collector
+                                .magnitudes
+                                .iter()
+                                .cloned()
+                                .zip(self.masks_enabled.iter().cloned())
+                                .enumerate()
+                            {
+                                if !masked {
+                                    print!(" {}: {},", bin, magnitude);
+                                }
+                            }
+                            println!();
+
+                            // This is not really correct, but it does mean that this won't be
+                            // printed more than one time per second.
+                            self.last_data_sample_time = Some(now);
                         }
                     }
                 }
@@ -352,4 +387,32 @@ fn complex_to_bytes(samples: &[Complex<i16>]) -> &[u8] {
     let length = samples.len() * scale;
     // This is safe as long as u8 does not require greater alignment than Complex<i16>.
     unsafe { std::slice::from_raw_parts(ptr as *const u8, length) }
+}
+
+/// Collects average samples to display
+struct AverageCollector {
+    /// The most recent magnitude from each bin
+    magnitudes: [u32; 2048],
+}
+
+impl AverageCollector {
+    pub fn new() -> AverageCollector {
+        AverageCollector {
+            magnitudes: [0; 2048],
+        }
+    }
+
+    pub fn record_average(&mut self, bin: u16, magnitude: u32) {
+        self.magnitudes[usize::from(bin)] = magnitude;
+    }
+}
+
+impl std::fmt::Debug for AverageCollector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut map = f.debug_map();
+        for (bin, magnitude) in self.magnitudes.iter().enumerate() {
+            map.entry(&bin, &magnitude);
+        }
+        map.finish()
+    }
 }
