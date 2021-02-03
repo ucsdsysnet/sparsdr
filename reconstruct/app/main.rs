@@ -137,7 +137,7 @@ fn main() {
 }
 
 /// Creates and sets up a progress bar, if requested by the setup
-fn create_progress_bar(setup: &Setup) -> Option<ProgressBar> {
+fn create_progress_bar(setup: &Setup<'_>) -> Option<ProgressBar> {
     if setup.progress_bar {
         // Set up progress bar if input file size is known, or spinner if it is not known
         let progress = indicatif::ProgressBar::new(setup.source_length.unwrap_or(0));

@@ -245,6 +245,21 @@ impl<'usrp> N210<'usrp> {
         self.usrp
             .set_user_register(registers::AVG_INTERVAL, ceiling_log_interval, self.mboard)
     }
+
+    /// Stops and then resumes the operation of the USRP
+    fn recover_from_overflow(&mut self) -> Result<(), uhd::Error> {
+        self.stop_all()?;
+        self.stream.send_command(&StreamCommand {
+            command_type: StreamCommandType::StopContinuous,
+            time: StreamTime::Now,
+        })?;
+        self.start_all()?;
+        self.stream.send_command(&StreamCommand {
+            command_type: StreamCommandType::StartContinuous,
+            time: StreamTime::Now,
+        })?;
+        Ok(())
+    }
 }
 
 impl ReadInput for N210<'_> {
@@ -270,25 +285,43 @@ impl ReadInput for N210<'_> {
         self.stop = stop;
     }
 
+    /// How this works:
+    /// The USRP sends chunks of data samples and chunks of average samples. All samples in each
+    /// chunk have the same time value.
+    /// When the time value changes and no more samples are immediately read,
+    /// the input stage (higher up) may want to flush the samples out of the grouper and send them
+    /// on.
     fn read_samples(&mut self, samples: &mut [Sample]) -> Result<usize, Box<dyn Error>> {
         // Calculate the number of Complex<i16>s to read. This uses double samples.len()
         // because each sample is 8 bytes (two Complex<i16>s)
-        let raw_sample_count = cmp::min(samples.len() * 2, RECEIVE_BUFFER_SIZE);
-        let mut raw_buffer = [Complex::<i16>::default(); RECEIVE_BUFFER_SIZE];
-        let mut raw_buffer = &mut raw_buffer[..raw_sample_count];
+
+        // Create an iterator over the output samples that can be used to write them
+        let mut samples_out = samples.iter_mut();
+        let mut samples_produced = 0usize;
         // Need to loop in case all the samples received are average samples.
-        // The loop will exit if at least one data sample was received.
+        // The loop will exit if at least one data sample was received and the last sample
+        // received was an average sample.
         while self.stop.load(Ordering::Relaxed).not() {
             let now = Instant::now();
-            let last_data_sample_time = match self.last_data_sample_time {
-                Some(time) => time,
-                None => {
-                    self.last_data_sample_time = Some(now);
-                    now
-                }
-            };
-            // TODO: Set timeout correctly, detect and handle overflow
+
+            // Calculate the number of 32-bit samples we want to read from the USRP this time
+            let samples_wanted = samples_out.len();
+            let raw_sample_count = cmp::min(samples_wanted * 2, RECEIVE_BUFFER_SIZE);
+            let mut raw_buffer = [Complex::<i16>::default(); RECEIVE_BUFFER_SIZE];
+            let mut raw_buffer = &mut raw_buffer[..raw_sample_count];
+
             let metadata = self.stream.receive(&mut [&mut raw_buffer], 1.0, false)?;
+
+            // List of possible outcomes:
+            // If the last sample read is a data sample and the buffer has not been filled,
+            // the next receive call could yield more data samples with the same time.
+            // If the last sample read is an average sample, we can ignore it and return.
+
+            // So: If the buffer has been filled, just return
+            // If the buffer has not been filled and the last sample was not an average, call
+            // receive again.
+            // If the buffer has not been filled and the last sample was an average, return.
+
             match metadata.last_error() {
                 Some(e) => {
                     match e.kind() {
@@ -300,17 +333,7 @@ impl ReadInput for N210<'_> {
                                 return Ok(0);
                             } else {
                                 log::warn!("UHD RX timed out. Overflow has probably happened.");
-                                log::info!("Recovering from overflow");
-                                self.stop_all()?;
-                                self.stream.send_command(&StreamCommand {
-                                    command_type: StreamCommandType::StopContinuous,
-                                    time: StreamTime::Now,
-                                })?;
-                                self.start_all()?;
-                                self.stream.send_command(&StreamCommand {
-                                    command_type: StreamCommandType::StartContinuous,
-                                    time: StreamTime::Now,
-                                })?;
+                                self.recover_from_overflow()?;
                             }
                         }
                         ReceiveErrorKind::OutOfSequence => {
@@ -323,53 +346,48 @@ impl ReadInput for N210<'_> {
                     }
                 }
                 None => {
-                    // Got some samples
+                    // No error, got some samples
                     let raw_received = complex_to_bytes(&raw_buffer[..metadata.samples()]);
                     // Parse samples, get data samples only, convert to generic samples, copy into output buffer
-                    let samples_out = raw_received
+                    let samples_received = raw_received
                         .chunks_exact(SAMPLE_BYTES)
-                        .map(|chunk| parse_sample(chunk.try_into().unwrap()))
-                        .inspect(|sample| {
-                            if let N210Sample::Average(average_sample) = sample {
-                                self.average_collector
-                                    .record_average(average_sample.index, average_sample.magnitude);
-                            }
-                        })
-                        .filter_map(N210Sample::into_data)
-                        .zip(samples.iter_mut())
-                        .map(|(sample, buffer_item)| {
-                            *buffer_item = sample.into();
-                        })
-                        .count();
-                    if samples_out != 0 {
-                        log::info!("Got {} data samples", samples_out);
-                        self.last_data_sample_time = Some(now);
-                        return Ok(samples_out);
-                    } else {
-                        // Didn't get any data samples. Check the time since the last data sample.
-                        let time_since_data_sample = now - last_data_sample_time;
-                        if time_since_data_sample.as_secs() > 1 {
-                            // log::warn!("More than 1 second since last data sample");
-
-                            // Print average information for non-masked bins
-                            print!("Averages:");
-                            for (bin, (magnitude, masked)) in self
-                                .average_collector
-                                .magnitudes
-                                .iter()
-                                .cloned()
-                                .zip(self.masks_enabled.iter().cloned())
-                                .enumerate()
-                            {
-                                if !masked {
-                                    print!(" {}: {},", bin, magnitude);
+                        .map(|chunk| parse_sample(chunk.try_into().unwrap()));
+                    // Copy data samples to output, and determine two things:
+                    // Did we get at least one data sample?
+                    // Is the last sample an average sample?
+                    let (any_data_sample, last_sample_is_average) =
+                        samples_received.fold((false, false), |(any_data, _is_average), sample| {
+                            match sample {
+                                N210Sample::Data(data_sample) => {
+                                    let slot_out = samples_out
+                                        .next()
+                                        .expect("no out sample slot; incorrect size");
+                                    *slot_out = data_sample.into();
+                                    samples_produced += 1;
+                                    self.last_data_sample_time = Some(now);
+                                    (true, false)
+                                }
+                                N210Sample::Average(average_sample) => {
+                                    self.average_collector.record_average(
+                                        average_sample.index,
+                                        average_sample.magnitude,
+                                    );
+                                    (any_data, true)
                                 }
                             }
-                            println!();
+                        });
 
-                            // This is not really correct, but it does mean that this won't be
-                            // printed more than one time per second.
-                            self.last_data_sample_time = Some(now);
+                    if samples_out.len() == 0 {
+                        // All the samples the caller wants have been read.
+                        return Ok(samples_produced);
+                    } else {
+                        if any_data_sample && last_sample_is_average {
+                            // Didn't split up a block of data samples, can return
+                            return Ok(samples_produced);
+                        } else {
+                            // May need to receive again to get the rest of the data samples
+                            // in this block
+                            /* continue */
                         }
                     }
                 }

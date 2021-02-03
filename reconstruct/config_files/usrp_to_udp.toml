@@ -53,8 +53,11 @@ log_level = "Debug"
 
 # 131.550, 97.656 25 kHz
 [[bands]]
-bins = 2
-frequency = 0.550e6
+#bins = 2
+#frequency = 0.550e6
+# Reconstruct the whole thing for testing
+bins = 2048
+frequency = 0
 
 [bands.destination]
 type = "udp"

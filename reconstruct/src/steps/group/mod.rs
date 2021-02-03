@@ -109,7 +109,6 @@ impl Grouper {
             }
         } else {
             // Start the first window
-            debug!("Starting first window with time {}", sample_time);
             self.window = Some(self.create_window(sample_time, sample.index, sample.amplitude));
             // Continue reading samples
             None

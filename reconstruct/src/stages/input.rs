@@ -87,33 +87,6 @@ fn running(stop: &AtomicBool) -> bool {
     stop.load(Ordering::Relaxed).not()
 }
 
-/// Repeatedly calls read_samples() on the provided sample source until the provided buffer is
-/// full
-///
-/// If the sample source returns Ok(0) indicating an end of file, the buffer will not be
-/// completely filled.
-///
-/// This function returns the number of samples read into the buffer.
-fn read_samples_exact(
-    source: &mut dyn ReadInput,
-    buffer: &mut [Sample],
-    stop: &AtomicBool,
-) -> Result<usize, Box<dyn Error>> {
-    let mut samples_read = 0;
-    while samples_read != buffer.len() && running(stop) {
-        let remaining = &mut buffer[samples_read..];
-        let samples_read_this_time = source.read_samples(remaining)?;
-        if samples_read_this_time == 0 {
-            // Reached end of file
-            break;
-        } else {
-            samples_read += samples_read_this_time;
-        }
-    }
-
-    Ok(samples_read)
-}
-
 pub fn run_input_stage(
     mut setup: InputSetup<'_>,
     stop: Arc<AtomicBool>,
@@ -133,19 +106,19 @@ pub fn run_input_stage(
     // Prepare the source
     setup.source.start()?;
     while running(&stop) {
-        let mut last_run = false;
         // Re-expand buffers
         samples_in.resize(sample_buffer_size, Sample::default());
 
         // Read samples from the source until the buffer is full
-        let samples_read_in = read_samples_exact(&mut *setup.source, &mut samples_in, &stop)?;
+        // When only a few signals are received, it may take a long time to fill up the whole
+        // buffer. Therefore, only call read once. If the call was interrupted, there probably
+        // was a good reason (timeout or signal).
+        let samples_read_in = setup.source.read_samples(&mut samples_in)?;
         samples_in.truncate(samples_read_in);
 
-        if samples_read_in != sample_buffer_size {
-            // Couldn't read a full buffer of samples, which indicates that no more samples will
-            // come later. Exit at the end of this loop.
-            last_run = true;
-        }
+        let flush = samples_read_in != sample_buffer_size;
+        // If no more samples are coming, exit at the end of this loop
+        let last_run = samples_read_in == 0;
 
         // Group (repeat until all samples have been consumed)
         let mut samples_grouped = 0;
@@ -153,6 +126,7 @@ pub fn run_input_stage(
             grouped_windows.resize(buffer_size, Window::default());
             let remaining_samples_in = &samples_in[samples_grouped..];
             let group_status = grouper.group(&remaining_samples_in, &mut grouped_windows);
+            log::debug!("{:?}", group_status);
             samples_grouped += group_status.samples_consumed;
 
             // Shift windows
@@ -166,14 +140,17 @@ pub fn run_input_stage(
             }
         }
 
-        if last_run {
+        if flush {
             // Get out the final window and process it
             if let Some(final_window) = grouper.take_current() {
+                log::debug!("Flushing samples to FFT threads");
                 let shifted_final_window = shift.shift_window(final_window);
                 for destination in setup.destinations.iter() {
                     destination.send_if_interested(std::slice::from_ref(&shifted_final_window))?;
                 }
             }
+        }
+        if last_run {
             break;
         }
     }
