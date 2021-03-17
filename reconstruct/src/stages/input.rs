@@ -126,7 +126,6 @@ pub fn run_input_stage(
             grouped_windows.resize(buffer_size, Window::default());
             let remaining_samples_in = &samples_in[samples_grouped..];
             let group_status = grouper.group(&remaining_samples_in, &mut grouped_windows);
-            log::debug!("{:?}", group_status);
             samples_grouped += group_status.samples_consumed;
 
             // Shift windows

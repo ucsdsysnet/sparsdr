@@ -118,9 +118,9 @@ pub struct Compression {
     pub average_weight: f32,
     /// The interval between average samples that the USRP sends
     ///
-    /// What units is this in?
-    ///
-    /// This value will be rounded down to the nearest power of two.
+    /// This interval is in units of FFT windows. For example, an interval of 1 causes the USRP
+    /// to send averages after every set of FFT samples. The interval will be rounded to
+    /// a power of two.
     #[serde(default = "default_average_interval")]
     pub average_sample_interval: u32,
 }

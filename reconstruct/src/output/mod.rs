@@ -67,6 +67,7 @@ where
 /// Connects to a TCP server (blocking until the connection is accepted) and returns a writer that
 /// will write samples to the server
 pub fn tcp_client(remote_addr: SocketAddr) -> Result<StdioOutput<TcpStream>, io::Error> {
+    log::info!("Opening TCP connection to {}", remote_addr);
     let socket = TcpStream::connect(remote_addr)?;
     Ok(StdioOutput::new(socket))
 }

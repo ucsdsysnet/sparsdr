@@ -236,7 +236,9 @@ impl<'usrp> N210<'usrp> {
 
     /// Sets the interval between sets of average samples
     ///
-    /// TODO: What units?
+    /// The interval is in units of FFT windows. For example, an interval of 1 causes the USRP
+    /// to send averages after every set of FFT samples. The interval will be rounded to
+    /// a power of two.
     pub fn set_average_packet_interval(&mut self, interval: u32) -> Result<(), uhd::Error> {
         assert_ne!(interval, 0, "interval must not be 0");
 

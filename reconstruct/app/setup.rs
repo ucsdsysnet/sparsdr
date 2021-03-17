@@ -25,6 +25,7 @@ use byteorder::NativeEndian;
 use sparsdr_reconstruct::input::format::n210::N210SampleReader;
 use sparsdr_reconstruct::input::n210::N210;
 use sparsdr_reconstruct::input::ReadInput;
+use sparsdr_reconstruct::output;
 use sparsdr_reconstruct::output::stdio::StdioOutput;
 use sparsdr_reconstruct::output::udp::{
     NoHeaders, SequenceAndSizeHeaders, SequenceHeaders, UdpOutput,
@@ -109,9 +110,6 @@ impl<'source> Setup<'source> {
                 if let Some(antenna) = antenna.as_deref() {
                     usrp.set_rx_antenna(antenna, 0)?;
                 }
-                // Set the sample rate (this is required for correct functionality. It will cause
-                // UHD to display warnings that should be ignored).
-                usrp.set_rx_sample_rate(100_000_000.0, 0)?;
                 // Put the USRP in the higher-up storage
                 usrp_storage = Some(usrp);
                 let mut n210 = N210::new(usrp_storage.as_ref().unwrap(), 0, 0)?;
@@ -219,7 +217,9 @@ impl BandSetup {
                 let file = BufWriter::new(File::create(path)?);
                 Box::new(StdioOutput::new(file))
             }
-            Output::TcpClient { .. } => unimplemented!("TCP output not yet implemented"),
+            Output::TcpClient { server_address } => {
+                Box::new(output::tcp_client(server_address.clone())?)
+            }
             Output::Udp {
                 local_address,
                 remote_address,
