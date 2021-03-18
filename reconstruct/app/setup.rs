@@ -117,27 +117,43 @@ impl<'source> Setup<'source> {
                 // https://github.com/ucsdsysnet/sparsdr/blob/master/examples/uhd_rx_compressed_cfile/uhd_compressed_rx_cfile
                 n210.set_compression_enabled(true)?;
                 n210.stop_all()?;
-                n210.set_fft_size(compression.fft_size_logarithm)?;
+                n210.set_fft_size_log2(compression.fft_size_logarithm)?;
                 n210.set_fft_scaling(compression.fft_scaling)?;
 
+                // Set up bin conversion
+                let fft_size = 1u16 << compression.fft_size_logarithm;
+
+                let logical_to_fft_bin = |logical_bin: u16| -> u16 {
+                    if logical_bin >= fft_size / 2 {
+                        logical_bin - fft_size / 2
+                    } else {
+                        logical_bin + fft_size / 2
+                    }
+                };
+
+                // Set thresholds
+                // The configured thresholds have logical bin numbers, which need to be converted
+                // to FFT bin numbers for the USRP.
                 for threshold_range in &compression.thresholds {
                     for bin in threshold_range.bins.clone() {
-                        n210.set_threshold(bin, threshold_range.threshold)?;
+                        n210.set_threshold(logical_to_fft_bin(bin), threshold_range.threshold)?;
                     }
                 }
 
                 // Clear all masks
-                let fft_size = 1u16 << compression.fft_size_logarithm;
                 for bin in 0..fft_size {
                     n210.set_mask_enabled(bin, false)?;
                 }
                 // Set configured masks
+                // The configured masks have logical bin numbers, which need to be converted
+                // to FFT bin numbers for the USRP.
                 for mask_range in &compression.masks {
                     for bin in mask_range.clone() {
-                        n210.set_mask_enabled(bin, true)?;
+                        n210.set_mask_enabled(logical_to_fft_bin(bin), true)?;
                     }
                 }
-                // Set masks for bins 0, 1, and -1
+                // Set masks for bins 0, 1, and -1 (FFT bin numbers)
+                // If these were converted to logical, they would be the 3 center bins.
                 n210.set_mask_enabled(0, true)?;
                 n210.set_mask_enabled(1, true)?;
                 n210.set_mask_enabled(fft_size - 1, true)?;

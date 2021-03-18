@@ -95,9 +95,12 @@ pub struct Compression {
     ///
     /// Masked bins will not be sent from the USRP to the host.
     ///
-    /// Regardless of this value, bins 0, 1, and (FFT size - 1) will always be masked. These bins
+    /// Regardless of this value, the three center bins will always be masked. These bins
     /// are nearly always active because they are at the radio's center frequency. When the FFT
     /// size is 2048, these three bins span about 146 kHz.
+    ///
+    /// These bin numbers are in logical order (bin 0 is the lowest frequency and the maximum
+    /// bin is the highest frequency).
     #[serde(default)]
     pub masks: Vec<Range<u16>>,
     /// Base-2 logarithm of the FFT size used for compression
@@ -160,10 +163,16 @@ impl Default for Compression {
     }
 }
 
+/// A range of bins and a threshold that applies to those bins
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ThresholdRange {
+    /// The threshold for these bins
     pub threshold: u32,
+    /// The bins to apply to
+    ///
+    /// These bin numbers are in logical order (bin 0 is the lowest frequency and the maximum
+    /// bin is the highest frequency).
     pub bins: Range<u16>,
 }
 

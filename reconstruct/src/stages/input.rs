@@ -142,7 +142,6 @@ pub fn run_input_stage(
         if flush {
             // Get out the final window and process it
             if let Some(final_window) = grouper.take_current() {
-                log::debug!("Flushing samples to FFT threads");
                 let shifted_final_window = shift.shift_window(final_window);
                 for destination in setup.destinations.iter() {
                     destination.send_if_interested(std::slice::from_ref(&shifted_final_window))?;

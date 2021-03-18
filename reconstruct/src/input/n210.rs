@@ -36,8 +36,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
-/// Size of FFT used for compression
-const BINS: u16 = 2048;
+/// Default size of FFT used for compression, unless configured to some other value
+const DEFAULT_BINS: u16 = 2048;
 
 /// Sample rate used to receive time-domain samples for compression
 const SAMPLE_RATE: f32 = 100e6;
@@ -84,6 +84,8 @@ pub struct N210<'usrp> {
     mboard: usize,
     /// The receive channel number to use (usually 0)
     channel: usize,
+    /// The number of bins used for compression (configured at runtime)
+    bins: u16,
     /// Stop flag
     stop: Arc<AtomicBool>,
 
@@ -112,6 +114,7 @@ impl<'usrp> N210<'usrp> {
             stream,
             mboard,
             channel,
+            bins: DEFAULT_BINS,
             stop: Arc::new(AtomicBool::new(false)),
             last_data_sample_time: None,
             average_collector: AverageCollector::new(),
@@ -180,9 +183,16 @@ impl<'usrp> N210<'usrp> {
     }
 
     /// Sets the number of bins used for the FFT
-    pub fn set_fft_size(&mut self, size: u32) -> Result<(), uhd::Error> {
+    ///
+    /// The FFT size must be a power of two.
+    /// The size value passed to this function is the base-2 logarithm of the FFT size. For example,
+    /// a value of 11 will result in an FFT size of 2048.
+    pub fn set_fft_size_log2(&mut self, size_log2: u32) -> Result<(), uhd::Error> {
         self.usrp
-            .set_user_register(registers::FFT_SIZE, size, self.mboard)
+            .set_user_register(registers::FFT_SIZE, size_log2, self.mboard)?;
+        // Store new FFT size
+        self.bins = 1u16 << size_log2;
+        Ok(())
     }
 
     /// Sets the FFT scaling factor (what is this?)
@@ -192,6 +202,9 @@ impl<'usrp> N210<'usrp> {
     }
 
     /// Sets the threshold for one bin
+    ///
+    /// The bin number is in FFT order (the upper and lower halves are switched relative to the
+    /// frequency-proportional order)
     ///
     /// TODO: Threshold units and more documentation
     pub fn set_threshold(&mut self, index: u16, threshold: u32) -> Result<(), uhd::Error> {
@@ -208,6 +221,12 @@ impl<'usrp> N210<'usrp> {
     }
 
     /// Enables or disables masking for one bin
+    ///
+    /// If the mask is enabled, the USRP will not send any samples from this bin to the host.
+    /// This has the same effect as setting the bin threshold to its maximum value.
+    ///
+    /// The bin number is in FFT order (the upper and lower halves are switched relative to the
+    /// frequency-proportional order)
     pub fn set_mask_enabled(&mut self, index: u16, enabled: bool) -> Result<(), uhd::Error> {
         self.masks_enabled[usize::from(index)] = enabled;
         // Register format:
@@ -222,6 +241,10 @@ impl<'usrp> N210<'usrp> {
     /// Sets the average weight
     ///
     /// TODO: What is this?, more documentation
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if weight is less than 0 or greater than 1.
     pub fn set_average_weight(&mut self, weight: f32) -> Result<(), uhd::Error> {
         assert!(
             weight >= 0.0 && weight <= 1.0,
@@ -270,7 +293,7 @@ impl ReadInput for N210<'_> {
     }
 
     fn bins(&self) -> u16 {
-        BINS
+        self.bins
     }
 
     fn start(&mut self) -> Result<(), Box<dyn Error>> {

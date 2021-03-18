@@ -35,17 +35,18 @@ gain = 31.5
 antenna = "TX/RX"
 args = { addr = "192.168.10.2" }
 
-# Set lower thresholds for testing
 [[source.compression.thresholds]]
 bins = { start = 0, end = 2048 }
-threshold = 2100
+threshold = 100000
 
+# Mask out lower frequencies: 81 to 125 MHz
 [[source.compression.masks]]
 start = 0
 end = 901
 
+# Mask out higher frequencies: 138 to 181
 [[source.compression.masks]]
-start = 1068
+start = 1170
 end = 2048
 
 [ui]
