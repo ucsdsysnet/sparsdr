@@ -42,5 +42,5 @@ ACARS_CHANNELS.each do |channel|
 [[bands]]
 bins = 2
 frequency = #{frequency_offset}
-destination = { type = \"file\", path = \"/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/#{human_friendly_channel}.iq\"}"
+destination = { type = \"file\", path = \"/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_sample_pipes/#{human_friendly_channel}.iq\"}"
 end

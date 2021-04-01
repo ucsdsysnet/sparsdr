@@ -176,9 +176,8 @@ impl<'source> Setup<'source> {
         let log_level = config.ui.log_level;
         // TODO: Restore progress bar option
         let progress_bar = false;
-        // TODO: Restore channel capacity option and default value
-        let channel_capacity = 32;
 
+        let channel_capacity = config.tuning.channel_capacity;
         let bands: Vec<BandSetup> = config
             .bands
             .iter()

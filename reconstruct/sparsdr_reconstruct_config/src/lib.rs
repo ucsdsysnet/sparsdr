@@ -43,6 +43,9 @@ pub struct Config {
     /// Application user interface settings (optional)
     #[serde(default)]
     pub ui: UserInterface,
+    /// Reconstruction tuning (optional)
+    #[serde(default)]
+    pub tuning: Tuning,
     /// Reconstruction bands and outputs (at least one required)
     #[serde(deserialize_with = "crate::custom_de::deserialize_non_empty_vec")]
     pub bands: Vec<Band>,
@@ -174,6 +177,27 @@ pub struct ThresholdRange {
     /// These bin numbers are in logical order (bin 0 is the lowest frequency and the maximum
     /// bin is the highest frequency).
     pub bins: Range<u16>,
+}
+
+/// Reconstruction performance tuning
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct Tuning {
+    /// Capacity of channels used to send samples from the main (input) thread to reconstruction
+    /// threads
+    ///
+    /// Larger values take up more memory, but may reduce problems caused by not reading samples
+    /// from the USRP frequently enough.
+    pub channel_capacity: usize,
+}
+
+impl Default for Tuning {
+    fn default() -> Self {
+        Tuning {
+            // This channel capacity works well on Rasberry Pis and more powerful computers.
+            channel_capacity: 128,
+        }
+    }
 }
 
 /// Information about a band to reconstruct and where to write its output

@@ -37,17 +37,15 @@ crossbeam-channel = "0.4.2"
 crossbeam-utils = "0.7.2"
 signal-hook = "0.1.8"
 rustfft = "5.0.0"
-uhd = "0.1.0"
+uhd = "0.1.1"
 
 [dependencies.num-complex]
 version = "0.3.1"
 default-features = false
 
 # Use the system-provided dynamically-linked FFTW to work around GPL
-# FIXME: The git dependency is needed to keep everything on num-complex 0.3. When fftw 0.7 is released, update this.
 [dependencies.fftw]
-version = "0.7.0-alpha.0"
-git = "https://github.com/rust-math/fftw"
+version = "0.7.0"
 default-features = false
 features = ["system"]
 optional = true

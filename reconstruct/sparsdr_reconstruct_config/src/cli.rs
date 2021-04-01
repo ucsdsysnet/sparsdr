@@ -26,7 +26,7 @@ use std::str::FromStr;
 
 use clap::{crate_authors, crate_name, crate_version, App, Arg, ArgMatches};
 
-use crate::{Band, Config, Format, Input, Output, UserInterface};
+use crate::{Band, Config, Format, Input, Output, Tuning, UserInterface};
 
 const ABOUT: &str = "This program reads SparSDR compressed samples from a file or radio, \
 reconstructs signals in one or more bands, and writes the reconstructed signals to files or other \
@@ -149,6 +149,7 @@ fn config_from_matches(matches: &ArgMatches) -> Config {
     Config {
         source: input_from_matches(matches),
         ui: ui_from_matches(matches),
+        tuning: Tuning::default(),
         bands: bands_from_matches(matches),
     }
 }
@@ -220,6 +221,7 @@ mod test {
                     format: Format::N210
                 },
                 ui: Default::default(),
+                tuning: Default::default(),
                 bands: vec![Band {
                     bins: 2048,
                     frequency: 0.0,
@@ -250,6 +252,7 @@ mod test {
                     format: Format::Pluto
                 },
                 ui: Default::default(),
+                tuning: Default::default(),
                 bands: vec![Band {
                     bins: 32,
                     frequency: 0.0,
@@ -291,6 +294,7 @@ mod test {
                 ui: UserInterface {
                     log_level: LevelFilter::Debug
                 },
+                tuning: Default::default(),
                 bands: vec![Band {
                     bins: 32,
                     frequency: 20e6,

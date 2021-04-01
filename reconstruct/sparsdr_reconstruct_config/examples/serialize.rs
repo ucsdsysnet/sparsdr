@@ -32,6 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             format: Format::N210,
         },
         ui: UserInterface::default(),
+        tuning: Default::default(),
         bands: vec![
             Band {
                 bins: 64,
@@ -81,6 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             },
         },
         ui: UserInterface::default(),
+        tuning: Default::default(),
         bands: vec![
             Band {
                 bins: 64,

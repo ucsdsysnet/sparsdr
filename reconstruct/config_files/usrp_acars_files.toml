@@ -10,7 +10,7 @@
 # 131.125
 # 131.425
 # 131.550
-# 131.725
+# 131.725 (10)
 # 131.850
 # 136.575
 # 136.650
@@ -37,7 +37,8 @@ args = { addr = "192.168.10.2" }
 
 [[source.compression.thresholds]]
 bins = { start = 0, end = 2048 }
-threshold = 100000
+# This was previously 75000
+threshold = 75000
 
 # Mask out lower frequencies: 81 to 125 MHz
 [[source.compression.masks]]
@@ -59,124 +60,124 @@ log_level = "Debug"
 [[bands]]
 bins = 2
 frequency = -1875000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/129.125.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/129.125.pipe"}
 
 # 129.350 MHz
 [[bands]]
 bins = 2
 frequency = -1650000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/129.350.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/129.350.pipe"}
 
 # 129.525 MHz
 [[bands]]
 bins = 2
 frequency = -1475000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/129.525.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/129.525.pipe"}
 
 # 130.025 MHz
 [[bands]]
 bins = 2
 frequency = -975000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/130.025.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/130.025.pipe"}
 
 # 130.450 MHz
 [[bands]]
 bins = 2
 frequency = -550000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/130.450.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/130.450.pipe"}
 
 # 130.825 MHz
 [[bands]]
 bins = 2
 frequency = -175000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/130.825.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/130.825.pipe"}
 
 # 131.125 MHz
 [[bands]]
 bins = 2
 frequency = 125000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.125.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/131.125.pipe"}
 
 # 131.425 MHz
 [[bands]]
 bins = 2
 frequency = 425000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.425.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/131.425.pipe"}
 
 # 131.550 MHz
 [[bands]]
 bins = 2
 frequency = 550000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.550.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/131.550.pipe"}
 
 # 131.725 MHz
 [[bands]]
 bins = 2
 frequency = 725000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.725.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/131.725.pipe"}
 
 # 131.850 MHz
 [[bands]]
 bins = 2
 frequency = 850000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.850.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/131.850.pipe"}
 
 # 136.575 MHz
 [[bands]]
 bins = 2
 frequency = 5575000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.575.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.575.pipe"}
 
 # 136.650 MHz
 [[bands]]
 bins = 2
 frequency = 5650000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.650.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.650.pipe"}
 
 # 136.675 MHz
 [[bands]]
 bins = 2
 frequency = 5675000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.675.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.675.pipe"}
 
 # 136.700 MHz
 [[bands]]
 bins = 2
 frequency = 5700000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.700.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.700.pipe"}
 
 # 136.725 MHz
 [[bands]]
 bins = 2
 frequency = 5725000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.725.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.725.pipe"}
 
 # 136.750 MHz
 [[bands]]
 bins = 2
 frequency = 5750000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.750.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.750.pipe"}
 
 # 136.775 MHz
 [[bands]]
 bins = 2
 frequency = 5775000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.775.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.775.pipe"}
 
 # 136.800 MHz
 [[bands]]
 bins = 2
 frequency = 5800000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.800.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.800.pipe"}
 
 # 136.850 MHz
 [[bands]]
 bins = 2
 frequency = 5850000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.850.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.850.pipe"}
 
 # 136.975 MHz
 [[bands]]
 bins = 2
 frequency = 5975000.0
-destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.975.iq"}
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_realtime/pre_resample_pipes/136.975.pipe"}

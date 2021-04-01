@@ -48,6 +48,7 @@ type = 'stdout'
                 format: Format::N210,
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
@@ -86,6 +87,7 @@ type = 'stdout'
                     log_level: expected,
                     ..UserInterface::default()
                 },
+                tuning: Default::default(),
                 bands: vec![Band {
                     bins: 2048,
                     frequency: 0.0,
@@ -125,6 +127,7 @@ type = 'stdout'
                 format: Format::Pluto,
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
@@ -156,6 +159,7 @@ type = 'stdout'
                 args: Default::default(),
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
@@ -193,6 +197,7 @@ type = 'stdout'
                 },
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
@@ -232,6 +237,7 @@ type = 'stdout'
                 },
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
@@ -298,6 +304,7 @@ type = 'stdout'
                 },
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
@@ -329,6 +336,7 @@ path = '/some/other/path/output_file'
                 format: Format::Pluto,
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
@@ -362,6 +370,7 @@ server_address = '128.64.8.33:992'
                 format: Format::Pluto,
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
@@ -398,6 +407,7 @@ mtu = 8200
                 format: Format::Pluto,
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
@@ -434,6 +444,7 @@ remote_address = '128.64.8.33:992'
                 format: Format::Pluto,
             },
             ui: UserInterface::default(),
+            tuning: Default::default(),
             bands: vec![Band {
                 bins: 2048,
                 frequency: 0.0,
