@@ -101,13 +101,16 @@ impl<'source> Setup<'source> {
                 let usrp = Usrp::open(&join_uhd_args(args))?;
                 // USRP setup
                 if let Some(frequency) = frequency {
+                    log::debug!("Setting frequency from config: {} Hz", *frequency);
                     usrp.set_rx_frequency(&TuneRequest::with_frequency(*frequency), 0)?;
                 }
                 if let Some(gain) = gain {
+                    log::debug!("Setting gain from config: {} dB", *gain);
                     // Leave the gain element blank for default gain
                     usrp.set_rx_gain(*gain, 0, "")?;
                 }
                 if let Some(antenna) = antenna.as_deref() {
+                    log::debug!("Setting antenna from config: {}", antenna);
                     usrp.set_rx_antenna(antenna, 0)?;
                 }
                 // Put the USRP in the higher-up storage
