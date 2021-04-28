@@ -41,6 +41,8 @@ pub struct InputSetup<'input> {
     pub destinations: Vec<ToFft>,
     /// The number of FFT bins used to compress the samples
     pub fft_size: u16,
+    /// Size of buffers between steps, in units of fft_size samples
+    pub buffer_size: usize,
 }
 
 /// Information about an FFT stage, and a channel that can be used to send windows there
@@ -97,7 +99,7 @@ pub fn run_input_stage(
 
     // Buffers
     // buffer_size: The number of windows to read at a time
-    let buffer_size = 32usize;
+    let buffer_size = setup.buffer_size;
     let sample_buffer_size = usize::from(setup.fft_size) * buffer_size;
     let mut samples_in = Vec::with_capacity(sample_buffer_size);
     let mut grouped_windows = Vec::with_capacity(buffer_size);

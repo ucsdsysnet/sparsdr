@@ -32,7 +32,9 @@ use crate::stages::fft_and_output::run_fft_and_output_stage;
 use crate::stages::input::run_input_stage;
 
 /// Default channel capacity value
-const DEFAULT_CHANNEL_CAPACITY: usize = 0;
+const DEFAULT_CHANNEL_CAPACITY: usize = 32;
+
+const DEFAULT_BUFFER_SIZE: usize = 32;
 
 /// Setup for decompression
 pub struct DecompressSetup<'d> {
@@ -42,6 +44,9 @@ pub struct DecompressSetup<'d> {
     bands: Vec<BandSetup<'d>>,
     /// Capacity of input -> FFT/output stage channels
     channel_capacity: usize,
+    /// The size of buffers used to read from the USRP and do other steps before the
+    /// splitting of samples into bin-specific threads, in units of compression_fft_size
+    buffer_size: usize,
     /// The number of FFT bins used to compress the samples
     compression_fft_size: u16,
     /// Stop flag, used to stop compression before the end of the input file
@@ -57,6 +62,7 @@ impl<'d> DecompressSetup<'d> {
             source,
             bands: Vec::new(),
             channel_capacity: DEFAULT_CHANNEL_CAPACITY,
+            buffer_size: DEFAULT_BUFFER_SIZE,
             compression_fft_size,
             stop: None,
         }
@@ -65,6 +71,13 @@ impl<'d> DecompressSetup<'d> {
     /// Sets the capacity of input -> FFT/output stage channels
     pub fn set_channel_capacity(&mut self, channel_capacity: usize) -> &mut Self {
         self.channel_capacity = channel_capacity;
+        self
+    }
+
+    /// Sets the size of buffers used to read from the USRP and do other steps before the
+    /// splitting of samples into bin-specific threads, in units of compression_fft_size
+    pub fn set_buffer_size(&mut self, buffer_size: usize) -> &mut Self {
+        self.buffer_size = buffer_size;
         self
     }
 
@@ -95,6 +108,7 @@ pub fn decompress(setup: DecompressSetup<'_>) -> Result<(), Box<dyn std::error::
         setup.bands,
         setup.channel_capacity,
         setup.compression_fft_size,
+        setup.buffer_size,
         Arc::clone(&stop),
     );
 

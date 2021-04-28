@@ -117,7 +117,7 @@ struct OutputChain<'d> {
 /// Runs the FFT and output stages using the provided setup
 pub fn run_fft_and_output_stage(setup: FftAndOutputSetup<'_>) -> Result<(), Box<dyn Error + Send>> {
     let this_thread = std::thread::current();
-    let thread_name = this_thread.name();
+    let thread_name = this_thread.name().unwrap_or("<unknown>");
     let status = run_fft_and_output_stage_inner(setup);
     match &status {
         Ok(()) => log::info!("Reconstruction thread {:?} clean exit", thread_name),

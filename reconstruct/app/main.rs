@@ -106,6 +106,7 @@ fn run_with_setup(setup: Setup<'_>) -> Result<(), Box<dyn Error>> {
     // Configure compression
     let mut decompress_setup = DecompressSetup::new(setup.source, compression_bins);
     decompress_setup.set_channel_capacity(setup.channel_capacity);
+    decompress_setup.set_buffer_size(setup.buffer_size);
     decompress_setup.set_stop_flag(stop_flag);
 
     for band in setup.bands {

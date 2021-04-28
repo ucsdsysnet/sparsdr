@@ -51,6 +51,9 @@ pub struct Setup<'source> {
     pub progress_bar: bool,
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
+    /// The size of buffers used to read from the USRP and do other steps before the
+    /// splitting of samples into bin-specific threads, in units of the compression FFT size
+    pub buffer_size: usize,
 }
 
 /// The setup for decompressing a band
@@ -180,7 +183,6 @@ impl<'source> Setup<'source> {
         // TODO: Restore progress bar option
         let progress_bar = false;
 
-        let channel_capacity = config.tuning.channel_capacity;
         let bands: Vec<BandSetup> = config
             .bands
             .iter()
@@ -193,7 +195,8 @@ impl<'source> Setup<'source> {
             log_level,
             bands,
             progress_bar,
-            channel_capacity,
+            channel_capacity: config.tuning.channel_capacity,
+            buffer_size: config.tuning.input_buffer_size,
         };
 
         // Run the provided closure

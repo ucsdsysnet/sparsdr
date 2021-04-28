@@ -47,11 +47,15 @@ pub struct StagesCombined<'d> {
 ///
 /// channel_capacity: the capacity of the channels connecting the input stage to each output stage
 ///
+/// buffer_size: The size of buffers used to read from the USRP and do other steps before the
+/// splitting of samples into bin-specific threads, in units of compression_fft_size
+///
 pub fn set_up_stages_combined<'d, B>(
     mut samples: Box<dyn ReadInput + 'd>,
     bands: B,
     channel_capacity: usize,
     compression_fft_size: u16,
+    buffer_size: usize,
     stop: Arc<AtomicBool>,
 ) -> StagesCombined<'d>
 where
@@ -68,6 +72,7 @@ where
         source: samples,
         destinations: Vec::new(),
         fft_size: compression_fft_size,
+        buffer_size,
     };
 
     for band_setup in bands {

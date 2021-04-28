@@ -189,6 +189,9 @@ pub struct Tuning {
     /// Larger values take up more memory, but may reduce problems caused by not reading samples
     /// from the USRP frequently enough.
     pub channel_capacity: usize,
+    /// The size of buffers used to read from the USRP and do other steps before the
+    /// splitting of samples into bin-specific threads, in units of the compression FFT size
+    pub input_buffer_size: usize,
 }
 
 impl Default for Tuning {
@@ -196,6 +199,7 @@ impl Default for Tuning {
         Tuning {
             // This channel capacity works well on Rasberry Pis and more powerful computers.
             channel_capacity: 128,
+            input_buffer_size: 32,
         }
     }
 }
