@@ -24,9 +24,9 @@ When SparSDR does not work correctly, [the debugging guide](doc/debugging.md) ma
 
 We have tested SparSDR with this configuration:
 
-* GNU Radio 3.7.13.4 or 3.7.14.1
-* UHD 3.10.3.0 or 3.13.1.0
-* Hardware: USRP N210 revision 4 with an SBX-120 daughter board
+* GNU Radio 3.7.13.4, 3.7.13.5, and 3.7.14.1
+* UHD 3.10.3.0, 3.13.1.0, and 3.15.0.0
+* Hardware: USRP N210 revision 4 with an SBX-120 or a CBX-120 daughter board.
 
 SparSDR should work with any GNU Radio version in the 3.7 series. GNU Radio 3.8 has some changes that prevent the SparSDR module from compiling.
 
