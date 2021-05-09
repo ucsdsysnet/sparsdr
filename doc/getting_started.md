@@ -9,6 +9,11 @@
 * The [Rust compiler](https://www.rust-lang.org/learn/get-started) (latest stable version)
 * [FFTW](http://www.fftw.org/) (tested with version 3.3.5)
 * [SWIG](http://www.swig.org/) for generating Python bindings (tested with version 3.0.10)
+* [libiio](https://github.com/analogdevicesinc/libiio) for PlutoSDR Compatibility
+* [libad9361-iio](https://github.com/analogdevicesinc/libad9361-iio) for PlutoSDR Compatibility
+* [gr-iio](https://github.com/analogdevicesinc/gr-iio) for PlutoSDR GNURadio Bindings
+* [libbtbb](https://github.com/greatscottgadgets/libbtbb) for Bluetooth decoders
+* [gr-bluetooth](https://github.com/greatscottgadgets/gr-bluetooth) GNURadio bluetooth implementation using libbtbb
 
 ### Installing dependencies on Ubuntu
 
