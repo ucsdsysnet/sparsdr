@@ -1,0 +1,164 @@
+# Example configuration file for `sparsdr_reconstruct`
+#
+# To use: `sparsdr_reconstruct -c config_sample.toml`
+
+[source]
+# Connect directly to a USRP N210 over Ethernet
+type = "n210"
+# Center frequency
+frequency = 131e6
+# Receive gain
+gain = 31.5
+# Antenna name
+antenna = "RX2"
+# Additional arguments used when connecting
+args = { addr = "192.168.10.2" }
+
+# Set the threshold for all bins
+[[source.compression.thresholds]]
+bins = { start = 0, end = 2048 }
+threshold = 3000
+
+# Mask out lower frequencies: 81 to 125 MHz
+[[source.compression.masks]]
+start = 0
+end = 901
+
+# Mask out higher frequencies: 138 to 181
+[[source.compression.masks]]
+start = 1170
+end = 2048
+
+# [ui]
+# log_level = "Debug"
+
+# The bands to reconstruct
+# Each band uses 2 bins -> sample rate 97.65625 kHz
+
+# 129.125 MHz
+[[bands]]
+# Number of bins (out of 2048)
+bins = 2
+# Center frequency to reconstruct, relative to the radio's center frequency
+frequency = -1875000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/129.125.iq"}
+
+# 129.350 MHz
+[[bands]]
+bins = 2
+frequency = -1650000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/129.350.iq"}
+
+# 129.525 MHz
+[[bands]]
+bins = 2
+frequency = -1475000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/129.525.iq"}
+
+# 130.025 MHz
+[[bands]]
+bins = 2
+frequency = -975000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/130.025.iq"}
+
+# 130.450 MHz
+[[bands]]
+bins = 2
+frequency = -550000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/130.450.iq"}
+
+# 130.825 MHz
+[[bands]]
+bins = 2
+frequency = -175000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/130.825.iq"}
+
+# 131.125 MHz
+[[bands]]
+bins = 2
+frequency = 125000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.125.iq"}
+
+# 131.425 MHz
+[[bands]]
+bins = 2
+frequency = 425000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.425.iq"}
+
+# 131.550 MHz
+[[bands]]
+bins = 2
+frequency = 550000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.550.iq"}
+
+# 131.725 MHz
+[[bands]]
+bins = 2
+frequency = 725000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.725.iq"}
+
+# 131.850 MHz
+[[bands]]
+bins = 2
+frequency = 850000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/131.850.iq"}
+
+# 136.575 MHz
+[[bands]]
+bins = 2
+frequency = 5575000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.575.iq"}
+
+# 136.650 MHz
+[[bands]]
+bins = 2
+frequency = 5650000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.650.iq"}
+
+# 136.675 MHz
+[[bands]]
+bins = 2
+frequency = 5675000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.675.iq"}
+
+# 136.700 MHz
+[[bands]]
+bins = 2
+frequency = 5700000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.700.iq"}
+
+# 136.725 MHz
+[[bands]]
+bins = 2
+frequency = 5725000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.725.iq"}
+
+# 136.750 MHz
+[[bands]]
+bins = 2
+frequency = 5750000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.750.iq"}
+
+# 136.775 MHz
+[[bands]]
+bins = 2
+frequency = 5775000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.775.iq"}
+
+# 136.800 MHz
+[[bands]]
+bins = 2
+frequency = 5800000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.800.iq"}
+
+# 136.850 MHz
+[[bands]]
+bins = 2
+frequency = 5850000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.850.iq"}
+
+# 136.975 MHz
+[[bands]]
+bins = 2
+frequency = 5975000.0
+destination = { type = "file", path = "/home/samcrow/Documents/CurrentClasses/Research/Compression/acars_testing/multi_files/136.975.iq"}
