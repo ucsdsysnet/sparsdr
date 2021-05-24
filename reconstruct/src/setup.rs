@@ -18,8 +18,8 @@
 use std::fs::{self, File};
 use std::io::{self, BufReader, BufWriter, Read, Result, Write};
 
-use simplelog::LevelFilter;
 use log::debug;
+use simplelog::LevelFilter;
 
 use super::args::Args;
 use super::args::BandArgs;

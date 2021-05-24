@@ -23,7 +23,7 @@ use std::mem;
 use std::ops::{BitAnd, Range};
 
 /// The number of bits to store
-const BITS: usize = 2048;
+const BITS: usize = 1024;
 /// An unsigned integer type to use when storing bits
 // On x86_64 and a Raspberry Pi 3, u64 is fastest, slightly faster than u128
 type BitInt = u64;

@@ -54,14 +54,14 @@
 #[macro_use]
 extern crate clap;
 extern crate indicatif;
-extern crate signal_hook;
 extern crate log;
+extern crate signal_hook;
 extern crate simplelog;
 extern crate sparsdr_reconstruct;
 
 use indicatif::ProgressBar;
 use signal_hook::{flag::register, SIGHUP, SIGINT};
-use simplelog::{Config, TermLogger, SimpleLogger};
+use simplelog::{Config, SimpleLogger, TermLogger};
 use sparsdr_reconstruct::blocking::BlockLogger;
 use sparsdr_reconstruct::input::iqzip::CompressedSamples;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
@@ -87,6 +87,14 @@ fn run() -> io::Result<()> {
     }
 
     let setup = Setup::from_args(args)?;
+    log::info!("Setup: compressed bandwidth {}", setup.compressed_bandwidth);
+    for band in &setup.bands {
+        log::info!(
+            "Band: {} bins, center frequency {}",
+            band.bins,
+            band.center_frequency
+        );
+    }
 
     let progress = create_progress_bar(&setup);
 

@@ -69,11 +69,12 @@ where
 
     fn handle_window(&mut self, new_window: TimeWindow) -> Option<TimeWindow> {
         if let Some(mut prev_window) = self.prev_window.take() {
-            assert!(
-                new_window.time() > prev_window.time(),
-                "New window is not after previous window"
-            );
-            let time_difference = new_window.time() - prev_window.time();
+            let time_difference = if new_window.time() > prev_window.time() {
+                new_window.time() - prev_window.time()
+            } else {
+                // Time may have overflowed. Assume that the real difference is more than 1.
+                2
+            };
             match time_difference {
                 1 => {
                     // Overlap
@@ -108,8 +109,7 @@ where
             }
         } else {
             // Send out the first half of the new window and store the rest
-            let first_half =
-                TimeWindow::new(new_window.time(), new_window.first_half().to_vec());
+            let first_half = TimeWindow::new(new_window.time(), new_window.first_half().to_vec());
             self.prev_window = Some(new_window);
             Some(first_half)
         }
