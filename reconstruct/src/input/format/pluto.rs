@@ -18,3 +18,14 @@
 //!
 //! Analog Devices Pluto SDR compressed data format
 //!
+//! Properties of this format:
+//! * Receive sample rate and compressed bandwidth: 61.44 MHz
+//! * 1024 bins
+//!
+
+/// Number of bytes used to represent a sample, in the format the USRP sends
+pub const SAMPLE_BYTES: usize = 8;
+/// FFT size used for compression
+pub const BINS: u16 = 1024;
+/// Compression sample rate
+pub const SAMPLE_RATE: f32 = 61_440_000.0;
