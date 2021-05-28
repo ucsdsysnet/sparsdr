@@ -68,224 +68,230 @@ MODULE_LICENSE("GPL");
 static const size_t REGISTER_BASE = 0x7C440000;
 
 /** Writes a 32-bit value to a register on the FPGA */
-static void sparsdr_write_register(size_t index, u32 value) {
-  size_t selected_register_physical = REGISTER_BASE + index * 4;
-  void __iomem *register_virtual = ioremap(selected_register_physical, 4);
-  iowrite32(value, register_virtual);
+static void sparsdr_write_register(size_t index, u32 value)
+{
+	size_t selected_register_physical = REGISTER_BASE + index * 4;
+	void __iomem *register_virtual = ioremap(selected_register_physical, 4);
+	iowrite32(value, register_virtual);
 }
 
 /** SparSDR IIO attributes */
 enum sparsdr_dev_attr {
-  SPARSDR_ENABLE_COMPRESSION,
-  SPARSDR_RUN_FFT,
-  SPARSDR_SEND_FFT_SAMPLES,
-  SPARSDR_SEND_AVERAGE_SAMPLES,
-  SPARSDR_FFT_SIZE,
-  SPARSDR_FFT_SCALING,
-  SPARSDR_BIN_MASK,
-  SPARSDR_BIN_THRESHOLD,
-  SPARSDR_AVERAGE_WEIGHT,
-  SPARSDR_AVERAGE_INTERVAL,
+	SPARSDR_ENABLE_COMPRESSION,
+	SPARSDR_RUN_FFT,
+	SPARSDR_SEND_FFT_SAMPLES,
+	SPARSDR_SEND_AVERAGE_SAMPLES,
+	SPARSDR_FFT_SIZE,
+	SPARSDR_FFT_SCALING,
+	SPARSDR_BIN_MASK,
+	SPARSDR_BIN_THRESHOLD,
+	SPARSDR_AVERAGE_WEIGHT,
+	SPARSDR_AVERAGE_INTERVAL,
 };
 
 /**
  * Private data used for this driver
  */
 struct sparsdr_private_data {
-  bool enable_compression;
-  bool run_fft;
-  bool send_fft_samples;
-  bool send_average_samples;
-  u32 fft_size;
-  u32 fft_scaling;
-  u8 average_weight;
-  u32 average_interval;
+	bool enable_compression;
+	bool run_fft;
+	bool send_fft_samples;
+	bool send_average_samples;
+	u32 fft_size;
+	u32 fft_scaling;
+	u8 average_weight;
+	u32 average_interval;
 };
 
 /**
  * Reads an attribute from this driver to user space
  */
 static ssize_t sparsdr_attr_read(struct device *dev,
-                                 struct device_attribute *attr, char *buf) {
-  struct iio_dev *indio_dev = dev_to_iio_dev(dev);
-  struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
-  struct sparsdr_private_data *data = iio_priv(indio_dev);
+				 struct device_attribute *attr, char *buf)
+{
+	struct iio_dev *indio_dev = dev_to_iio_dev(dev);
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	struct sparsdr_private_data *data = iio_priv(indio_dev);
 
-  int ret = 0;
+	int ret = 0;
 
-  mutex_lock(&indio_dev->mlock);
-  switch ((u32)this_attr->address) {
-  case SPARSDR_ENABLE_COMPRESSION:
-    ret = sprintf(buf, "%u\n", (unsigned int)data->enable_compression);
-    break;
-  case SPARSDR_RUN_FFT:
-    ret = sprintf(buf, "%u\n", (unsigned int)data->run_fft);
-    break;
-  case SPARSDR_SEND_FFT_SAMPLES:
-    ret = sprintf(buf, "%u\n", (unsigned int)data->send_fft_samples);
-    break;
-  case SPARSDR_SEND_AVERAGE_SAMPLES:
-    ret = sprintf(buf, "%u\n", (unsigned int)data->send_average_samples);
-    break;
-  case SPARSDR_FFT_SIZE:
-    ret = sprintf(buf, "%u\n", data->fft_size);
-    break;
-  case SPARSDR_FFT_SCALING:
-    ret = sprintf(buf, "%u\n", data->fft_scaling);
-    break;
-  case SPARSDR_BIN_MASK:
-    // This doesn't really have a readable value
-    ret = sprintf(buf, "0\n");
-    break;
-  case SPARSDR_BIN_THRESHOLD:
-    // This doesn't really have a readable value
-    ret = sprintf(buf, "0\n");
-    break;
-  case SPARSDR_AVERAGE_WEIGHT:
-    ret = sprintf(buf, "%u\n", (unsigned int)data->average_weight);
-    break;
-  case SPARSDR_AVERAGE_INTERVAL:
-    ret = sprintf(buf, "%u\n", data->average_interval);
-    break;
-  default:
-    ret = -EINVAL;
-    break;
-  }
-  mutex_unlock(&indio_dev->mlock);
+	mutex_lock(&indio_dev->mlock);
+	switch ((u32)this_attr->address) {
+	case SPARSDR_ENABLE_COMPRESSION:
+		ret = sprintf(buf, "%u\n",
+			      (unsigned int)data->enable_compression);
+		break;
+	case SPARSDR_RUN_FFT:
+		ret = sprintf(buf, "%u\n", (unsigned int)data->run_fft);
+		break;
+	case SPARSDR_SEND_FFT_SAMPLES:
+		ret = sprintf(buf, "%u\n",
+			      (unsigned int)data->send_fft_samples);
+		break;
+	case SPARSDR_SEND_AVERAGE_SAMPLES:
+		ret = sprintf(buf, "%u\n",
+			      (unsigned int)data->send_average_samples);
+		break;
+	case SPARSDR_FFT_SIZE:
+		ret = sprintf(buf, "%u\n", data->fft_size);
+		break;
+	case SPARSDR_FFT_SCALING:
+		ret = sprintf(buf, "%u\n", data->fft_scaling);
+		break;
+	case SPARSDR_BIN_MASK:
+		// This doesn't really have a readable value
+		ret = sprintf(buf, "0\n");
+		break;
+	case SPARSDR_BIN_THRESHOLD:
+		// This doesn't really have a readable value
+		ret = sprintf(buf, "0\n");
+		break;
+	case SPARSDR_AVERAGE_WEIGHT:
+		ret = sprintf(buf, "%u\n", (unsigned int)data->average_weight);
+		break;
+	case SPARSDR_AVERAGE_INTERVAL:
+		ret = sprintf(buf, "%u\n", data->average_interval);
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+	mutex_unlock(&indio_dev->mlock);
 
-  return ret;
+	return ret;
 }
 
 /**
  * Writes an attribute from user space to this driver
  */
 static ssize_t sparsdr_attr_write(struct device *dev,
-                                  struct device_attribute *attr,
-                                  const char *buf, size_t len) {
-  struct iio_dev *indio_dev = dev_to_iio_dev(dev);
-  struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
-  struct sparsdr_private_data *data = iio_priv(indio_dev);
+				  struct device_attribute *attr,
+				  const char *buf, size_t len)
+{
+	struct iio_dev *indio_dev = dev_to_iio_dev(dev);
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	struct sparsdr_private_data *data = iio_priv(indio_dev);
 
-  int ret = 0;
+	int ret = 0;
 
-  mutex_lock(&indio_dev->mlock);
-  switch ((u32)this_attr->address) {
-  case SPARSDR_ENABLE_COMPRESSION:
-    ret = strtobool(buf, &data->enable_compression);
-    if (ret < 0) {
-      break;
-    }
-    sparsdr_write_register(19, (u32)data->enable_compression);
-    break;
-  case SPARSDR_RUN_FFT:
-    ret = strtobool(buf, &data->run_fft);
-    if (ret < 0) {
-      break;
-    }
-    sparsdr_write_register(17, (u32)data->run_fft);
-    break;
-  case SPARSDR_SEND_FFT_SAMPLES:
-    ret = strtobool(buf, &data->send_fft_samples);
-    if (ret < 0) {
-      break;
-    }
-    sparsdr_write_register(15, (u32)data->send_fft_samples);
-    break;
-  case SPARSDR_SEND_AVERAGE_SAMPLES:
-    ret = strtobool(buf, &data->send_average_samples);
-    if (ret < 0) {
-      break;
-    }
-    sparsdr_write_register(16, (u32)data->send_average_samples);
-    break;
-  case SPARSDR_FFT_SIZE:
-    ret = kstrtou32(buf, 10, &data->fft_size);
-    if (ret < 0) {
-      break;
-    }
-    sparsdr_write_register(20, data->fft_size);
-    break;
-  case SPARSDR_FFT_SCALING:
-    ret = kstrtou32(buf, 10, &data->fft_scaling);
-    if (ret < 0) {
-      break;
-    }
-    sparsdr_write_register(10, data->fft_scaling);
-    break;
-  case SPARSDR_BIN_MASK:
-    // TODO
-    ret = -ENOSYS;
-    break;
-  case SPARSDR_BIN_THRESHOLD:
-    // TODO
-    ret = -ENOSYS;
-    break;
-  case SPARSDR_AVERAGE_WEIGHT:
-    ret = kstrtou8(buf, 10, &data->average_weight);
-    if (ret < 0) {
-      break;
-    }
-    sparsdr_write_register(13, (u32)data->average_weight);
-    break;
-  case SPARSDR_AVERAGE_INTERVAL:
-    ret = kstrtou32(buf, 10, &data->average_interval);
-    if (ret < 0) {
-      break;
-    }
-    sparsdr_write_register(14, data->average_interval);
-    break;
-  default:
-    ret = -EINVAL;
-    break;
-  }
-  mutex_unlock(&indio_dev->mlock);
+	mutex_lock(&indio_dev->mlock);
+	switch ((u32)this_attr->address) {
+	case SPARSDR_ENABLE_COMPRESSION:
+		ret = strtobool(buf, &data->enable_compression);
+		if (ret < 0) {
+			break;
+		}
+		sparsdr_write_register(19, (u32)data->enable_compression);
+		break;
+	case SPARSDR_RUN_FFT:
+		ret = strtobool(buf, &data->run_fft);
+		if (ret < 0) {
+			break;
+		}
+		sparsdr_write_register(17, (u32)data->run_fft);
+		break;
+	case SPARSDR_SEND_FFT_SAMPLES:
+		ret = strtobool(buf, &data->send_fft_samples);
+		if (ret < 0) {
+			break;
+		}
+		sparsdr_write_register(15, (u32)data->send_fft_samples);
+		break;
+	case SPARSDR_SEND_AVERAGE_SAMPLES:
+		ret = strtobool(buf, &data->send_average_samples);
+		if (ret < 0) {
+			break;
+		}
+		sparsdr_write_register(16, (u32)data->send_average_samples);
+		break;
+	case SPARSDR_FFT_SIZE:
+		ret = kstrtou32(buf, 10, &data->fft_size);
+		if (ret < 0) {
+			break;
+		}
+		sparsdr_write_register(20, data->fft_size);
+		break;
+	case SPARSDR_FFT_SCALING:
+		ret = kstrtou32(buf, 10, &data->fft_scaling);
+		if (ret < 0) {
+			break;
+		}
+		sparsdr_write_register(10, data->fft_scaling);
+		break;
+	case SPARSDR_BIN_MASK:
+		// TODO
+		ret = -ENOSYS;
+		break;
+	case SPARSDR_BIN_THRESHOLD:
+		// TODO
+		ret = -ENOSYS;
+		break;
+	case SPARSDR_AVERAGE_WEIGHT:
+		ret = kstrtou8(buf, 10, &data->average_weight);
+		if (ret < 0) {
+			break;
+		}
+		sparsdr_write_register(13, (u32)data->average_weight);
+		break;
+	case SPARSDR_AVERAGE_INTERVAL:
+		ret = kstrtou32(buf, 10, &data->average_interval);
+		if (ret < 0) {
+			break;
+		}
+		sparsdr_write_register(14, data->average_interval);
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+	mutex_unlock(&indio_dev->mlock);
 
-  return ret ? ret : len;
+	return ret ? ret : len;
 }
 
 // Define attribute structs
 static IIO_DEVICE_ATTR(enable_compression, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-                       sparsdr_attr_write, SPARSDR_ENABLE_COMPRESSION);
+		       sparsdr_attr_write, SPARSDR_ENABLE_COMPRESSION);
 static IIO_DEVICE_ATTR(run_fft, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-                       sparsdr_attr_write, SPARSDR_RUN_FFT);
+		       sparsdr_attr_write, SPARSDR_RUN_FFT);
 static IIO_DEVICE_ATTR(send_fft_samples, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-                       sparsdr_attr_write, SPARSDR_SEND_FFT_SAMPLES);
+		       sparsdr_attr_write, SPARSDR_SEND_FFT_SAMPLES);
 static IIO_DEVICE_ATTR(send_average_samples, S_IRUGO | S_IWUSR,
-                       sparsdr_attr_read, sparsdr_attr_write,
-                       SPARSDR_SEND_AVERAGE_SAMPLES);
+		       sparsdr_attr_read, sparsdr_attr_write,
+		       SPARSDR_SEND_AVERAGE_SAMPLES);
 static IIO_DEVICE_ATTR(fft_size, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-                       sparsdr_attr_write, SPARSDR_FFT_SIZE);
+		       sparsdr_attr_write, SPARSDR_FFT_SIZE);
 static IIO_DEVICE_ATTR(fft_scaling, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-                       sparsdr_attr_write, SPARSDR_FFT_SCALING);
+		       sparsdr_attr_write, SPARSDR_FFT_SCALING);
 static IIO_DEVICE_ATTR(bin_mask, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-                       sparsdr_attr_write, SPARSDR_BIN_MASK);
+		       sparsdr_attr_write, SPARSDR_BIN_MASK);
 static IIO_DEVICE_ATTR(bin_threshold, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-                       sparsdr_attr_write, SPARSDR_BIN_THRESHOLD);
+		       sparsdr_attr_write, SPARSDR_BIN_THRESHOLD);
 static IIO_DEVICE_ATTR(average_weight, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-                       sparsdr_attr_write, SPARSDR_AVERAGE_WEIGHT);
+		       sparsdr_attr_write, SPARSDR_AVERAGE_WEIGHT);
 static IIO_DEVICE_ATTR(average_interval, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-                       sparsdr_attr_write, SPARSDR_AVERAGE_INTERVAL);
+		       sparsdr_attr_write, SPARSDR_AVERAGE_INTERVAL);
 
 static struct attribute *sparsdr_attributes[] = {
-    &iio_dev_attr_enable_compression.dev_attr.attr,
-    &iio_dev_attr_run_fft.dev_attr.attr,
-    &iio_dev_attr_send_fft_samples.dev_attr.attr,
-    &iio_dev_attr_send_average_samples.dev_attr.attr,
-    &iio_dev_attr_fft_size.dev_attr.attr,
-    &iio_dev_attr_fft_scaling.dev_attr.attr,
-    &iio_dev_attr_bin_mask.dev_attr.attr,
-    &iio_dev_attr_bin_threshold.dev_attr.attr,
-    &iio_dev_attr_average_weight.dev_attr.attr,
-    &iio_dev_attr_average_interval.dev_attr.attr,
-    NULL,
+	&iio_dev_attr_enable_compression.dev_attr.attr,
+	&iio_dev_attr_run_fft.dev_attr.attr,
+	&iio_dev_attr_send_fft_samples.dev_attr.attr,
+	&iio_dev_attr_send_average_samples.dev_attr.attr,
+	&iio_dev_attr_fft_size.dev_attr.attr,
+	&iio_dev_attr_fft_scaling.dev_attr.attr,
+	&iio_dev_attr_bin_mask.dev_attr.attr,
+	&iio_dev_attr_bin_threshold.dev_attr.attr,
+	&iio_dev_attr_average_weight.dev_attr.attr,
+	&iio_dev_attr_average_interval.dev_attr.attr,
+	NULL,
 };
 
 static const struct attribute_group sparsdr_attribute_group = {
-    .attrs = sparsdr_attributes,
+	.attrs = sparsdr_attributes,
 };
 
 static const struct iio_info sparsdr_iio_info = {
-    .attrs = &sparsdr_attribute_group,
+	.attrs = &sparsdr_attribute_group,
 };
 
 /**
@@ -293,41 +299,44 @@ static const struct iio_info sparsdr_iio_info = {
  */
 static struct iio_dev *g_sparsdr_iio_dev = NULL;
 
-static int sparsdr_init(void) {
-  int register_status;
+static int sparsdr_init(void)
+{
+	int register_status;
 
-  pr_debug("SparSDR IIO loading\n");
-  // Allocate memory for the device
-  g_sparsdr_iio_dev = iio_device_alloc(sizeof(struct sparsdr_private_data));
-  if (g_sparsdr_iio_dev == NULL) {
-    return -ENOMEM;
-  }
-  // Fill in attributes
-  g_sparsdr_iio_dev->name = "sparsdr";
-  g_sparsdr_iio_dev->info = &sparsdr_iio_info;
+	pr_debug("SparSDR IIO loading\n");
+	// Allocate memory for the device
+	g_sparsdr_iio_dev =
+		iio_device_alloc(sizeof(struct sparsdr_private_data));
+	if (g_sparsdr_iio_dev == NULL) {
+		return -ENOMEM;
+	}
+	// Fill in attributes
+	g_sparsdr_iio_dev->name = "sparsdr";
+	g_sparsdr_iio_dev->info = &sparsdr_iio_info;
 
-  // Initialize default values in private data section
-  struct sparsdr_private_data *data = iio_priv(g_sparsdr_iio_dev);
-  // TODO: Check that these default values match the FPGA default values
-  data->enable_compression = false;
-  data->run_fft = false;
-  data->send_fft_samples = false;
-  data->send_average_samples = false;
-  data->fft_size = 1024;
-  data->fft_scaling = 0; // This is not correct
-  data->average_weight = 200;
-  data->average_interval = 1 << 14;
+	// Initialize default values in private data section
+	struct sparsdr_private_data *data = iio_priv(g_sparsdr_iio_dev);
+	// TODO: Check that these default values match the FPGA default values
+	data->enable_compression = false;
+	data->run_fft = false;
+	data->send_fft_samples = false;
+	data->send_average_samples = false;
+	data->fft_size = 1024;
+	data->fft_scaling = 0; // This is not correct
+	data->average_weight = 200;
+	data->average_interval = 1 << 14;
 
-  register_status = iio_device_register(g_sparsdr_iio_dev);
+	register_status = iio_device_register(g_sparsdr_iio_dev);
 
-  return register_status;
+	return register_status;
 }
 
-static void sparsdr_exit(void) {
-  iio_device_unregister(g_sparsdr_iio_dev);
-  iio_device_free(g_sparsdr_iio_dev);
-  g_sparsdr_iio_dev = NULL;
-  pr_debug("SparSDR IIO unloaded\n");
+static void sparsdr_exit(void)
+{
+	iio_device_unregister(g_sparsdr_iio_dev);
+	iio_device_free(g_sparsdr_iio_dev);
+	g_sparsdr_iio_dev = NULL;
+	pr_debug("SparSDR IIO unloaded\n");
 }
 
 module_init(sparsdr_init);

@@ -4,6 +4,7 @@
 .tmp_versions
 *.cmd
 *.cmd.c
+*.mod.c
 *.o
 *.ko
 Module.symvers
