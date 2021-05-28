@@ -1,0 +1,10 @@
+
+# Ignore files produced as part of the build process
+
+.tmp_versions
+*.cmd
+*.cmd.c
+*.o
+*.ko
+Module.symvers
+modules.order
