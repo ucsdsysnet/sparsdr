@@ -78,7 +78,7 @@ static void sparsdr_write_register(size_t index, u32 value)
 /** Registes available on the FPGA */
 enum sparsdr_register {
 	REGISTER_FFT_SCALING = 10,
-	REGISTER_BIN_THRESHOLD = 11,
+	REGISTER_THRESHOLD_BIN_NUMBER = 11,
 	REGISTER_BIN_MASK = 12,
 	REGISTER_AVERAGE_WEIGHT = 13,
 	REGISTER_AVERAGE_INTERVAL = 14,
@@ -88,6 +88,7 @@ enum sparsdr_register {
 	REGISTER_WINDOW_VAL = 18,
 	REGISTER_ENABLE_COMPRESSION = 19,
 	REGISTER_FFT_SIZE = 20,
+	REGISTER_THRESHOLD_VALUE = 21,
 };
 
 /** SparSDR IIO attributes */
@@ -99,7 +100,8 @@ enum sparsdr_dev_attr {
 	SPARSDR_FFT_SIZE,
 	SPARSDR_FFT_SCALING,
 	SPARSDR_BIN_MASK,
-	SPARSDR_BIN_THRESHOLD,
+	SPARSDR_THRESHOLD_BIN_NUMBER,
+	SPARSDR_THRESHOLD_VALUE,
 	SPARSDR_AVERAGE_WEIGHT,
 	SPARSDR_AVERAGE_INTERVAL,
 	SPARSDR_WINDOW_VAL,
@@ -158,7 +160,11 @@ static ssize_t sparsdr_attr_read(struct device *dev,
 		// This doesn't really have a readable value
 		ret = sprintf(buf, "0\n");
 		break;
-	case SPARSDR_BIN_THRESHOLD:
+	case SPARSDR_THRESHOLD_BIN_NUMBER:
+		// This doesn't really have a readable value
+		ret = sprintf(buf, "0\n");
+		break;
+	case SPARSDR_THRESHOLD_VALUE:
 		// This doesn't really have a readable value
 		ret = sprintf(buf, "0\n");
 		break;
@@ -249,12 +255,20 @@ static ssize_t sparsdr_attr_write(struct device *dev,
 		}
 		sparsdr_write_register(REGISTER_BIN_MASK, mask_threshold_value);
 		break;
-	case SPARSDR_BIN_THRESHOLD:
+	case SPARSDR_THRESHOLD_BIN_NUMBER:
 		ret = kstrtou32(buf, 10, &mask_threshold_value);
 		if (ret < 0) {
 			break;
 		}
-		sparsdr_write_register(REGISTER_BIN_THRESHOLD,
+		sparsdr_write_register(REGISTER_THRESHOLD_BIN_NUMBER,
+				       mask_threshold_value);
+		break;
+	case SPARSDR_THRESHOLD_VALUE:
+		ret = kstrtou32(buf, 10, &mask_threshold_value);
+		if (ret < 0) {
+			break;
+		}
+		sparsdr_write_register(REGISTER_THRESHOLD_VALUE,
 				       mask_threshold_value);
 		break;
 	case SPARSDR_AVERAGE_WEIGHT:
@@ -306,8 +320,11 @@ static IIO_DEVICE_ATTR(fft_scaling, S_IRUGO | S_IWUSR, sparsdr_attr_read,
 		       sparsdr_attr_write, SPARSDR_FFT_SCALING);
 static IIO_DEVICE_ATTR(bin_mask, S_IRUGO | S_IWUSR, sparsdr_attr_read,
 		       sparsdr_attr_write, SPARSDR_BIN_MASK);
-static IIO_DEVICE_ATTR(bin_threshold, S_IRUGO | S_IWUSR, sparsdr_attr_read,
-		       sparsdr_attr_write, SPARSDR_BIN_THRESHOLD);
+static IIO_DEVICE_ATTR(threshold_bin_number, S_IRUGO | S_IWUSR,
+		       sparsdr_attr_read, sparsdr_attr_write,
+		       SPARSDR_THRESHOLD_BIN_NUMBER);
+static IIO_DEVICE_ATTR(threshold_value, S_IRUGO | S_IWUSR, sparsdr_attr_read,
+		       sparsdr_attr_write, SPARSDR_THRESHOLD_VALUE);
 static IIO_DEVICE_ATTR(average_weight, S_IRUGO | S_IWUSR, sparsdr_attr_read,
 		       sparsdr_attr_write, SPARSDR_AVERAGE_WEIGHT);
 static IIO_DEVICE_ATTR(average_interval, S_IRUGO | S_IWUSR, sparsdr_attr_read,
@@ -323,7 +340,8 @@ static struct attribute *sparsdr_attributes[] = {
 	&iio_dev_attr_fft_size.dev_attr.attr,
 	&iio_dev_attr_fft_scaling.dev_attr.attr,
 	&iio_dev_attr_bin_mask.dev_attr.attr,
-	&iio_dev_attr_bin_threshold.dev_attr.attr,
+	&iio_dev_attr_threshold_bin_number.dev_attr.attr,
+	&iio_dev_attr_threshold_value.dev_attr.attr,
 	&iio_dev_attr_average_weight.dev_attr.attr,
 	&iio_dev_attr_average_interval.dev_attr.attr,
 	&iio_dev_attr_window_value.dev_attr.attr,
@@ -366,7 +384,7 @@ static int sparsdr_init(void)
 	data->send_average_samples = true;
 	// This is really the base-2 logarithm of the FFT size
 	data->fft_size = 10;
-	data->fft_scaling = 0x2ab;
+	data->fft_scaling = 0x6ab;
 	data->average_weight = 224;
 	data->average_interval = 1 << 16;
 
