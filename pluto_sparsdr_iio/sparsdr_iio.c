@@ -386,7 +386,7 @@ static int sparsdr_init(void)
 	data->fft_size = 10;
 	data->fft_scaling = 0x6ab;
 	data->average_weight = 224;
-	data->average_interval = 1 << 16;
+	data->average_interval = 16;
 
 	register_status = iio_device_register(g_sparsdr_iio_dev);
 
