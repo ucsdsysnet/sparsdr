@@ -40,6 +40,7 @@ list(APPEND sparsdr_sources
 	gui/average_waterfall_view.cpp
     sample_distributor_impl.cc
     tagged_wavfile_sink_impl.cc
+    compressing_pluto_source_impl.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)
@@ -53,9 +54,16 @@ target_link_libraries(gnuradio-sparsdr
 	${Boost_LIBRARIES}
 	${GNURADIO_ALL_LIBRARIES}
     ${PYTHON_LIBRARIES}
+    ${IIO_LIBRARIES}
+    ${GR_IIO_LIBRARIES}
 	Qt5::Widgets
 )
 set_target_properties(gnuradio-sparsdr PROPERTIES DEFINE_SYMBOL "gnuradio_sparsdr_EXPORTS")
+target_include_directories(gnuradio-sparsdr
+    PRIVATE
+    ${IIO_INCLUDE_DIRS}
+    ${GR_IIO_INCLUDE_DIRS}
+)
 
 if(APPLE)
     set_target_properties(gnuradio-sparsdr PROPERTIES

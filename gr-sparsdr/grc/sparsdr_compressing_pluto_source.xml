@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<block>
+  <name>Compressing Pluto Source</name>
+  <key>sparsdr_compressing_pluto_source</key>
+  <category>[SparSDR]</category>
+  <flags>throttle</flags>
+  <import>import sparsdr</import>
+  <make>sparsdr.compressing_pluto_source($uri)
+self.$(id).stop_all()
+# Clear all masks
+for i in range(0, 1024):
+    self.$(id).clear_bin_mask(i)
+# Set thresholds
+for i in range(0, 1024):
+    self.$(id).set_bin_threshold(i, $threshold_all)
+self.$(id).set_average_interval($average_interval)
+
+self.$(id).start_all()
+  </make>
+  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
+       Sub-nodes:
+       * name
+       * key (makes the value accessible as $keyname, e.g. in the make node)
+       * type -->
+  <param>
+    <name>IIO context URI</name>
+    <key>uri</key>
+    <value>ip:192.168.2.1</value>
+    <type>string</type>
+  </param>
+  <param>
+    <name>Threshold (all bins)</name>
+    <key>threshold_all</key>
+    <value>2048</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Average sample interval</name>
+    <key>average_interval</key>
+    <value>2 ** 20</value>
+    <type>int</type>
+  </param>
+
+  <!-- Make one 'sink' node per input. Sub-nodes:
+       * name (an identifier for the GUI)
+       * type
+       * vlen
+       * optional (set to 1 for optional inputs) -->
+
+  <!-- Make one 'source' node per output. Sub-nodes:
+       * name (an identifier for the GUI)
+       * type
+       * vlen
+       * optional (set to 1 for optional inputs) -->
+  <source>
+    <name>out</name>
+    <type>short</type>
+  </source>
+</block>

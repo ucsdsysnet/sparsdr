@@ -122,6 +122,13 @@ endif(APPLE)
 find_package(UHD REQUIRED)
 
 ########################################################################
+# IIO and gnuradio-iio libraries
+########################################################################
+
+find_package(IIO REQUIRED)
+find_package(gnuradio-iio REQUIRED)
+
+########################################################################
 # Find gnuradio build dependencies
 ########################################################################
 find_package(CppUnit)
