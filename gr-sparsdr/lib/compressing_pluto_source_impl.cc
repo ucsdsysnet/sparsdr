@@ -75,14 +75,15 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
     : gr::hier_block2("compressing_pluto_source",
                       gr::io_signature::make(0, 0, 0),
                       gr::io_signature::make(1, 1, sizeof(short))),
+      d_iio_context(nullptr),
       d_sparsdr_device(nullptr)
 {
-    iio_context* pluto_context = iio_create_context_from_uri(uri.c_str());
-    if (!pluto_context) {
+    d_iio_context = iio_create_context_from_uri(uri.c_str());
+    if (!d_iio_context) {
         throw std::runtime_error("Can't create IIO context");
     }
     // Find the SparSDR device and configure it
-    d_sparsdr_device = iio_context_find_device(pluto_context, "sparsdr");
+    d_sparsdr_device = iio_context_find_device(d_iio_context, "sparsdr");
     // TODO: Make logging consistent with GNU Radio conventions
     if (!d_sparsdr_device) {
         std::cerr << "SparSDR device not found on the Pluto radio. "
@@ -92,12 +93,23 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
     }
 
     // Create IIO device source block and connect
+    // When using the make_from function, the device source will not destroy
+    // the IIO context.
+    //
+    // About the params: Each key is the name of a file under /sys/bus/iio/devices/iio:deviceX .
     const auto source_block =
-        gr::iio::device_source::make_from(/* context */ pluto_context,
+        gr::iio::device_source::make_from(/* context */ d_iio_context,
                                           /* device */ "cf-ad9361-lpc",
-                                          /* channels */ std::vector<std::string>(),
+                                          /* channels */ { "voltage0" },
                                           /* PHY */ "ad9361-phy",
-                                          /* params */ std::vector<std::string>());
+                                          /* params */
+                                          { "in_voltage_sampling_frequency=61440000",
+                                            "in_voltage_rf_bandwidth=56000000",
+                                            "in_voltage0_gain_control_mode=manual",
+                                            "in_voltage0_hardwaregain=60.0"
+                                            "out_altvoltage0_RX_LO_frequency=2412000000" });
+    // Increase timeout to 2 seconds
+    source_block->set_timeout_ms(2000);
     connect(source_block, 0, self(), 0);
 }
 
@@ -210,7 +222,7 @@ void compressing_pluto_source_impl::write_u32_attr(const char* name, std::uint32
  */
 compressing_pluto_source_impl::~compressing_pluto_source_impl()
 {
-    // The IIO device source will free the IIO context
+    iio_context_destroy(d_iio_context);
 }
 
 

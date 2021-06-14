@@ -31,13 +31,16 @@ class compressing_pluto_source_impl : public compressing_pluto_source
 {
 private:
     /**
+     * IIO contex used to connect to the radio
+     *
+     * This is associated with d_sparsdr_device and used by the device source
+     * block.
+     */
+    iio_context* d_iio_context;
+    /**
      * A connection to the SparSDR IIO device
      *
      * This is used to change compression settings.
-     *
-     * It is associated with the IIO context that IIO device source owns.
-     * The IIO device source code will destroy that context when the block
-     * is destroyed.
      */
     iio_device* d_sparsdr_device;
 
