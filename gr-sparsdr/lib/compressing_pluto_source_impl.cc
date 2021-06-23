@@ -106,10 +106,11 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
                                           { "in_voltage_sampling_frequency=61440000",
                                             "in_voltage_rf_bandwidth=56000000",
                                             "in_voltage0_gain_control_mode=manual",
-                                            "in_voltage0_hardwaregain=60.0"
+                                            // Apparently the allowed values are -3, 1, and 71.
+                                            "in_voltage0_hardwaregain=71"
                                             "out_altvoltage0_RX_LO_frequency=2412000000" });
-    // Increase timeout to 2 seconds
-    source_block->set_timeout_ms(2000);
+    // Increase timeout?
+    source_block->set_timeout_ms(-1);
     connect(source_block, 0, self(), 0);
 }
 
