@@ -123,7 +123,8 @@ public:
     /**
      * Sets the weight used to calculate the average signal level for each bin
      *
-     * The average is `average_weight * previous_average + (1 - average_weight) * new_sample`.
+     * The average is `average_weight * previous_average + (1 - average_weight) *
+     * new_sample`.
      *
      * The weight value must be greater than or equal to 0 and less than 1.
      */

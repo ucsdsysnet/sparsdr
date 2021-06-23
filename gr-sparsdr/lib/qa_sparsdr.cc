@@ -27,10 +27,9 @@
 
 #include "qa_sparsdr.h"
 
-CppUnit::TestSuite *
-qa_sparsdr::suite()
+CppUnit::TestSuite* qa_sparsdr::suite()
 {
-  CppUnit::TestSuite *s = new CppUnit::TestSuite("sparsdr");
+    CppUnit::TestSuite* s = new CppUnit::TestSuite("sparsdr");
 
-  return s;
+    return s;
 }

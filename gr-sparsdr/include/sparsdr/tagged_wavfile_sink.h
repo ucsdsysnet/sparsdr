@@ -22,39 +22,41 @@
 #ifndef INCLUDED_SPARSDR_TAGGED_WAVFILE_SINK_H
 #define INCLUDED_SPARSDR_TAGGED_WAVFILE_SINK_H
 
-#include <sparsdr/api.h>
 #include <gnuradio/sync_block.h>
+#include <sparsdr/api.h>
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
+
+/*!
+ * \brief Writes audio from a stream to multiple WAV files. A stream tag
+ * triggers a new file.
+ * \ingroup sparsdr
+ *
+ */
+class SPARSDR_API tagged_wavfile_sink : virtual public gr::sync_block
+{
+public:
+    typedef boost::shared_ptr<tagged_wavfile_sink> sptr;
 
     /*!
-     * \brief Writes audio from a stream to multiple WAV files. A stream tag
-     * triggers a new file.
-     * \ingroup sparsdr
+     * \brief Return a shared_ptr to a new instance of sparsdr::tagged_wavfile_sink.
      *
+     * To avoid accidental use of raw pointers, sparsdr::tagged_wavfile_sink's
+     * constructor is in a private implementation
+     * class. sparsdr::tagged_wavfile_sink::make is the public interface for
+     * creating new instances.
+     *
+     * @param directory the path to the directory to put the files
+     * @param sample_rate the sample rate to write
+     * @param bits_per_sample the number of bits to use for each sample
      */
-    class SPARSDR_API tagged_wavfile_sink : virtual public gr::sync_block
-    {
-     public:
-      typedef boost::shared_ptr<tagged_wavfile_sink> sptr;
+    static sptr make(const std::string& directory,
+                     unsigned int sample_rate,
+                     int bits_per_sample = 16);
+};
 
-      /*!
-       * \brief Return a shared_ptr to a new instance of sparsdr::tagged_wavfile_sink.
-       *
-       * To avoid accidental use of raw pointers, sparsdr::tagged_wavfile_sink's
-       * constructor is in a private implementation
-       * class. sparsdr::tagged_wavfile_sink::make is the public interface for
-       * creating new instances.
-       *
-       * @param directory the path to the directory to put the files
-       * @param sample_rate the sample rate to write
-       * @param bits_per_sample the number of bits to use for each sample
-       */
-      static sptr make(const std::string& directory, unsigned int sample_rate, int bits_per_sample = 16);
-    };
-
-  } // namespace sparsdr
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_TAGGED_WAVFILE_SINK_H */

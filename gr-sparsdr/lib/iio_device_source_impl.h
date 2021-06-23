@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2019 The Regents of the University of California.
+ * Copyright 2021 The Regents of the University of California.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,39 +18,32 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDED_SPARSDR_AVERAGE_DETECTOR_IMPL_H
-#define INCLUDED_SPARSDR_AVERAGE_DETECTOR_IMPL_H
+#ifndef INCLUDED_SPARSDR_IIO_DEVICE_SOURCE_IMPL_H
+#define INCLUDED_SPARSDR_IIO_DEVICE_SOURCE_IMPL_H
 
-#include <sparsdr/average_detector.h>
-#include <chrono>
-#include <mutex>
+#include <iio.h>
+#include <sparsdr/iio_device_source.h>
 
 namespace gr {
 namespace sparsdr {
 
-class average_detector_impl : public average_detector
+class iio_device_source_impl : public iio_device_source
 {
 private:
-    typedef std::chrono::high_resolution_clock::time_point time_point;
-
-    /*! \brief The time of the last observed average sample */
-    time_point d_last_average;
-    /*! \brief Mutex that controls access to d_last_average */
-    std::mutex d_last_average_mutex;
+    /** Buffer used to read samples from the radio */
+    iio_buffer* d_buffer;
 
 public:
-    average_detector_impl();
-    ~average_detector_impl();
+    iio_device_source_impl(iio_device* device, const std::string& channel);
+    ~iio_device_source_impl();
 
     // Where all the action really happens
     int work(int noutput_items,
              gr_vector_const_void_star& input_items,
              gr_vector_void_star& output_items);
-
-    virtual std::chrono::high_resolution_clock::time_point last_average();
 };
 
 } // namespace sparsdr
 } // namespace gr
 
-#endif /* INCLUDED_SPARSDR_AVERAGE_DETECTOR_IMPL_H */
+#endif /* INCLUDED_SPARSDR_IIO_DEVICE_SOURCE_IMPL_H */

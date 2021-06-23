@@ -41,6 +41,7 @@ list(APPEND sparsdr_sources
     sample_distributor_impl.cc
     tagged_wavfile_sink_impl.cc
     compressing_pluto_source_impl.cc
+    iio_device_source_impl.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)

@@ -22,44 +22,44 @@
 #ifndef INCLUDED_SPARSDR_AVERAGE_WATERFALL_H
 #define INCLUDED_SPARSDR_AVERAGE_WATERFALL_H
 
-#include <sparsdr/api.h>
 #include <gnuradio/sync_block.h>
-#include <QWidget>
 #include <Python.h>
+#include <sparsdr/api.h>
+#include <QWidget>
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
+
+/*!
+ * \brief Displays a waterfall view showing average values from a SparSDR
+ * receiver
+ * \ingroup sparsdr
+ *
+ */
+class SPARSDR_API average_waterfall : virtual public gr::sync_block
+{
+public:
+    typedef boost::shared_ptr<average_waterfall> sptr;
 
     /*!
-     * \brief Displays a waterfall view showing average values from a SparSDR
-     * receiver
-     * \ingroup sparsdr
+     * \brief Return a shared_ptr to a new instance of sparsdr::average_waterfall.
      *
+     * To avoid accidental use of raw pointers, sparsdr::average_waterfall's
+     * constructor is in a private implementation
+     * class. sparsdr::average_waterfall::make is the public interface for
+     * creating new instances.
      */
-    class SPARSDR_API average_waterfall : virtual public gr::sync_block
-    {
-     public:
-      typedef boost::shared_ptr<average_waterfall> sptr;
+    static sptr make(std::size_t max_history = 2048, QWidget* parent = nullptr);
 
-      /*!
-       * \brief Return a shared_ptr to a new instance of sparsdr::average_waterfall.
-       *
-       * To avoid accidental use of raw pointers, sparsdr::average_waterfall's
-       * constructor is in a private implementation
-       * class. sparsdr::average_waterfall::make is the public interface for
-       * creating new instances.
-       */
-      static sptr make(std::size_t max_history = 2048, QWidget* parent = nullptr);
-
-      virtual void exec_() = 0;
-      virtual QWidget* qwidget() = 0;
-      virtual PyObject* pyqwidget() = 0;
+    virtual void exec_() = 0;
+    virtual QWidget* qwidget() = 0;
+    virtual PyObject* pyqwidget() = 0;
 
 
-      QApplication* d_qApplication;
-    };
+    QApplication* d_qApplication;
+};
 
-  } // namespace sparsdr
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_AVERAGE_WATERFALL_H */

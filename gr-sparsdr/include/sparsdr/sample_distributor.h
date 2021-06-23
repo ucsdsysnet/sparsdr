@@ -22,48 +22,47 @@
 #ifndef INCLUDED_SPARSDR_SAMPLE_DISTRIBUTOR_H
 #define INCLUDED_SPARSDR_SAMPLE_DISTRIBUTOR_H
 
-#include <sparsdr/api.h>
 #include <gnuradio/block.h>
+#include <sparsdr/api.h>
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
+
+/*!
+ * \brief Handles samples from many inputs and distributes them to decoders
+ * \ingroup sparsdr
+ *
+ */
+class SPARSDR_API sample_distributor : virtual public gr::block
+{
+public:
+    typedef boost::shared_ptr<sample_distributor> sptr;
 
     /*!
-     * \brief Handles samples from many inputs and distributes them to decoders
-     * \ingroup sparsdr
+     * \brief Return a shared_ptr to a new instance of sparsdr::sample_distributor.
      *
+     * To avoid accidental use of raw pointers, sparsdr::sample_distributor's
+     * constructor is in a private implementation
+     * class. sparsdr::sample_distributor::make is the public interface for
+     * creating new instances.
+     *
+     * \param item_size The size of stream items to process
      */
-    class SPARSDR_API sample_distributor : virtual public gr::block
-    {
-     public:
-      typedef boost::shared_ptr<sample_distributor> sptr;
+    static sptr make(int item_size);
 
-      /*!
-       * \brief Return a shared_ptr to a new instance of sparsdr::sample_distributor.
-       *
-       * To avoid accidental use of raw pointers, sparsdr::sample_distributor's
-       * constructor is in a private implementation
-       * class. sparsdr::sample_distributor::make is the public interface for
-       * creating new instances.
-       *
-       * \param item_size The size of stream items to process
-       */
-      static sptr make(int item_size);
+    /**
+     * \return the number of decoders this block has available but did not use
+     * in the last call to general_work()
+     *
+     * This function is safe to call from any thread.
+     *
+     * A negative value means that not enough decoders are available for the
+     * number of active inputs.
+     */
+    virtual int decoder_surplus() const = 0;
+};
 
-      /**
-       * \return the number of decoders this block has available but did not use
-       * in the last call to general_work()
-       *
-       * This function is safe to call from any thread.
-       *
-       * A negative value means that not enough decoders are available for the
-       * number of active inputs.
-       */
-      virtual int decoder_surplus() const = 0;
-
-    };
-
-  } // namespace sparsdr
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_SAMPLE_DISTRIBUTOR_H */

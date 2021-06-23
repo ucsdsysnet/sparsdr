@@ -32,6 +32,7 @@ namespace std {
 #include "sparsdr/sample_distributor.h"
 #include "sparsdr/tagged_wavfile_sink.h"
 #include "sparsdr/compressing_pluto_source.h"
+#include "sparsdr/iio_device_source.h"
 using namespace gr::sparsdr;
 %}
 
@@ -54,3 +55,5 @@ GR_SWIG_BLOCK_MAGIC2(sparsdr, sample_distributor);
 GR_SWIG_BLOCK_MAGIC2(sparsdr, tagged_wavfile_sink);
 %include "sparsdr/compressing_pluto_source.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, compressing_pluto_source);
+%include "sparsdr/iio_device_source.h"
+GR_SWIG_BLOCK_MAGIC2(sparsdr, iio_device_source);

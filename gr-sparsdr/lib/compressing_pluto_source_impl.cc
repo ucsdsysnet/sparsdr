@@ -96,19 +96,20 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
     // When using the make_from function, the device source will not destroy
     // the IIO context.
     //
-    // About the params: Each key is the name of a file under /sys/bus/iio/devices/iio:deviceX .
-    const auto source_block =
-        gr::iio::device_source::make_from(/* context */ d_iio_context,
-                                          /* device */ "cf-ad9361-lpc",
-                                          /* channels */ { "voltage0" },
-                                          /* PHY */ "ad9361-phy",
-                                          /* params */
-                                          { "in_voltage_sampling_frequency=61440000",
-                                            "in_voltage_rf_bandwidth=56000000",
-                                            "in_voltage0_gain_control_mode=manual",
-                                            // Apparently the allowed values are -3, 1, and 71.
-                                            "in_voltage0_hardwaregain=71"
-                                            "out_altvoltage0_RX_LO_frequency=2412000000" });
+    // About the params: Each key is the name of a file under
+    // /sys/bus/iio/devices/iio:deviceX .
+    const auto source_block = gr::iio::device_source::make_from(
+        /* context */ d_iio_context,
+        /* device */ "cf-ad9361-lpc",
+        /* channels */ { "voltage0" },
+        /* PHY */ "ad9361-phy",
+        /* params */
+        { "in_voltage_sampling_frequency=61440000",
+          "in_voltage_rf_bandwidth=56000000",
+          "in_voltage0_gain_control_mode=manual",
+          // Apparently the allowed values are -3, 1, and 71.
+          "in_voltage0_hardwaregain=71"
+          "out_altvoltage0_RX_LO_frequency=2412000000" });
     // Increase timeout?
     source_block->set_timeout_ms(-1);
     connect(source_block, 0, self(), 0);

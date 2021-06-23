@@ -32,5 +32,6 @@ install(FILES
     average_waterfall.h
     sample_distributor.h
     tagged_wavfile_sink.h
-    compressing_pluto_source.h DESTINATION include/sparsdr
+    compressing_pluto_source.h
+    iio_device_source.h DESTINATION include/sparsdr
 )

@@ -30,9 +30,9 @@
 
 class __GR_ATTR_EXPORT qa_sparsdr
 {
- public:
-  //! return suite of tests for all of gr-filter directory
-  static CppUnit::TestSuite *suite();
+public:
+    //! return suite of tests for all of gr-filter directory
+    static CppUnit::TestSuite* suite();
 };
 
 #endif /* _QA_SPARSDR_H_ */
