@@ -72,6 +72,7 @@ iio_device_source_impl::iio_device_source_impl(iio_device* device,
     if (d_channel == nullptr) {
         throw std::runtime_error("Channel not found on device");
     }
+    iio_channel_enable(d_channel);
 }
 
 bool iio_device_source_impl::start()
@@ -119,6 +120,7 @@ bool iio_device_source_impl::stop()
 /** This runs in a dedicated worker thread */
 void iio_device_source_impl::refill_thread()
 {
+    std::cerr << "Refill thread starting\n";
     std::unique_lock<std::mutex> lock(d_buffer_mutex);
     ssize_t status = 0;
     while (true) {
@@ -129,6 +131,7 @@ void iio_device_source_impl::refill_thread()
         lock.unlock();
         status = iio_buffer_refill(d_buffer);
         lock.lock();
+        std::cerr << "Refilled and got " << status << " bytes\n";
 
         if (status < 0) {
             break;

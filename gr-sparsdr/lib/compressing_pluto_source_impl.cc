@@ -25,7 +25,7 @@
 #include "compressing_pluto_source_impl.h"
 #include <gnuradio/io_signature.h>
 
-#include <gnuradio/iio/device_source.h>
+#include <sparsdr/iio_device_source.h>
 #include <cmath>
 #include <iostream>
 
@@ -92,26 +92,15 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
         throw std::runtime_error("No SparSDR device");
     }
 
+    // TODO: Configure tuning, gain, and things
+    iio_device* const cf_ad9361_lpc = iio_context_find_device(d_iio_context, "cf-ad9361-lpc");
+    if (cf_ad9361_lpc == nullptr) {
+        throw std::runtime_error("No cf-ad9361-lpc device found");
+    }
+
     // Create IIO device source block and connect
-    // When using the make_from function, the device source will not destroy
-    // the IIO context.
-    //
-    // About the params: Each key is the name of a file under
-    // /sys/bus/iio/devices/iio:deviceX .
-    const auto source_block = gr::iio::device_source::make_from(
-        /* context */ d_iio_context,
-        /* device */ "cf-ad9361-lpc",
-        /* channels */ { "voltage0" },
-        /* PHY */ "ad9361-phy",
-        /* params */
-        { "in_voltage_sampling_frequency=61440000",
-          "in_voltage_rf_bandwidth=56000000",
-          "in_voltage0_gain_control_mode=manual",
-          // Apparently the allowed values are -3, 1, and 71.
-          "in_voltage0_hardwaregain=71"
-          "out_altvoltage0_RX_LO_frequency=2412000000" });
-    // Increase timeout?
-    source_block->set_timeout_ms(-1);
+    // The device source will not destroy the IIO context.
+    const auto source_block = iio_device_source::make(cf_ad9361_lpc, "voltage0");
     connect(source_block, 0, self(), 0);
 }
 
