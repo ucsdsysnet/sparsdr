@@ -56,6 +56,10 @@ public:
      * \param device The IIO device to read samples from
      * \param channel The name of the channel on the provided device to read
      * samples from
+     *
+     * This block does not take ownership of the IIO device or the associated
+     * context. Other code may need to destroy the IIO context after this
+     * block is destroyed.
      */
     static sptr make(iio_device* device, const std::string& channel);
 };
