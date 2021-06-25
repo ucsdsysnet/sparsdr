@@ -24,6 +24,7 @@
 
 #include <gnuradio/sync_block.h>
 #include <sparsdr/api.h>
+#include <cstddef>
 
 struct iio_device;
 
@@ -56,12 +57,15 @@ public:
      * \param device The IIO device to read samples from
      * \param channel The name of the channel on the provided device to read
      * samples from
+     * \param buffer_size_samples The number of samples in the buffer used to
+     * read from the IIO device and write to the block output buffer
      *
      * This block does not take ownership of the IIO device or the associated
      * context. Other code may need to destroy the IIO context after this
      * block is destroyed.
      */
-    static sptr make(iio_device* device, const std::string& channel);
+    static sptr
+    make(iio_device* device, const std::string& channel, std::size_t buffer_size_samples);
 };
 
 } // namespace sparsdr

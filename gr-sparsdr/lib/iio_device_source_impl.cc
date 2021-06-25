@@ -28,23 +28,20 @@
 namespace gr {
 namespace sparsdr {
 
-namespace {
-
-const std::size_t BUFFER_SIZE_SAMPLES = 4096;
-
-}
-
 iio_device_source::sptr iio_device_source::make(iio_device* device,
-                                                const std::string& channel)
+                                                const std::string& channel,
+                                                std::size_t buffer_size_samples)
 {
-    return gnuradio::get_initial_sptr(new iio_device_source_impl(device, channel));
+    return gnuradio::get_initial_sptr(
+        new iio_device_source_impl(device, channel, buffer_size_samples));
 }
 
 /*
  * The private constructor
  */
 iio_device_source_impl::iio_device_source_impl(iio_device* device,
-                                               const std::string& channel)
+                                               const std::string& channel,
+                                               std::size_t buffer_size_samples)
     : gr::sync_block(
           "iio_device_source",
           gr::io_signature::make(0, 0, 0),
@@ -53,6 +50,7 @@ iio_device_source_impl::iio_device_source_impl(iio_device* device,
       d_device(device),
       d_buffer(nullptr),
       d_channel(nullptr),
+      d_buffer_size_samples(buffer_size_samples),
       d_buffer_mutex(),
       d_refill_cv(),
       d_samples_ready_cv(),
@@ -83,7 +81,7 @@ bool iio_device_source_impl::start()
     d_please_refill_buffer = false;
     d_thread_stopped = false;
 
-    d_buffer = iio_device_create_buffer(d_device, BUFFER_SIZE_SAMPLES, false);
+    d_buffer = iio_device_create_buffer(d_device, d_buffer_size_samples, false);
     if (d_buffer == nullptr) {
         throw std::runtime_error("Failed to create buffer");
     }

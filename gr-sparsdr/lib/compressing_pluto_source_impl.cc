@@ -93,14 +93,15 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
     }
 
     // TODO: Configure tuning, gain, and things
-    iio_device* const cf_ad9361_lpc = iio_context_find_device(d_iio_context, "cf-ad9361-lpc");
+    iio_device* const cf_ad9361_lpc =
+        iio_context_find_device(d_iio_context, "cf-ad9361-lpc");
     if (cf_ad9361_lpc == nullptr) {
         throw std::runtime_error("No cf-ad9361-lpc device found");
     }
 
     // Create IIO device source block and connect
     // The device source will not destroy the IIO context.
-    const auto source_block = iio_device_source::make(cf_ad9361_lpc, "voltage0");
+    const auto source_block = iio_device_source::make(cf_ad9361_lpc, "voltage0", 4096);
     connect(source_block, 0, self(), 0);
 }
 

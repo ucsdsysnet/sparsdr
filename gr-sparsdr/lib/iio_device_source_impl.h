@@ -41,6 +41,8 @@ private:
     iio_buffer* d_buffer;
     /** Channel used to read samples from the radio */
     iio_channel* d_channel;
+    /** Size of d_buffer, in samples (used only to create the buffer) */
+    std::size_t d_buffer_size_samples;
 
     /** Mutex used to lock d_buffer */
     std::mutex d_buffer_mutex;
@@ -81,7 +83,9 @@ private:
     void refill_thread();
 
 public:
-    iio_device_source_impl(iio_device* device, const std::string& channel);
+    iio_device_source_impl(iio_device* device,
+                           const std::string& channel,
+                           std::size_t buffer_size_samples);
     ~iio_device_source_impl();
 
     // Where all the action really happens
