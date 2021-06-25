@@ -21,12 +21,13 @@
 #ifndef INCLUDED_SPARSDR_IIO_DEVICE_SOURCE_IMPL_H
 #define INCLUDED_SPARSDR_IIO_DEVICE_SOURCE_IMPL_H
 
-#include <sparsdr/iio_device_source.h>
-
 #include <condition_variable>
-#include <iio.h>
 #include <mutex>
 #include <thread>
+
+#include <iio.h>
+
+#include <sparsdr/iio_device_source.h>
 
 namespace gr {
 namespace sparsdr {
@@ -57,13 +58,23 @@ private:
     std::thread d_refill_thread;
 
     // The following four fields and d_buffer are protected by d_buffer_mutex
+    /**
+     * Total number of samples in d_buffer
+     */
     std::size_t d_samples_in_buffer;
     /**
-     * Offset from the beginning of the buffer to the first sample that has not
+     * Offset from the beginning of d_buffer to the first sample that has not
      * been copied into a GNU Radio block output buffer
      */
     std::size_t d_sample_offset;
+    /**
+     * If the work thread wants the refill thread to call iio_buffer_refill()
+     * and get more samples
+     */
     bool d_please_refill_buffer;
+    /**
+     * If the refill thread has stopped due to an error from iio_buffer_refill()
+     */
     bool d_thread_stopped;
 
     /** Runs in a dedicated thread ands calls iio_buffer_refill */

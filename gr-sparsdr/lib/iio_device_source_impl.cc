@@ -120,7 +120,6 @@ bool iio_device_source_impl::stop()
 /** This runs in a dedicated worker thread */
 void iio_device_source_impl::refill_thread()
 {
-    std::cerr << "Refill thread starting\n";
     std::unique_lock<std::mutex> lock(d_buffer_mutex);
     ssize_t status = 0;
     while (true) {
@@ -131,7 +130,6 @@ void iio_device_source_impl::refill_thread()
         lock.unlock();
         status = iio_buffer_refill(d_buffer);
         lock.lock();
-        std::cerr << "Refilled and got " << status << " bytes\n";
 
         if (status < 0) {
             break;
@@ -177,6 +175,9 @@ int iio_device_source_impl::work(int noutput_items,
     }
     // Wait for samples
     while (d_please_refill_buffer) {
+        // This is the only part that actually requires the separate thread and
+        // condition variables: using a timed wait, this code can detect
+        // overflow if no samples appear within some time limit.
         d_samples_ready_cv.wait(lock);
         if (d_thread_stopped) {
             // Can' read any more samples
