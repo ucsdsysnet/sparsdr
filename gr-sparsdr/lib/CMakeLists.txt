@@ -36,8 +36,8 @@ list(APPEND sparsdr_sources
     compressing_usrp_source_impl.cc
     gui/average_waterfall_impl.cc
 	gui/stream_average_model.cc
-	gui/average_model.cpp
-	gui/average_waterfall_view.cpp
+	gui/average_model.cc
+	gui/average_waterfall_view.cc
     sample_distributor_impl.cc
     tagged_wavfile_sink_impl.cc
     compressing_pluto_source_impl.cc
