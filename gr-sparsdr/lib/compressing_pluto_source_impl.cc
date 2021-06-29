@@ -28,6 +28,7 @@
 #include <sparsdr/iio_device_source.h>
 #include <cmath>
 #include <iostream>
+#include <string>
 
 namespace gr {
 namespace sparsdr {
@@ -61,6 +62,39 @@ std::uint32_t ceiling_log2(std::uint32_t value)
         return 1 + int_log2(value);
     }
 }
+
+/**
+ * Configures the sampling frequency, bandwidth, and gain control mode on an
+ * ad9361-phy device to work with SparSDR
+ */
+void configure_ad9361_phy(iio_device* const device) {
+    iio_channel* const in_voltage0 = iio_device_find_channel(device, "voltage0", false);
+    if (in_voltage0 == nullptr) {
+        throw std::runtime_error("Can't find voltage0 input channel on ad9361-phy");
+    }
+    iio_channel* const out_voltage0 = iio_device_find_channel(device, "voltage0", true);
+    if (in_voltage0 == nullptr) {
+        throw std::runtime_error("Can't find voltage0 output channel on ad9361-phy");
+    }
+    iio_channel* const altvoltage0 = iio_device_find_channel(device, "altvoltage0", true);
+    if (altvoltage0 == nullptr) {
+        throw std::runtime_error("Can't find altvoltage0 channel on ad9361-phy");
+    }
+
+    const ssize_t sampling_frequency_status = iio_channel_attr_write_longlong(out_voltage0, "sampling_frequency", 61440000);
+    if (sampling_frequency_status < 0) {
+        throw std::runtime_error("Failed to write voltage0 output sampling_frequency");
+    }
+    const ssize_t bandwidth_status = iio_channel_attr_write_longlong(in_voltage0, "rf_bandwidth", 56000000);
+    if (bandwidth_status < 0) {
+        throw std::runtime_error("Failed to write rf_bandwidth");
+    }
+    const ssize_t gain_control_status = iio_channel_attr_write(in_voltage0, "gain_control_mode", "manual");
+    if (gain_control_status < 0) {
+        throw std::runtime_error("Failed to write gain_control_mode");
+    }
+}
+
 } // namespace
 
 compressing_pluto_source::sptr compressing_pluto_source::make(const std::string& uri)
@@ -76,7 +110,8 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
                       gr::io_signature::make(0, 0, 0),
                       gr::io_signature::make(1, 1, sizeof(short))),
       d_iio_context(nullptr),
-      d_sparsdr_device(nullptr)
+      d_sparsdr_device(nullptr),
+      d_ad9361_phy(nullptr)
 {
     d_iio_context = iio_create_context_from_uri(uri.c_str());
     if (!d_iio_context) {
@@ -99,10 +134,44 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
         throw std::runtime_error("No cf-ad9361-lpc device found");
     }
 
+    d_ad9361_phy = iio_context_find_device(d_iio_context, "ad9361-phy");
+    if (d_ad9361_phy == nullptr) {
+        throw std::runtime_error("No ad9361-phy device found");
+    }
+    // Basic required configuration
+    configure_ad9361_phy(d_ad9361_phy);
+
+    // Default frequency and gain
+    set_frequency(2412000000);
+    set_gain(60);
+
     // Create IIO device source block and connect
     // The device source will not destroy the IIO context.
     const auto source_block = iio_device_source::make(cf_ad9361_lpc, "voltage0", 4096);
     connect(source_block, 0, self(), 0);
+}
+
+void compressing_pluto_source_impl::set_frequency(unsigned long long frequency) {
+    iio_channel* const altvoltage0 = iio_device_find_channel(d_ad9361_phy, "altvoltage0", true);
+    if (altvoltage0 == nullptr) {
+        throw std::runtime_error("Can't find altvoltage0 output channel on ad9361-phy");
+    }
+    const std::string frequency_string = std::to_string(frequency);
+    const ssize_t status = iio_channel_attr_write(altvoltage0, "frequency", frequency_string.c_str());
+    if (status < 0) {
+        throw std::runtime_error("Failed to write frequency attribute");
+    }
+}
+void compressing_pluto_source_impl::set_gain(double gain) {
+    iio_channel* const in_voltage0 = iio_device_find_channel(d_ad9361_phy, "voltage0", false);
+    if (in_voltage0 == nullptr) {
+        throw std::runtime_error("Can't find voltage0 input channel on ad9361-phy");
+    }
+    const std::string gain_string = std::to_string(gain);
+    const ssize_t status = iio_channel_attr_write(in_voltage0, "hardwaregain", gain_string.c_str());
+    if (status < 0) {
+        throw std::runtime_error("Failed to write gain attribute");
+    }
 }
 
 void compressing_pluto_source_impl::set_enable_compression(bool enable)

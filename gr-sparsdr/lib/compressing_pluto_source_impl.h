@@ -44,6 +44,9 @@ private:
      */
     iio_device* d_sparsdr_device;
 
+    /** IIO device used for tuning and gain */
+    iio_device* d_ad9361_phy;
+
     /**
      * Writes a boolean attribute of the SparSDR device
      */
@@ -55,6 +58,9 @@ private:
 
 public:
     compressing_pluto_source_impl(const std::string& uri);
+
+    virtual void set_frequency(unsigned long long frequency);
+    virtual void set_gain(double gain);
 
     virtual void set_enable_compression(bool enable);
     virtual void set_run_fft(bool enable);

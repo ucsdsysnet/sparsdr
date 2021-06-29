@@ -54,6 +54,25 @@ public:
      */
     static sptr make(const std::string& uri);
 
+    // Front-end settings
+
+    /**
+     * Sets the center frequency to receive
+     *
+     * \param frequency the center frequency in hertz
+     */
+    virtual void set_frequency(unsigned long long frequency) = 0;
+
+    /**
+     * Sets the receive gain
+     *
+     * \param gain the gain in decibels
+     */
+    virtual void set_gain(double gain) = 0;
+
+
+    // Compression settings
+
     /**
      * Enables or disables the compression features
      *

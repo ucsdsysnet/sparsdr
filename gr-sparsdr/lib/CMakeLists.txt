@@ -65,6 +65,8 @@ target_include_directories(gnuradio-sparsdr
     ${IIO_INCLUDE_DIRS}
     ${GR_IIO_INCLUDE_DIRS}
 )
+# Extra compiler warnings
+target_compile_options(gnuradio-sparsdr PRIVATE -Wall -Wextra -pedantic)
 
 if(APPLE)
     set_target_properties(gnuradio-sparsdr PROPERTIES
