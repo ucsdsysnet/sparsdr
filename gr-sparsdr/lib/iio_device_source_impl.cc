@@ -158,7 +158,7 @@ iio_device_source_impl::~iio_device_source_impl()
 }
 
 int iio_device_source_impl::work(int noutput_items,
-                                 gr_vector_const_void_star& input_items,
+                                 gr_vector_const_void_star&,
                                  gr_vector_void_star& output_items)
 {
     std::unique_lock<std::mutex> lock(d_buffer_mutex);

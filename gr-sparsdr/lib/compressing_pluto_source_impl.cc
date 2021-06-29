@@ -267,13 +267,10 @@ void compressing_pluto_source_impl::write_bool_attr(const char* name, bool value
 
 void compressing_pluto_source_impl::write_u32_attr(const char* name, std::uint32_t value)
 {
-    std::stringstream stream;
-    stream << value;
-    const std::string string_value = stream.str();
+    const std::string string_value = std::to_string(value);
     const ssize_t status =
         iio_device_attr_write(d_sparsdr_device, name, string_value.c_str());
-    // Expected return value includes one extra byte
-    if (status != string_value.length() + 1) {
+    if (status < 0) {
         throw std::runtime_error("Failed to write u32 attribute");
     }
 }

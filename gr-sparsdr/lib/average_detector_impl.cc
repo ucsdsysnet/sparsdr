@@ -35,7 +35,7 @@ average_detector_impl::~average_detector_impl() {}
 
 int average_detector_impl::work(int noutput_items,
                                 gr_vector_const_void_star& input_items,
-                                gr_vector_void_star& output_items)
+                                gr_vector_void_star&)
 {
     const uint32_t* in = reinterpret_cast<const uint32_t*>(input_items[0]);
     const int sample_count = noutput_items / 2;
@@ -43,7 +43,7 @@ int average_detector_impl::work(int noutput_items,
         // Get the first half of the sample and check bit 15, which
         // indicates an average
         const uint32_t sample0 = in[i * 2];
-        const bool is_average = (sample0 >> 15) & 1 == 1;
+        const bool is_average = ((sample0 >> 15) & 1) == 1;
         if (is_average) {
             const time_point now = std::chrono::high_resolution_clock::now();
             std::lock_guard<std::mutex> guard(d_last_average_mutex);

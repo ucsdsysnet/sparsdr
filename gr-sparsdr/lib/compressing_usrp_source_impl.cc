@@ -158,11 +158,6 @@ void compressing_usrp_source_impl::set_mask_enabled(uint16_t index, bool enabled
     // Register format:
     // Bits 31:1 : index (31 bits)
     // Bit 0 : set mask (1) / clear mask (0)
-
-    // Check that index fits within 31 bits
-    if (index > 0x7fffffffu) {
-        throw std::out_of_range("index must fit within 31 bits");
-    }
     const uint32_t command = (index << 1) | enabled;
     d_usrp->set_user_register(registers::MASK, command);
 }

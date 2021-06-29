@@ -68,10 +68,10 @@ tagged_wavfile_sink_impl::~tagged_wavfile_sink_impl()
 }
 
 int tagged_wavfile_sink_impl::work(int noutput_items,
-                                   gr_vector_const_void_star& input_items,
-                                   gr_vector_void_star& output_items)
+                                   gr_vector_const_void_star&,
+                                   gr_vector_void_star&)
 {
-    const float* in = static_cast<const float*>(input_items[0]);
+    // Not implemented
 
     // Do <+signal processing+>
 

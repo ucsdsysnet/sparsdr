@@ -73,11 +73,10 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
       d_temp_dir(),
       d_child(0)
 {
-    start_subprocess(bands, reconstruct_path);
+    start_subprocess();
 }
 
-void reconstruct_impl::start_subprocess(const std::vector<band_spec>& bands,
-                                        const std::string& reconstruct_path)
+void reconstruct_impl::start_subprocess()
 {
     // Start assembling the command
     std::vector<std::string> arguments;

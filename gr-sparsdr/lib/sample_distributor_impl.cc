@@ -56,7 +56,7 @@ sample_distributor_impl::sample_distributor_impl(int item_size)
  */
 sample_distributor_impl::~sample_distributor_impl() {}
 
-void sample_distributor_impl::forecast(int noutput_items,
+void sample_distributor_impl::forecast(int /*noutput_items*/,
                                        gr_vector_int& ninput_items_required)
 {
     /* <+forecast+> e.g. ninput_items_required[0] = noutput_items */
@@ -99,7 +99,7 @@ int sample_distributor_impl::general_work(int noutput_items,
     }
 
     // Copy items across each connection
-    for (int out_index = 0; out_index < d_decoders.size(); out_index++) {
+    for (std::size_t out_index = 0; out_index < d_decoders.size(); out_index++) {
         const decoder_info& decoder = d_decoders[out_index];
         if (decoder.d_input != decoder_info::NO_INPUT) {
             const int in_index = decoder.d_input;
@@ -123,9 +123,9 @@ int sample_distributor_impl::general_work(int noutput_items,
 
     // Existing connections have been processed. Look for inputs that still
     // need to be handled
-    for (int in_index = 0; in_index < ninput_items.size(); in_index++) {
+    for (std::size_t in_index = 0; in_index < ninput_items.size(); in_index++) {
         const auto items_read = nitems_read(in_index);
-        const auto items_in = ninput_items.at(in_index);
+        const auto items_in = static_cast<std::size_t>(ninput_items.at(in_index));
 
         if (items_in != 0 && items_in != items_read) {
             // This input has new samples that have not been processed
