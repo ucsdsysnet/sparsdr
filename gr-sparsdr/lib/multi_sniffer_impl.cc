@@ -123,7 +123,7 @@ design_filter(unsigned int interpolation, unsigned int decimation, float fractio
         trans_width = halfband - fractional_bw;
         mid_transition_band = halfband - trans_width / 2.0;
     } else {
-        trans_width = rate*(halfband - fractional_bw);
+        trans_width = rate * (halfband - fractional_bw);
         mid_transition_band = rate * halfband - trans_width / 2.0;
     }
 

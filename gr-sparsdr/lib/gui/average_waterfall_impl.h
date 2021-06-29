@@ -21,44 +21,44 @@
 #ifndef INCLUDED_SPARSDR_AVERAGE_WATERFALL_IMPL_H
 #define INCLUDED_SPARSDR_AVERAGE_WATERFALL_IMPL_H
 
-#include <sparsdr/average_waterfall.h>
-#include "stream_average_model.h"
 #include "average_waterfall_view.h"
+#include "stream_average_model.h"
+#include <sparsdr/average_waterfall.h>
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
 
-    class average_waterfall_impl : public average_waterfall
-    {
-     private:
-      /** Stores averages for the GUI */
-      stream_average_model d_average_model;
+class average_waterfall_impl : public average_waterfall
+{
+private:
+    /** Stores averages for the GUI */
+    stream_average_model d_average_model;
 
-      int d_argc;
-      char* d_argv;
-      /** Parent of waterfall GUI */
-      QWidget* d_parent;
-      /** Actual waterfall GUI */
-      AverageWaterfallView* d_main_gui;
+    int d_argc;
+    char* d_argv;
+    /** Parent of waterfall GUI */
+    QWidget* d_parent;
+    /** Actual waterfall GUI */
+    AverageWaterfallView* d_main_gui;
 
-      void buildwindow();
-      void initialize();
+    void buildwindow();
+    void initialize();
 
-     public:
-      average_waterfall_impl(std::size_t max_history, QWidget* parent);
-      ~average_waterfall_impl();
+public:
+    average_waterfall_impl(std::size_t max_history, QWidget* parent);
+    ~average_waterfall_impl();
 
-      // Where all the action really happens
-      int work(int noutput_items,
-         gr_vector_const_void_star &input_items,
-         gr_vector_void_star &output_items);
+    // Where all the action really happens
+    int work(int noutput_items,
+             gr_vector_const_void_star& input_items,
+             gr_vector_void_star& output_items);
 
-         virtual void exec_() override;
-         virtual QWidget* qwidget() override;
-         virtual PyObject* pyqwidget() override;
-    };
+    virtual void exec_() override;
+    virtual QWidget* qwidget() override;
+    virtual PyObject* pyqwidget() override;
+};
 
-  } // namespace sparsdr
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_AVERAGE_WATERFALL_IMPL_H */

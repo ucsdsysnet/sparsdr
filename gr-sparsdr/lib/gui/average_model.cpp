@@ -23,7 +23,8 @@
 namespace gr {
 namespace sparsdr {
 
-std::uint32_t AverageModel::max() const {
+std::uint32_t AverageModel::max() const
+{
     std::uint32_t max = 0;
     for (std::size_t i = 0; i < size(); i++) {
         const auto row = averages(i);
@@ -36,5 +37,5 @@ std::uint32_t AverageModel::max() const {
     return max;
 }
 
-}
-}
+} // namespace sparsdr
+} // namespace gr

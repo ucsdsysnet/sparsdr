@@ -29,7 +29,8 @@ namespace sparsdr {
  * @brief The AverageModel class defines an interface that an
  * AverageWaterfallView uses to get averages to display.
  */
-class AverageModel {
+class AverageModel
+{
 public:
     /**
      * @return the number of sets of averages in this model
@@ -54,7 +55,7 @@ public:
     virtual ~AverageModel() = default;
 };
 
-}
-}
+} // namespace sparsdr
+} // namespace gr
 
 #endif // AVERAGE_MODEL_H

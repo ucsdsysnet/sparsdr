@@ -1,19 +1,18 @@
 #include "average_waterfall_view.h"
 
-#include <QPainter>
 #include <QDebug>
+#include <QPainter>
 
 namespace gr {
 namespace sparsdr {
 
-AverageWaterfallView::AverageWaterfallView(QWidget *parent) :
-    QWidget(parent),
-    _model(nullptr)
+AverageWaterfallView::AverageWaterfallView(QWidget* parent)
+    : QWidget(parent), _model(nullptr)
 {
-
 }
 
-void AverageWaterfallView::paintEvent(QPaintEvent*) {
+void AverageWaterfallView::paintEvent(QPaintEvent*)
+{
     if (!_model) {
         return;
     }
@@ -33,7 +32,8 @@ void AverageWaterfallView::paintEvent(QPaintEvent*) {
             for (int x = 0; x < 2048; x++) {
                 // Set color: Brightness is proportional to average value
                 const auto average_value = averages[x];
-                const auto scaled_brightness = static_cast<double>(average_value) / static_cast<double>(max_average);
+                const auto scaled_brightness =
+                    static_cast<double>(average_value) / static_cast<double>(max_average);
                 const auto color = QColor::fromHsvF(0.0, 0.0, scaled_brightness);
                 waterfallPainter.setPen(color);
                 waterfallPainter.drawPoint(x, static_cast<int>(y));
@@ -46,5 +46,5 @@ void AverageWaterfallView::paintEvent(QPaintEvent*) {
     }
 }
 
-}
-}
+} // namespace sparsdr
+} // namespace gr

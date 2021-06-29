@@ -23,14 +23,13 @@
 namespace gr {
 namespace sparsdr {
 
-stream_average_model::stream_average_model(std::size_t capacity) :
-    _rows(),
-    _capacity(capacity),
-    _last_index(0)
+stream_average_model::stream_average_model(std::size_t capacity)
+    : _rows(), _capacity(capacity), _last_index(0)
 {
 }
 
-void stream_average_model::store_sample(std::uint16_t index, std::uint32_t average) {
+void stream_average_model::store_sample(std::uint16_t index, std::uint32_t average)
+{
     if (_rows.empty()) {
         // Special case - first sample
         _rows.emplace_front();
@@ -50,13 +49,12 @@ void stream_average_model::store_sample(std::uint16_t index, std::uint32_t avera
     _last_index = index;
 }
 
-std::size_t stream_average_model::size() const {
-    return _rows.size();
-}
+std::size_t stream_average_model::size() const { return _rows.size(); }
 
-const std::uint32_t* stream_average_model::averages(std::size_t index) const {
+const std::uint32_t* stream_average_model::averages(std::size_t index) const
+{
     return _rows.at(index).data();
 }
 
-}
-}
+} // namespace sparsdr
+} // namespace gr

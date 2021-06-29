@@ -21,9 +21,9 @@
 #ifndef INCLUDED_SPARSDR_STREAM_AVERAGE_MODEL_H
 #define INCLUDED_SPARSDR_STREAM_AVERAGE_MODEL_H
 
-#include <deque>
 #include <array>
 #include <cstdint>
+#include <deque>
 
 #include "average_model.h"
 
@@ -33,7 +33,8 @@ namespace sparsdr {
 /**
  * An AverageModel that collects average values from a stream of samples
  */
-class stream_average_model : public AverageModel {
+class stream_average_model : public AverageModel
+{
 private:
     /**
      * Queue of rows
@@ -53,6 +54,7 @@ private:
      * detect when a new row is beginning.
      */
     std::uint16_t _last_index;
+
 public:
     stream_average_model(std::size_t capacity);
 
@@ -64,11 +66,9 @@ public:
     virtual std::size_t size() const override;
 
     virtual const std::uint32_t* averages(std::size_t index) const override;
-
-
 };
 
-}
-}
+} // namespace sparsdr
+} // namespace gr
 
 #endif /* INCLUDED_SPARSDR_STREAM_AVERAGE_MODEL_H */
