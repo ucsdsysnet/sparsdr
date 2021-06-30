@@ -27,6 +27,10 @@
 namespace gr {
 namespace sparsdr {
 
+namespace {
+struct bin_range;
+}
+
 class compressing_pluto_source_impl : public compressing_pluto_source
 {
 private:
@@ -56,6 +60,11 @@ private:
      */
     void write_u32_attr(const char* name, std::uint32_t value);
 
+    /**
+     * Unmasks bins in the provided range and sets the specified threshold
+     */
+    void apply_bin_range(const bin_range& range);
+
 public:
     compressing_pluto_source_impl(const std::string& uri);
 
@@ -73,6 +82,7 @@ public:
     virtual void set_bin_window_value(std::uint16_t bin_index, std::uint16_t value);
     virtual void set_bin_mask(std::uint16_t bin_index);
     virtual void clear_bin_mask(std::uint16_t bin_index);
+    virtual void set_bin_spec(const std::string& spec);
     virtual void set_average_weight(float weight);
     virtual void set_average_interval(std::uint32_t interval);
 

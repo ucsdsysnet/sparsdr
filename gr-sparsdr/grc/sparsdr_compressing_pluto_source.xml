@@ -6,13 +6,11 @@
   <flags>throttle</flags>
   <import>import sparsdr</import>
   <make>sparsdr.compressing_pluto_source($uri)
+self.$(id).set_frequency($frequency)
+self.$(id).set_gain($gain)
+
 self.$(id).stop_all()
-# Clear all masks
-for i in range(0, 1024):
-    self.$(id).clear_bin_mask(i)
-# Set thresholds
-for i in range(0, 1024):
-    self.$(id).set_bin_threshold(i, $threshold_all)
+self.$(id).set_bin_spec($bin_spec)
 self.$(id).set_average_interval($average_interval)
 
 self.$(id).start_all()
@@ -29,16 +27,28 @@ self.$(id).start_all()
     <type>string</type>
   </param>
   <param>
-    <name>Threshold (all bins)</name>
-    <key>threshold_all</key>
-    <value>2048</value>
-    <type>int</type>
+    <name>Bin specification</name>
+    <key>bin_spec</key>
+    <value>0..1024:4096</value>
+    <type>string</type>
   </param>
   <param>
     <name>Average sample interval</name>
     <key>average_interval</key>
     <value>2 ** 20</value>
     <type>int</type>
+  </param>
+  <param>
+    <name>Center frequency</name>
+    <key>frequency</key>
+    <value>2412000000</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Gain</name>
+    <key>gain</key>
+    <value>60</value>
+    <type>float</type>
   </param>
 
   <!-- Make one 'sink' node per input. Sub-nodes:

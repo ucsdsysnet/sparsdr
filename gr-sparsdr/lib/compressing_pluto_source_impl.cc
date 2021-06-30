@@ -26,6 +26,7 @@
 #include <gnuradio/io_signature.h>
 
 #include <sparsdr/iio_device_source.h>
+#include <boost/lexical_cast.hpp>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -98,6 +99,49 @@ void configure_ad9361_phy(iio_device* const device)
         throw std::runtime_error("Failed to write gain_control_mode");
     }
 }
+
+struct bin_range {
+public:
+    std::uint16_t start_bin;
+    std::uint16_t end_bin;
+    std::uint32_t threshold;
+
+    static bin_range parse(const std::string& range_spec)
+    {
+
+        const auto colon_index = range_spec.find(":");
+        if (colon_index == std::string::npos) {
+            throw std::invalid_argument("No : character in range specification");
+        }
+        const auto before_colon = range_spec.substr(0, colon_index);
+        const auto after_colon =
+            range_spec.substr(colon_index + 1, range_spec.length() - colon_index - 1);
+
+        // Parse the single number or range before the colon
+        std::uint16_t start_bin = 0;
+        std::uint16_t end_bin = 0;
+        const auto dots_index = before_colon.find("..");
+        if (dots_index == std::string::npos) {
+            // Just one number
+            const std::uint16_t bin = boost::lexical_cast<std::uint16_t>(before_colon);
+            start_bin = bin;
+            end_bin = bin + 1;
+        } else {
+            const auto before_dots = before_colon.substr(0, dots_index);
+            const auto after_dots = before_colon.substr(
+                dots_index + 2, before_colon.length() - dots_index - 2);
+            start_bin = boost::lexical_cast<std::uint16_t>(before_dots);
+            end_bin = boost::lexical_cast<std::uint16_t>(after_dots);
+        }
+
+        if (start_bin >= 1024 || end_bin > 1024) {
+            throw std::invalid_argument("Bin number too large");
+        }
+
+        const std::uint32_t threshold = boost::lexical_cast<std::uint32_t>(after_colon);
+        return bin_range{ start_bin, end_bin, threshold };
+    }
+};
 
 } // namespace
 
@@ -217,7 +261,7 @@ void compressing_pluto_source_impl::stop_all()
 void compressing_pluto_source_impl::set_fft_size(std::uint32_t size)
 {
     if (!is_power_of_two(size) || size < 8 || size > 1024) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
             "FFT size must be a power of two between 8 and 1024 inclusive");
     }
     // Register value is the base-2 logarithm of the FFT size
@@ -245,10 +289,42 @@ void compressing_pluto_source_impl::clear_bin_mask(std::uint16_t bin_index)
 {
     write_u32_attr("bin_mask", std::uint32_t(bin_index));
 }
+
+void compressing_pluto_source_impl::set_bin_spec(const std::string& spec)
+{
+    // Mask all bins
+    for (std::uint16_t bin = 0; bin < 1024; bin++) {
+        set_bin_mask(bin);
+    }
+    // Parse specification
+    if (spec.empty()) {
+        // Leave all bins masked
+        return;
+    }
+    std::string::size_type start_index = 0;
+    while (true) {
+        const auto next_comma_index = spec.find(",", start_index);
+        if (next_comma_index == std::string::npos) {
+            // No more commas. Try to parse the rest of the string, then stop
+            const auto last_part = spec.substr(start_index, spec.length() - start_index);
+            const auto last_bin_range = bin_range::parse(last_part);
+            apply_bin_range(last_bin_range);
+            break;
+        } else {
+            const auto current_part =
+                spec.substr(start_index, next_comma_index - start_index);
+            const auto bin_range = bin_range::parse(current_part);
+            apply_bin_range(bin_range);
+            // Start searching for the next comma after this one
+            start_index = next_comma_index + 1;
+        }
+    }
+}
+
 void compressing_pluto_source_impl::set_average_weight(float weight)
 {
     if (weight < 0.0 || weight >= 1.0 || std::isnan(weight)) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
             "Average weight must be greater than or equal to 0 and less than 1");
     }
     // Map from [0, 1) to [0, 256)
@@ -258,7 +334,7 @@ void compressing_pluto_source_impl::set_average_weight(float weight)
 void compressing_pluto_source_impl::set_average_interval(std::uint32_t interval)
 {
     if (interval < 8 || interval > 2147483648) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
             "Average interval must be between 8 and 2147483648 inclusive");
     }
     // Actual register value is the base-2 logarithm of the interval
@@ -282,6 +358,14 @@ void compressing_pluto_source_impl::write_u32_attr(const char* name, std::uint32
         iio_device_attr_write(d_sparsdr_device, name, string_value.c_str());
     if (status < 0) {
         throw std::runtime_error("Failed to write u32 attribute");
+    }
+}
+
+void compressing_pluto_source_impl::apply_bin_range(const bin_range& range)
+{
+    for (std::uint16_t bin = range.start_bin; bin < range.end_bin; bin++) {
+        set_bin_threshold(bin, range.threshold);
+        clear_bin_mask(bin);
     }
 }
 

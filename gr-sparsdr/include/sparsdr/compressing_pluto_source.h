@@ -140,6 +140,37 @@ public:
     virtual void clear_bin_mask(std::uint16_t bin_index) = 0;
 
     /**
+     * Sets the thresholds and masks for all 1024 bins from a string specification
+     *
+     * A mask specification contains zero or more threshold groups, separated
+     * by commas.
+     *
+     * A threshold group contains one bin range, a colon `:`, and one threshold
+     * value.
+     *
+     * A bin range can be a single bin number, or two bin numbers separated by
+     * two periods `..`. If two numbers are provided, they represent a range
+     * of bins. The start of the range is included, and the end of the range
+     * is excluded.
+     *
+     * A threshold value is a non-negative integer.
+     *
+     * Any bins not specified will be masked (preventing them from sending any
+     * samples).
+     *
+     * Examples
+     * <ul>
+     * <li>Mask all bins: (empty string)</li>
+     * <li>Enable bin 42 with a threshold of 4000: `42:4000`</li>
+     * <li>Enable bins 100 (inclusive) to 200 (exclusive) with a threshold
+     *   of 800: `100..200:800`</li>
+     * <li>Enable bins 1000 and 1020, both with a threshold of 8192:
+     *   `1000:8192,1020:8192`</li>
+     * </ul>
+     */
+    virtual void set_bin_spec(const std::string& spec) = 0;
+
+    /**
      * Sets the weight used to calculate the average signal level for each bin
      *
      * The average is `average_weight * previous_average + (1 - average_weight) *
