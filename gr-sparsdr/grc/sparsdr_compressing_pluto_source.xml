@@ -9,11 +9,8 @@
 self.$(id).set_frequency($frequency)
 self.$(id).set_gain($gain)
 
-self.$(id).stop_all()
 self.$(id).set_bin_spec($bin_spec)
 self.$(id).set_average_interval($average_interval)
-
-self.$(id).start_all()
   </make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
@@ -29,7 +26,7 @@ self.$(id).start_all()
   <param>
     <name>Bin specification</name>
     <key>bin_spec</key>
-    <value>0..1024:4096</value>
+    <value>180..221:4095</value>
     <type>string</type>
   </param>
   <param>

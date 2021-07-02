@@ -141,7 +141,9 @@ void iio_device_source_impl::refill_thread()
     // iio_buffer_refill() returned an error
     // EBADF is not really an error. It indicates that the buffer was cancelled.
     if (status != -EBADF) {
-        std::cerr << "Failed to refill buffer\n";
+        char error_description[512];
+        iio_strerror(-status, error_description, sizeof error_description);
+        std::cerr << "Failed to refill buffer: " << error_description << "\n";
     }
 
     d_thread_stopped = true;
