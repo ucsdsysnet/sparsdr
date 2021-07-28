@@ -56,6 +56,9 @@ path = "sparsdr_bin_mask"
 [dependencies.sparsdr_reconstruct_config]
 path = "sparsdr_reconstruct_config"
 
+[dependencies.sparsdr_sample_parser]
+path = "sparsdr_sample_parser"
+
 # Enable debug output for release builds, for profiling
 [profile.release]
 debug = true

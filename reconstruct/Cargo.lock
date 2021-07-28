@@ -1045,6 +1045,7 @@ dependencies = [
  "simplelog",
  "sparsdr_bin_mask",
  "sparsdr_reconstruct_config",
+ "sparsdr_sample_parser",
  "tempfile",
  "uhd",
 ]
@@ -1057,6 +1058,16 @@ dependencies = [
  "log",
  "serde",
  "toml 0.5.7",
+]
+
+[[package]]
+name = "sparsdr_sample_parser"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "num-complex",
+ "num-traits",
+ "simplelog",
 ]
 
 [[package]]
