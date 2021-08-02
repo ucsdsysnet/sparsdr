@@ -50,14 +50,20 @@ impl Parser {
     /// state, where it is expecting a data header or an average header.
     pub fn accept(&mut self, sample: u32) -> Result<Option<Window>, ParseError> {
         let state = mem::replace(&mut self.state, State::Idle);
+        log::trace!("Sample {:#010x} in state {:?}", sample, state);
 
         let return_value;
         self.state = match state {
             State::Idle => {
                 let header = Header(sample);
                 if header.is_valid() {
+                    log::debug!("Got header with time {}", header.timestamp());
                     return_value = Ok(None);
                     state_for_header(header, self.fft_size)
+                } else if sample == 0x0 {
+                    // Spurious zero samples are not errors
+                    return_value = Ok(None);
+                    State::Idle
                 } else {
                     log::error!(
                         "In state Initial, unexpected sample {:#x} (not a data or average header)",
@@ -224,18 +230,40 @@ pub struct ParseError(());
 impl std::error::Error for ParseError {}
 
 mod fmt_impl {
-    use super::ParseError;
-    use std::fmt::{Display, Formatter, Result};
+    use super::{ParseError, State};
+    use std::fmt::{Debug, Display, Formatter, Result};
 
     impl Display for ParseError {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result {
             write!(f, "Incorrect compressed sample format")
         }
     }
+
+    impl Debug for State {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+            match self {
+                State::Idle => f.debug_struct("Idle").finish(),
+                State::Average { timestamp, bins } => f
+                    .debug_struct("Average")
+                    .field("timestamp", timestamp)
+                    .field("bin_count", &bins.len())
+                    .finish(),
+                State::Data {
+                    timestamp,
+                    bins,
+                    data_state,
+                } => f
+                    .debug_struct("Data")
+                    .field("timestamp", timestamp)
+                    .field("bin_count", &bins.len())
+                    .field("data_state", data_state)
+                    .finish(),
+            }
+        }
+    }
 }
 
 /// Parser states
-#[derive(Debug)]
 enum State {
     /// Waiting for the first sample
     Idle,
@@ -270,7 +298,7 @@ impl Header {
         ((self.0 >> 31) & 1) == 1
     }
     pub fn is_fft_header(&self) -> bool {
-        ((self.0 >> 30) & 1) == 1
+        ((self.0 >> 30) & 1) == 0
     }
     pub fn timestamp(&self) -> u32 {
         // Clear bits 31 and 30

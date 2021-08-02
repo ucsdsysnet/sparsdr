@@ -24,7 +24,7 @@ use sparsdr_sample_parser::{Parser, Window, WindowKind};
 use std::sync::Once;
 
 const HEADER_BIT: u32 = 0x80000000;
-const HEADER_FFT_BIT: u32 = 0x40000000;
+const HEADER_AVERAGE_BIT: u32 = 0x40000000;
 /// The maximum allowed timestamp (30 bits)
 const MAX_TIME: u32 = 0x3fffffff;
 
@@ -49,7 +49,7 @@ fn basic_1_bin() {
 
     let mut parser = Parser::new(1);
     // Begin FFT window
-    assert_eq!(Ok(None), parser.accept(HEADER_BIT | HEADER_FFT_BIT | 37));
+    assert_eq!(Ok(None), parser.accept(HEADER_BIT | 37));
     // Bin index 0
     assert_eq!(Ok(None), parser.accept(0));
     // Value at index 0
@@ -62,7 +62,7 @@ fn basic_1_bin() {
             timestamp: 37,
             kind: WindowKind::Data(vec![Complex::new(10, 20)])
         })),
-        parser.accept(HEADER_BIT | HEADER_FFT_BIT | 38)
+        parser.accept(HEADER_BIT | 38)
     );
     // Bin index 0
     assert_eq!(Ok(None), parser.accept(0));
@@ -76,7 +76,7 @@ fn basic_1_bin() {
             timestamp: 38,
             kind: WindowKind::Data(vec![Complex::new(932, -9921)])
         })),
-        parser.accept(HEADER_BIT | 39)
+        parser.accept(HEADER_BIT | HEADER_AVERAGE_BIT | 39)
     );
     // Average value
     assert_eq!(Ok(None), parser.accept(10000003));
@@ -96,7 +96,7 @@ fn basic_2_bins() {
 
     let mut parser = Parser::new(2);
     // Begin FFT window
-    assert_eq!(Ok(None), parser.accept(HEADER_BIT | HEADER_FFT_BIT | 37));
+    assert_eq!(Ok(None), parser.accept(HEADER_BIT | 37));
     // Bin index 0
     assert_eq!(Ok(None), parser.accept(0));
     // Value at index 0
@@ -111,7 +111,7 @@ fn basic_2_bins() {
             timestamp: 37,
             kind: WindowKind::Data(vec![Complex::new(10, 20), Complex::new(30, 40)])
         })),
-        parser.accept(HEADER_BIT | HEADER_FFT_BIT | 38)
+        parser.accept(HEADER_BIT | 38)
     );
     // Bin index 0
     assert_eq!(Ok(None), parser.accept(0));
@@ -130,7 +130,7 @@ fn basic_2_bins() {
             timestamp: 38,
             kind: WindowKind::Data(vec![Complex::new(50, 60), Complex::new(70, 80)])
         })),
-        parser.accept(HEADER_BIT | 39)
+        parser.accept(HEADER_BIT | HEADER_AVERAGE_BIT | 39)
     );
     assert_eq!(Ok(None), parser.accept(1200));
     assert_eq!(Ok(None), parser.accept(9000));
@@ -143,7 +143,7 @@ fn basic_2_bins() {
         parser.accept(0)
     );
     // Beginning of next FFT window
-    assert_eq!(Ok(None), parser.accept(HEADER_BIT | HEADER_FFT_BIT | 40));
+    assert_eq!(Ok(None), parser.accept(HEADER_BIT | 40));
     // Skip to bin 1
     assert_eq!(Ok(None), parser.accept(1));
     // Value at index 1
@@ -156,7 +156,7 @@ fn basic_2_bins() {
             timestamp: 40,
             kind: WindowKind::Data(vec![Complex::new(0, 0), Complex::new(90, 100)])
         })),
-        parser.accept(HEADER_BIT | HEADER_FFT_BIT | 41)
+        parser.accept(HEADER_BIT | 41)
     );
     // Start group at index 0
     assert_eq!(Ok(None), parser.accept(0));
@@ -170,7 +170,7 @@ fn basic_2_bins() {
             timestamp: 41,
             kind: WindowKind::Data(vec![Complex::new(110, 120), Complex::new(0, 0)])
         })),
-        parser.accept(HEADER_BIT | HEADER_FFT_BIT | 42)
+        parser.accept(HEADER_BIT | 42)
     );
 }
 
@@ -179,10 +179,7 @@ fn basic_8_bins() {
     LOG_INIT.call_once(log_init);
     let mut parser = Parser::new(8);
     // Begin FFT window
-    assert_eq!(
-        Ok(None),
-        parser.accept(HEADER_BIT | HEADER_FFT_BIT | MAX_TIME)
-    );
+    assert_eq!(Ok(None), parser.accept(HEADER_BIT | MAX_TIME));
     // Two values at indexes 2 and 3
     assert_eq!(Ok(None), parser.accept(2));
     assert_eq!(Ok(None), parser.accept(make_complex(32066, -32768)));
@@ -209,6 +206,6 @@ fn basic_8_bins() {
             timestamp: MAX_TIME,
             kind: WindowKind::Data(expected_bins)
         })),
-        parser.accept(HEADER_BIT | 0)
+        parser.accept(HEADER_BIT | HEADER_AVERAGE_BIT | 0)
     );
 }
