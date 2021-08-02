@@ -5,7 +5,7 @@ compression settings.
 
 # Using a precompiled binary
 
-If your Pluto device is running Linux 4.14, you can probably use the
+If your Pluto device is running Linux 5.4.0, you can probably use the
 [precompiled file](./precompiled/sparsdr_iio.ko). Skip to the "Installing"
 section below.
 
@@ -14,8 +14,12 @@ section below.
 ## Dependencies
 
 * Clone the Linux source from <https://github.com/analogdevicesinc/linux/>
-* Check out the branch that matches the version running on your Pluto device
-  (in one case, for kernel 4.14, the correct branch was `adi-4.14.0`)
+* Check out the revision that matches the version running on your Pluto device
+  (in one case, for kernel 5.4.0, the correct commit was `b05d16429dac38ecfa629c6bd9e5a403b452f57a`)
+* Copy the kernel configuration file `/proc/config.gz` from the Pluto device,
+  unarchive it, and put it in the Linux source directory with the name `.config`
+  (this ensures that your kernel module will be compatible with the kernel on
+  the Pluto device)
 * Compile Linux following [the instructions](https://wiki.analog.com/resources/tools-software/linux-build/generic/zynq)
 
 ## Actually compiling

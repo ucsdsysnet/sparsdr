@@ -9,3 +9,5 @@
 *.ko
 Module.symvers
 modules.order
+built-in.a
+sparsdr_iio.mod
