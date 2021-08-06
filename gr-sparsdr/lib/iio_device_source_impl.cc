@@ -122,7 +122,7 @@ void iio_device_source_impl::refill_thread()
     ssize_t status = 0;
     while (true) {
         d_refill_cv.wait(lock, [this] { return this->d_please_refill_buffer; });
-        // Now the work thread has  requested more samples
+        // Now the work thread has requested more samples
         d_please_refill_buffer = false;
 
         lock.unlock();

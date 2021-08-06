@@ -28,6 +28,7 @@
 #include <sparsdr/iio_device_source.h>
 #include <boost/lexical_cast.hpp>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <string>
 
@@ -165,17 +166,33 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
     if (!d_iio_context) {
         throw std::runtime_error("Can't create IIO context");
     }
+
+    // Check the format version number
+    const char* const format_version_string =
+        iio_context_get_attr_value(d_iio_context, "sparsdr_format_version");
+    if (format_version_string) {
+        // Expect version 1
+        if (std::strcmp(format_version_string, "1") != 0) {
+            std::cerr << "Unexpected sparsdr_format_version " << format_version_string
+                      << ". Reconstruction may not work correctly.\n";
+        }
+    } else {
+        std::cerr << "IIO context does not have a sparsdr_format_version attribute. "
+                  << "Check that the correct SparSDR image is loaded.\n";
+        throw std::runtime_error("No sparsdr_format_version attribute");
+    }
+    // Don't need to free format_version_string
+
     // Find the SparSDR device and configure it
     d_sparsdr_device = iio_context_find_device(d_iio_context, "sparsdr");
     // TODO: Make logging consistent with GNU Radio conventions
     if (!d_sparsdr_device) {
         std::cerr << "SparSDR device not found on the Pluto radio. "
                   << "Check that the sparsdr_iio kernel module has been installed "
-                  << "and iiod has been restarted.";
+                  << "and iiod has been restarted.\n";
         throw std::runtime_error("No SparSDR device");
     }
 
-    // TODO: Configure tuning, gain, and things
     iio_device* const cf_ad9361_lpc =
         iio_context_find_device(d_iio_context, "cf-ad9361-lpc");
     if (cf_ad9361_lpc == nullptr) {
@@ -272,7 +289,7 @@ void compressing_pluto_source_impl::set_bin_threshold(std::uint16_t bin_index,
                                                       std::uint32_t threshold)
 {
     // The threshold value is latched when the bin number is written
-    write_u32_attr("threshold_value", std::uint32_t(threshold));
+    write_u32_attr("threshold_value", threshold);
     write_u32_attr("threshold_bin_number", bin_index);
 }
 void compressing_pluto_source_impl::set_bin_window_value(std::uint16_t bin_index,
@@ -287,7 +304,7 @@ void compressing_pluto_source_impl::set_bin_mask(std::uint16_t bin_index)
 }
 void compressing_pluto_source_impl::clear_bin_mask(std::uint16_t bin_index)
 {
-    write_u32_attr("bin_mask", std::uint32_t(bin_index));
+    write_u32_attr("bin_mask", std::uint32_t(bin_index) << 1 | 0x0);
 }
 
 void compressing_pluto_source_impl::set_bin_spec(const std::string& spec)

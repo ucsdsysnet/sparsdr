@@ -9,6 +9,10 @@
 self.$(id).set_frequency($frequency)
 self.$(id).set_gain($gain)
 
+self.$(id).set_fft_size(1024)
+self.$(id).stop_all()
+self.$(id).start_all()
+
 self.$(id).set_bin_spec($bin_spec)
 self.$(id).set_average_interval($average_interval)
   </make>
