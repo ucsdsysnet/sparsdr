@@ -34,7 +34,7 @@ is:
 For more details, see the [full firmware update instructions](https://wiki.analog.com/university/tools/pluto/users/firmware).
 
 After installing the firmware, the login prompt should show the firmware version
-as `v0.30-dirty`, for example:
+as `v0.33-3-gd382-dirty`, for example:
 
 ```
 Welcome to:
@@ -45,7 +45,7 @@ ______ _       _        _________________
 | |   | | |_| | || (_) /\__/ / |/ /| |\ \
 \_|   |_|\__,_|\__\___/\____/|___/ \_| \_|
 
-v0.30-dirty
+v0.33-3-gd382-dirty
 http://wiki.analog.com/university/tools/pluto
 ```
 
@@ -80,3 +80,26 @@ Important note: After restarting the Pluto device, you will need to perform the
 "Installing the SparSDR IIO driver" steps again.
 
 ### Receiving signals
+
+Use the Compressing Pluto Source Block to read samples from the Pluto device.
+
+The block has these options:
+
+* IIO context URI: The URI to use when connecting to the Pluto device. This is
+  normally `ip:192.168.2.1`, but other IP addresses or a USB URI can be used if
+  necessary.
+* Bin specification: This string specifies the bins that you want to receive,
+  and the threshold for each range of bins. Any bin that is not specified here
+  will be masked, so you will not get any samples from that bin.
+  Some example bin specifications:
+   * Mask all bins: (empty string)
+   * Enable bin 42 with a threshold of 4000: `42:4000`
+   * Enable bins 0, 1, 2, 3, 4, 5, 6, and 7 with a threshold of 1: `0..8:1`
+   * Enable bins 100 (inclusive) to 200 (exclusive) with a threshold
+     of 800: `100..200:800`
+   * Enable bins 1000 and 1020, both with a threshold of 8192:
+     `1000:8192,1020:8192`
+ * Average sample interval: The interval between sets of average samples sent
+   by the Pluto device. This is normaly `2 ** 20`, but can be higher or lower.
+ * Center frequency: The frequency to tune the radio to, in hertz
+ * Gain: The radio receiver gain, in decibels

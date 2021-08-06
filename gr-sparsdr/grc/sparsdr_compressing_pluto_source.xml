@@ -30,7 +30,7 @@ self.$(id).set_average_interval($average_interval)
   <param>
     <name>Bin specification</name>
     <key>bin_spec</key>
-    <value>180..221:4095</value>
+    <value>0..8:1</value>
     <type>string</type>
   </param>
   <param>
