@@ -37,6 +37,13 @@ Daughter boards other than the SBX-120 should also work, with the following cons
 * If the daughter board receive bandwidth is less than 100 MHz, this will limit what you can receive with SparSDR
 * If the daughter board receive bandwidth is greater than 100 MHz, you may see aliasing because the signal will still be sampled at 100 megasamples per second.
 
+## Pluto compatibility
+
+SparSDR also works with the Analog Devices ADALM-PLUTO radio, with a different
+version of the reconstruct application and a new Compressing Pluto Source block
+for GNU Radio. See [the documentation in the pluto branch](https://github.com/ucsdsysnet/sparsdr/blob/pluto/doc/pluto.md)
+for more details.
+
 ## Licenses
 
 * `gr-sparsdr`: GNU GPL v3 or later
