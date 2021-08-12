@@ -42,6 +42,12 @@ fn main() -> Result<(), io::Error> {
     let stdout = io::stdout();
     let mut output = BufWriter::new(stdout.lock());
 
+    writeln!(
+        output,
+        "#Sample    |      Type |    FFT_No |     Index |  Time     |      Real |      Imag"
+    )?;
+
+    let mut sample_index = 0u64;
     loop {
         let mut sample_bytes = [0u8; 4];
         if let Err(e) = input.read_exact(&mut sample_bytes) {
@@ -54,11 +60,44 @@ fn main() -> Result<(), io::Error> {
         match parser.accept(sample) {
             Ok(None) => {}
             Ok(Some(window)) => match window.kind {
-                WindowKind::Data(_data) => {
-                    writeln!(output, "Time {} data", window.timestamp)?;
+                WindowKind::Data(data) => {
+                    let fft_no = window.timestamp & 0x1;
+                    for (i, value) in data.iter().enumerate() {
+                        let status = writeln!(
+                            output,
+                            "{:<10}    FFT sample {:>10}  {:>10}  {:>10}  {:>10}  {:>10}",
+                            sample_index, fft_no, i, window.timestamp, value.re, value.im
+                        );
+
+                        if let Err(e) = status {
+                            if e.kind() == ErrorKind::BrokenPipe {
+                                break;
+                            } else {
+                                return Err(e);
+                            }
+                        }
+
+                        sample_index += 1;
+                    }
                 }
-                WindowKind::Average(_average) => {
-                    writeln!(output, "Time {} averages", window.timestamp)?;
+                WindowKind::Average(average) => {
+                    for (i, value) in average.iter().enumerate() {
+                        let status = writeln!(
+                            output,
+                            "{:<10}    Average                {:>10}  {:>10}      {:>10}",
+                            sample_index, i, window.timestamp, *value
+                        );
+
+                        if let Err(e) = status {
+                            if e.kind() == ErrorKind::BrokenPipe {
+                                break;
+                            } else {
+                                return Err(e);
+                            }
+                        }
+
+                        sample_index += 1;
+                    }
                 }
             },
             Err(e) => {
