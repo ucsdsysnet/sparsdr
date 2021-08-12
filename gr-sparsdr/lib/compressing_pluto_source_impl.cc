@@ -270,10 +270,11 @@ void compressing_pluto_source_impl::start_all()
 }
 void compressing_pluto_source_impl::stop_all()
 {
-    set_run_fft(false);
-    set_send_average_samples(false);
     set_send_fft_samples(false);
-    set_enable_compression(false);
+    set_send_average_samples(false);
+    set_run_fft(false);
+    // Don't set_enable_compression(false). The Pluto FPGA image is missing the normal
+    // signal path and won't do anything without compression.
 }
 void compressing_pluto_source_impl::set_fft_size(std::uint32_t size)
 {
