@@ -22,7 +22,7 @@ of this repository.
 
 ### Installing the SparSDR firmware and FPGA image
 
-Use the firmware and FPGA image in this repository: TODO (add the file)
+Use [the firmware and FPGA image in this repository](../fpga_images/Pluto/)
 
 Install the `pluto.frm` file on your Pluto device. The easiest way to do this
 is:
