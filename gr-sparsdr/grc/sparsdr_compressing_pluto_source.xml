@@ -65,6 +65,6 @@ self.$(id).set_average_interval($average_interval)
        * optional (set to 1 for optional inputs) -->
   <source>
     <name>out</name>
-    <type>short</type>
+    <type>sc16</type>
   </source>
 </block>

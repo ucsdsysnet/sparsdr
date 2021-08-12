@@ -45,8 +45,8 @@ iio_device_source_impl::iio_device_source_impl(iio_device* device,
     : gr::sync_block(
           "iio_device_source",
           gr::io_signature::make(0, 0, 0),
-          // Output is in 8-byte chunks. The short type is not really important.
-          gr::io_signature::make(1, 1, sizeof(short))),
+          // Output is in 4-byte chunks. The output type is not really important.
+          gr::io_signature::make(1, 1, sizeof(uint32_t))),
       d_device(device),
       d_buffer(nullptr),
       d_channel(nullptr),
@@ -163,6 +163,9 @@ int iio_device_source_impl::work(int noutput_items,
                                  gr_vector_const_void_star&,
                                  gr_vector_void_star& output_items)
 {
+    // Reminder: noutput_items is in 4-byte units. One block output item
+    // equals two IIO samples.
+
     std::unique_lock<std::mutex> lock(d_buffer_mutex);
     if (d_thread_stopped) {
         // Can't read any more samples
@@ -186,7 +189,7 @@ int iio_device_source_impl::work(int noutput_items,
     }
 
     const std::size_t samples_to_copy =
-        std::min(d_samples_in_buffer - d_sample_offset, std::size_t(noutput_items));
+        std::min(d_samples_in_buffer - d_sample_offset, std::size_t(noutput_items) * 2);
 
     const void* const buffer_region_start = reinterpret_cast<const void*>(
         reinterpret_cast<const char*>(iio_buffer_start(d_buffer)) +
@@ -196,7 +199,8 @@ int iio_device_source_impl::work(int noutput_items,
     d_sample_offset += samples_to_copy;
 
     // Tell runtime system how many output items we produced.
-    return int(samples_to_copy);
+    // (convert back from 16-bit samples to 32-bit samples)
+    return int(samples_to_copy / 2);
 }
 
 } /* namespace sparsdr */

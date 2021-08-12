@@ -157,7 +157,7 @@ compressing_pluto_source::sptr compressing_pluto_source::make(const std::string&
 compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& uri)
     : gr::hier_block2("compressing_pluto_source",
                       gr::io_signature::make(0, 0, 0),
-                      gr::io_signature::make(1, 1, sizeof(short))),
+                      gr::io_signature::make(1, 1, sizeof(uint32_t))),
       d_iio_context(nullptr),
       d_sparsdr_device(nullptr),
       d_ad9361_phy(nullptr)
