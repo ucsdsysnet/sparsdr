@@ -1,9 +1,9 @@
 # SparSDR with a Pluto software-defined radio
 
 SparSDR can run on an [Analog Devices ADALM-PLUTO](https://www.analog.com/en/design-center/evaluation-hardware-and-software/evaluation-boards-kits/ADALM-PLUTO.html)
-software-defined radio to receive signals. The Pluto device is much less
-expensive than a USRP N210 ($150 instead of about $2500) and provides similar
-functionality.
+software-defined radio (hardware revision B) to receive signals. The Pluto
+device is much less expensive than a USRP N210 ($150 instead of about $2500) and
+provides similar functionality.
 
 The main differences of the Pluto implementation of SparSDR are:
 
