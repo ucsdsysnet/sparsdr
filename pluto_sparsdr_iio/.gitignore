@@ -6,7 +6,7 @@
 *.cmd.c
 *.mod.c
 *.o
-*.ko
+sparsdr_iio.ko
 Module.symvers
 modules.order
 built-in.a
