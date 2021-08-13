@@ -1,0 +1,539 @@
+From 06ce71a5c41adb2f4ff464fea1453702e9edd590 Mon Sep 17 00:00:00 2001
+From: Moein Khazraee <mkhazrae@cs.ucsd.edu>
+Date: Fri, 13 Aug 2021 10:50:39 -0700
+Subject: [PATCH] SparSDR 2 with improved output encoding.
+
+---
+ library/axi_sparSDR/FFT_compression.v  |  98 ++++++++-------
+ library/axi_sparSDR/FFT_encoder.v      | 159 +++++++++++++++++++++++++
+ library/axi_sparSDR/Makefile           |   1 +
+ library/axi_sparSDR/axi_sparSDR.v      |  60 ++++++++--
+ library/axi_sparSDR/axi_sparSDR_ip.tcl |   1 +
+ projects/pluto/system_bd.tcl           |   2 +-
+ 6 files changed, 266 insertions(+), 55 deletions(-)
+ create mode 100644 library/axi_sparSDR/FFT_encoder.v
+
+diff --git a/library/axi_sparSDR/FFT_compression.v b/library/axi_sparSDR/FFT_compression.v
+index 14a2a8d8..f3c5b33d 100755
+--- a/library/axi_sparSDR/FFT_compression.v
++++ b/library/axi_sparSDR/FFT_compression.v
+@@ -22,47 +22,44 @@ module FFT_compression # (
+     parameter FFT_IN_DATA_WIDTH      = 16,
+     parameter FFT_FIFO_ADDR_WIDTH    = MAX_FFT_SIZE_LOG2 + 2,
+     parameter AVG_FIFO_ADDR_WIDTH    = MAX_FFT_SIZE_LOG2 + 2,
+-    // Considering 64 bits per output sample where 32bits
+-    // are used for I/Q data and some bits for FFT index
+-    // these many bits would remain for time stamp
+-    parameter TIME_STAMP_BITS  =32-MAX_FFT_SIZE_LOG2-1,
+     // Considering user config register is 32-bits wide, we can
+     // make masks of size up to 31 bits for average window size
+     // which declares how many FFT windows should pass before
+     // sending average values
+     parameter INPUT_TIME_BITS        = 31 + MAX_FFT_SIZE_LOG2
+ )(
+-    input                          dsp_clk,
+-    input                          dsp_rst,
+-
+-    input                          set_stb_user,
+-    input  [7:0]                   set_addr_user,
+-    input  [31:0]                  set_data_user,
+-
+-    input  [15:0]                  sample_real,
+-    input  [15:0]                  sample_imag,
+-    input  [INPUT_TIME_BITS-1:0]   time_lsb,
+-
+-    output [31:0]                  FFT_out_data,
+-    output [MAX_FFT_SIZE_LOG2-1:0] FFT_out_index,
+-    output [TIME_STAMP_BITS-1:0]   FFT_out_time,
+-    output                         FFT_out_is_avg,
+-    output                         FFT_out_no,
+-    output                         FFT_out_valid,
+-    input                          ready_i,
+-
+-    output                         compress_en,
+-
+-    output                         fifo1_error,
+-    output                         fifo2_error,
+-    output                         avg_fifo_error,
+-    output                         arbiter_error
++    input                               dsp_clk,
++    input                               dsp_rst,
++
++    input                               set_stb_user,
++    input  [7:0]                        set_addr_user,
++    input  [31:0]                       set_data_user,
++
++    input  [15:0]                       sample_real,
++    input  [15:0]                       sample_imag,
++    input  [INPUT_TIME_BITS-1:0]        time_lsb,
++
++    output [31:0]                       FFT_out_data,
++    output [MAX_FFT_SIZE_LOG2-1:0]      FFT_out_index,
++    output [29:0]                       FFT_out_time,
++    output                              FFT_out_is_avg,
++    output                              FFT_out_no,
++    output                              FFT_out_valid,
++    input                               ready_i,
++
++    output                              new_window,
++    output                              compress_en,
++    output [MAX_FFT_SIZE_LOG2_LOG2-1:0] FFT_size_log2,
++
++    output                              fifo1_error,
++    output                              fifo2_error,
++    output                              avg_fifo_error,
++    output                              arbiter_error
+     );
+ 
+    // /////////////////////////////////////////////////////////////////////////
+    // Setting registers from software
+ 
+-   wire [MAX_FFT_SIZE_LOG2_LOG2-1:0]  FFT_size_log2;
+    wire [SCALING_WIDTH-1:0] scaling_shift;
+    wire [30:0] avg_time_mask;
+    wire [8:0]  avg_weight, new_weight;
+@@ -214,9 +211,9 @@ module FFT_compression # (
+          shifted_time_r <= shifted_time;
+       end
+ 
+-   wire [TIME_STAMP_BITS-1:0]   selected_FFT_time    = shifted_time[TIME_STAMP_BITS-1:0];
++   wire [29:0]                  selected_FFT_time    = shifted_time[29:0];
+    wire [MAX_FFT_SIZE_LOG2-1:0] FFT_start_time_check = time_lsb_r[MAX_FFT_SIZE_LOG2-1:0];
+-   wire [TIME_STAMP_BITS-1:0]   selected_avg_time    = shifted_time_r[TIME_STAMP_BITS-1:0];
++   wire [29:0]                  selected_avg_time    = shifted_time_r[29:0];
+    wire [30:0]                  avg_start_time_check = shifted_time_r[31:1];
+ 
+    // /////////////////////////////////////////////////////////////////////////
+@@ -549,7 +546,7 @@ module FFT_compression # (
+ 
+    // /////////////////////////////////////////////////////////////////////////
+    // FIFOs for each FFT and bin average values output
+-   localparam FIFO_WIDTH     = 1+1+TIME_STAMP_BITS+MAX_FFT_SIZE_LOG2+16+16;
++   localparam FIFO_WIDTH     = 1+1+30+MAX_FFT_SIZE_LOG2+16+16;
+    localparam FFT_IND_START  = 32;
+    localparam TIME_IND_START = 32+MAX_FFT_SIZE_LOG2;
+ 
+@@ -631,22 +628,29 @@ module FFT_compression # (
+    // We alternate between 2 FFT windows. If there is average samples,
+    // after finishing current FFT windows we send the averages and back
+    // to the other FFT window.
++   reg FFT_out_valid_r;
++   reg new_window_n, new_window_r;
++
+    always @ (*) begin
+       state_n          = state_r;
+       fft1_release     = 1'b0;
+       fft2_release     = 1'b0;
+       avg_fifo_release = 1'b0;
+       arbiter_err      = 1'b0;
++      // Keep new window asserted until transaction happens
++      new_window_n     = new_window_r && !(ready_i && FFT_out_valid_r);
+ 
+-      if (ready_i)
++      if (ready_i || !FFT_out_valid_r)
+          case (state_r)
+             IDLE:
+                if (avg_fifo_v) begin
+                   avg_fifo_release = 1'b1;
+                   state_n = SEND_AVG1;
++                  new_window_n = 1'b1;
+                end else if (fft1_ind_is_0 && fft1_res_v) begin
+                   fft1_release = 1'b1;
+                   state_n = SEND_FFT1;
++                  new_window_n = 1'b1;
+                // We should receive FFT1 results first
+                end else if (fft2_ind_is_0 && fft2_res_v) begin
+                   state_n = ERROR;
+@@ -662,9 +666,11 @@ module FFT_compression # (
+                   if (avg_fifo_v) begin
+                      avg_fifo_release = 1'b1;
+                      state_n = SEND_AVG2;
++                     new_window_n = 1'b1;
+                   end else if (fft2_ind_is_0 && fft2_res_v) begin
+                      fft2_release = 1'b1;
+                      state_n = SEND_FFT2;
++                     new_window_n = 1'b1;
+                   // If there was no sample in FFT2 but we see ind0 in FFT1
+                   // something is wrong
+                   end else begin
+@@ -682,9 +688,11 @@ module FFT_compression # (
+                   if (avg_fifo_v) begin
+                      avg_fifo_release = 1'b1;
+                      state_n = SEND_AVG1;
++                     new_window_n = 1'b1;
+                   end else if (fft1_ind_is_0 && fft1_res_v) begin
+                      fft1_release = 1'b1;
+                      state_n = SEND_FFT1;
++                     new_window_n = 1'b1;
+                   // If there was no sample in FFT1 but we see ind0 in FFT2
+                   // something is wrong
+                   end else begin
+@@ -700,6 +708,7 @@ module FFT_compression # (
+                end else if (fft1_ind_is_0 && fft1_res_v) begin
+                   fft1_release = 1'b1;
+                   state_n = SEND_FFT1;
++                  new_window_n = 1'b1;
+                // We should receive FFT1 results now
+                end else if (fft2_ind_is_0 && fft2_res_v) begin
+                   state_n = ERROR;
+@@ -713,6 +722,7 @@ module FFT_compression # (
+                end else if (fft2_ind_is_0 && fft2_res_v) begin
+                   fft2_release = 1'b1;
+                   state_n = SEND_FFT2;
++                  new_window_n = 1'b1;
+                // We should receive FFT2 results now
+                end else if (fft1_ind_is_0 && fft1_res_v) begin
+                   state_n = ERROR;
+@@ -748,26 +758,25 @@ module FFT_compression # (
+    // to meet timing
+    reg [31:0]                  FFT_out_data_r;
+    reg [MAX_FFT_SIZE_LOG2-1:0] FFT_out_index_r;
+-   reg [TIME_STAMP_BITS-1:0]   FFT_out_time_r;
++   reg [29:0]                  FFT_out_time_r;
+    reg                         FFT_out_is_avg_r;
+    reg                         FFT_out_no_r;
+-   reg                         FFT_out_valid_r;
+ 
+    // Update the time stamp to show start of window, instead of sample time.
+    // When sample index is in the second half of window, we reduce the time stamp by 1.
+-   wire [TIME_STAMP_BITS-1:0] updated_time = (select_res[TIME_IND_START-1]) ?
+-      (select_res[TIME_IND_START +: TIME_STAMP_BITS]-{{(TIME_STAMP_BITS-1){1'b0}},1'b1}) :
+-      (select_res[TIME_IND_START +: TIME_STAMP_BITS]);
++   wire [29:0] updated_time = (select_res[TIME_IND_START-1]) ?
++      (select_res[TIME_IND_START +: 30]-30'd1) : (select_res[TIME_IND_START +: 30]);
+ 
+    always@(posedge dsp_clk)
+-      if (dsp_rst)
++      if (dsp_rst) begin
+          FFT_out_valid_r  <= 1'b0;
++         new_window_r     <= 1'b0;
+       // We have one register fifo, when ready_i signal is not high it keeps its previous
+       // value and fifos data is not released. When ready signal raises again the valid
+       // signal would not be masked and the register would also get updated.
+-      else if (ready_i) begin
++      end else if (ready_i || !FFT_out_valid_r) begin
+          FFT_out_time_r   <= avg_fifo_release ?
+-                avg_fifo_out[TIME_IND_START +: TIME_STAMP_BITS] : updated_time;
++                avg_fifo_out[TIME_IND_START +: 30] : updated_time;
+          FFT_out_index_r  <= avg_fifo_release ?
+                 avg_fifo_out[FFT_IND_START+:MAX_FFT_SIZE_LOG2]  :
+                 select_res[FFT_IND_START+:MAX_FFT_SIZE_LOG2];
+@@ -775,6 +784,8 @@ module FFT_compression # (
+          FFT_out_no_r     <= select;
+          FFT_out_is_avg_r <= avg_fifo_release;
+          FFT_out_valid_r  <= avg_fifo_release || out_valid;
++
++         new_window_r     <= new_window_n;
+       end
+ 
+    assign FFT_out_data   = FFT_out_data_r;
+@@ -782,6 +793,7 @@ module FFT_compression # (
+    assign FFT_out_time   = FFT_out_time_r;
+    assign FFT_out_is_avg = FFT_out_is_avg_r;
+    assign FFT_out_no     = FFT_out_no_r;
+-   assign FFT_out_valid  = FFT_out_valid_r && ready_i;
++   assign FFT_out_valid  = FFT_out_valid_r;
++   assign new_window     = new_window_r;
+ 
+ endmodule
+diff --git a/library/axi_sparSDR/FFT_encoder.v b/library/axi_sparSDR/FFT_encoder.v
+new file mode 100644
+index 00000000..9abd39d0
+--- /dev/null
++++ b/library/axi_sparSDR/FFT_encoder.v
+@@ -0,0 +1,159 @@
++/*
++ * Copyright 2021 The Regents of the University of California
++ *
++ * Licensed under either the GNU General Public License, version 2
++ * ( https://www.gnu.org/licenses/old-licenses/gpl-2.0.html ) or the Apache
++ * license, version 2.0 ( https://www.apache.org/licenses/LICENSE-2.0.html )
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ *
++ */
++
++module FFT_encoder # (
++  parameter MAX_FFT_SIZE_LOG2=10,
++  parameter MAX_FFT_SIZE_LOG2_LOG2=4
++) (
++  input                              dsp_clk,
++  input                              dsp_rst,
++
++  input [MAX_FFT_SIZE_LOG2_LOG2-1:0] FFT_size_log2,
++  input                              new_window,
++
++  input  [31:0]                      FFT_data,
++  input  [MAX_FFT_SIZE_LOG2-1:0]     FFT_index,
++  input  [29:0]                      FFT_time,
++  input                              FFT_is_avg,
++  input                              FFT_no,
++  input                              FFT_valid,
++  output                             FFT_ready,
++
++  output [31:0]                      enc_data,
++  output                             enc_valid,
++  input                              enc_ready
++);
++
++// We add a register for output. This is when that register is ready
++reg [31:0] enc_data_r;
++reg        enc_valid_r;
++wire       out_reg_ready = !enc_valid_r || enc_ready;
++
++// Based on FFT size determine the last index we expect to see
++reg [MAX_FFT_SIZE_LOG2-1:0] last_avg_index;
++always @ (posedge dsp_clk)
++  last_avg_index <= {MAX_FFT_SIZE_LOG2{1'b1}} >>
++                    (MAX_FFT_SIZE_LOG2-FFT_size_log2);
++
++// Keep last FFT and index when a data is acked
++reg [MAX_FFT_SIZE_LOG2-1:0] prev_index;
++
++always @ (posedge dsp_clk)
++  if (dsp_rst)
++    prev_index <= {MAX_FFT_SIZE_LOG2{1'b0}};
++  else if (FFT_valid && FFT_ready)
++    prev_index <= FFT_index;
++
++// Possible output 32 bits
++wire [31:0] header = {1'b1, FFT_is_avg, FFT_time};
++wire [31:0] index  = {{(32-MAX_FFT_SIZE_LOG2){1'b0}}, FFT_index};
++wire [31:0] data   = FFT_data;
++wire [31:0] pause  = 32'd0;
++
++// State machine states
++reg [2:0] state_n, state_r;
++localparam IDLE     = 0;
++localparam FFT_HDR  = 1;
++localparam FFT_BIN  = 2;
++localparam FFT_1ST  = 3;
++localparam FFT_MAIN = 4;
++localparam AVG_HDR  = 5;
++localparam AVG_DATA = 6;
++localparam AVG_PAUS = 7;
++
++// FFT_MAIN might output data or pause
++reg FFT_pause;
++
++always @ (posedge dsp_clk)
++  if (dsp_rst)
++     state_r <= IDLE;
++  else
++     state_r <= state_n;
++
++always @ (*) begin
++  state_n   = state_r;
++  FFT_pause = 1'b0;
++
++  // The state can change only when output is ready. Also most state changes
++  // require valid input, and few (e.g., FFT_HDR to FFT_BIN to FFT_1ST) that
++  // do not need valid, do not ack the input and FFT_valid stays asserted.
++  if (out_reg_ready && FFT_valid)
++    case (state_r)
++
++      IDLE:     if (FFT_is_avg)                state_n = AVG_HDR;
++                else                           state_n = FFT_HDR;
++
++      FFT_HDR:                                 state_n = FFT_BIN;
++
++      FFT_BIN:                                 state_n = FFT_1ST;
++
++      // First FFT data to update prev_index
++      FFT_1ST:                                 state_n = FFT_MAIN;
++
++      FFT_MAIN:
++                if (FFT_index==(prev_index+1)) state_n = FFT_MAIN;
++                else begin
++                  FFT_pause = 1'b1;
++                  if      (FFT_is_avg)         state_n = AVG_HDR;
++                  else if (new_window)         state_n = FFT_HDR;
++                  else                         state_n = FFT_BIN;
++                end
++
++      AVG_HDR:                                 state_n = AVG_DATA;
++
++      AVG_DATA: if (FFT_index==last_avg_index) state_n = AVG_PAUS;
++                else                           state_n = AVG_DATA;
++
++      // If there is no FFT data being backhauled, we go back to AVG_HDR
++      AVG_PAUS: if (FFT_is_avg)                state_n = AVG_HDR;
++                else                           state_n = FFT_HDR;
++    endcase
++
++end
++
++// Select output data based on the state and whether it's FFT_pause,
++// and also add an output register
++always @ (posedge dsp_clk)
++  if (out_reg_ready)
++    case (state_r)
++      FFT_HDR:
++        enc_data_r <= header;
++      FFT_BIN:
++        enc_data_r <= index;
++      FFT_1ST:
++        enc_data_r <= data;
++      FFT_MAIN:
++        enc_data_r <= FFT_pause ? pause : data;
++      AVG_HDR:
++        enc_data_r <= header;
++      AVG_DATA:
++        enc_data_r <= data;
++      default:
++        enc_data_r <= pause;
++    endcase
++
++always @ (posedge dsp_clk)
++  if (dsp_rst)
++    enc_valid_r <= 1'b0;
++  else if (out_reg_ready)
++    enc_valid_r <= FFT_valid && (state_r != IDLE);
++
++assign enc_valid = enc_valid_r;
++assign enc_data  = enc_data_r;
++assign FFT_ready = out_reg_ready && ((state_r == FFT_1ST)  ||
++                                     (state_r == AVG_DATA) ||
++                      (!FFT_pause && (state_r == FFT_MAIN)));
++
++endmodule
+diff --git a/library/axi_sparSDR/Makefile b/library/axi_sparSDR/Makefile
+index b7d3860d..3df799fe 100644
+--- a/library/axi_sparSDR/Makefile
++++ b/library/axi_sparSDR/Makefile
+@@ -16,6 +16,7 @@ GENERIC_DEPS += mem_init_files/avg_1024.mif
+ GENERIC_DEPS += coregen_ip/xfft_1024/xfft_1024.xci
+ GENERIC_DEPS += coregen_ip/async_axis_fifo/async_axis_fifo.xci
+ GENERIC_DEPS += FFT_compression.v
++GENERIC_DEPS += FFT_encoder.v
+ GENERIC_DEPS += half_windowed_FFTs_axis.v
+ GENERIC_DEPS += command_decoder.v
+ GENERIC_DEPS += mem_n_fifo.v
+diff --git a/library/axi_sparSDR/axi_sparSDR.v b/library/axi_sparSDR/axi_sparSDR.v
+index 434750f7..fcd18006 100755
+--- a/library/axi_sparSDR/axi_sparSDR.v
++++ b/library/axi_sparSDR/axi_sparSDR.v
+@@ -50,7 +50,7 @@ module axi_sparSDR # (
+     output  [31:0]                    s_axi_rdata,
+     input                             s_axi_rready,
+ 
+-    output  [63:0]                    sparSDR_data,
++    output  [31:0]                    sparSDR_data,
+     output                            sparSDR_valid,
+     input                             dest_full,
+ 
+@@ -152,15 +152,17 @@ module axi_sparSDR # (
+       end
+ 
+    // FFT Compression
++   wire [3:0]  fft_size_log2;
+    wire [31:0] fft_data;
+-   wire [20:0] fft_time;
++   wire [29:0] fft_time;
+    wire [9:0]  fft_index;
+    wire fft_is_avg;
+    wire fft_valid;
+    wire fifo1_error, fifo2_error, avg_fifo_error, arbiter_error;
+    wire fft_no;
+    wire compress_en;
+-   wire sparSDR_ready;
++   wire new_window;
++   wire fft_ready;
+ 
+    FFT_compression # (
+       .MAX_FFT_SIZE_LOG2(MAX_FFT_SIZE_LOG2),
+@@ -170,18 +172,54 @@ module axi_sparSDR # (
+       .FFT_FIFO_ADDR_WIDTH(FFT_FIFO_ADDR_WIDTH),
+       .AVG_FIFO_ADDR_WIDTH(AVG_FIFO_ADDR_WIDTH)
+    ) compressor (
+-      .dsp_clk(lgc_clk), .dsp_rst(lgc_rst),
++      .dsp_clk(lgc_clk), .dsp_rst(lgc_rst), .FFT_size_log2(fft_size_log2),
+       .set_stb_user(set_stb_user_r), .set_addr_user(set_addr_user_r), .set_data_user(set_data_user_r),
+       .sample_real(sample_real), .sample_imag(sample_imag), .time_lsb(time_counter),
+       .FFT_out_data(fft_data), .FFT_out_index(fft_index), .FFT_out_time(fft_time),
+-      .FFT_out_is_avg(fft_is_avg), .FFT_out_valid(fft_valid), .ready_i(sparSDR_ready),
+-      .FFT_out_no(fft_no), .compress_en(compress_en), .arbiter_error(arbiter_error),
+-      .fifo1_error(fifo1_error),.fifo2_error(fifo2_error),.avg_fifo_error(avg_fifo_error)
++      .FFT_out_is_avg(fft_is_avg), .FFT_out_valid(fft_valid), .ready_i(fft_ready),
++      .FFT_out_no(fft_no), .compress_en(compress_en), .new_window(new_window),
++      .arbiter_error(arbiter_error), .fifo1_error(fifo1_error),
++      .fifo2_error(fifo2_error), .avg_fifo_error(avg_fifo_error)
+    );
+ 
+-   assign sparSDR_error = arbiter_error || fifo1_error || fifo2_error || avg_fifo_error;
+-   assign sparSDR_data  = {fft_is_avg, fft_index, fft_time,fft_data};
+-   assign sparSDR_valid = fft_valid & (~dest_full);
+-   assign sparSDR_ready = ~dest_full;
++   wire [31:0] fft_enc_data;
++   wire        fft_enc_valid;
++   wire        fft_enc_ready;
++
++   FFT_encoder # (
++      .MAX_FFT_SIZE_LOG2(MAX_FFT_SIZE_LOG2),
++      .MAX_FFT_SIZE_LOG2_LOG2(MAX_FFT_SIZE_LOG2_LOG2)
++   ) encoder (
++      .dsp_clk(lgc_clk),
++      .dsp_rst(lgc_rst),
++
++      .FFT_size_log2(fft_size_log2),
++      .new_window(new_window),
++
++      .FFT_data(fft_data),
++      .FFT_index(fft_index),
++      .FFT_time(fft_time),
++      .FFT_is_avg(fft_is_avg),
++      .FFT_no(fft_no),
++      .FFT_valid(fft_valid),
++      .FFT_ready(fft_ready),
++
++      .enc_data(fft_enc_data),
++      .enc_valid(fft_enc_valid),
++      .enc_ready(fft_enc_ready)
++   );
++
++   // Match sparSDR_error to 1 cycle latency of FFT_encoder
++   reg  sparSDR_error_r;
++   always @ (posedge lgc_clk)
++      if (lgc_rst)
++         sparSDR_error_r <= 1'b0;
++      else
++         sparSDR_error_r <= arbiter_error || fifo1_error || fifo2_error || avg_fifo_error;
++
++   assign sparSDR_data  = fft_enc_data;
++   assign sparSDR_valid = fft_enc_valid && (!dest_full);
++   assign fft_enc_ready = !dest_full;
++   assign sparSDR_error = sparSDR_error_r;
+ 
+ endmodule
+diff --git a/library/axi_sparSDR/axi_sparSDR_ip.tcl b/library/axi_sparSDR/axi_sparSDR_ip.tcl
+index e5e93f00..cdbede82 100644
+--- a/library/axi_sparSDR/axi_sparSDR_ip.tcl
++++ b/library/axi_sparSDR/axi_sparSDR_ip.tcl
+@@ -12,6 +12,7 @@ adi_ip_files axi_sparSDR [list \
+   "mem_init_files/mask_0_1_1023.mif" \
+   "mem_init_files/avg_1024.mif" \
+   "FFT_compression.v" \
++  "FFT_encoder.v" \
+   "half_windowed_FFTs_axis.v" \
+   "$ad_hdl_dir/library/common/up_axi.v" \
+   "$ad_hdl_dir/library/common/ad_rst.v" \
+diff --git a/projects/pluto/system_bd.tcl b/projects/pluto/system_bd.tcl
+index 89fba376..e38b91e9 100644
+--- a/projects/pluto/system_bd.tcl
++++ b/projects/pluto/system_bd.tcl
+@@ -176,7 +176,7 @@ ad_ip_parameter axi_ad9361_adc_dma CONFIG.SYNC_TRANSFER_START 0
+ ad_ip_parameter axi_ad9361_adc_dma CONFIG.AXI_SLICE_SRC 0
+ ad_ip_parameter axi_ad9361_adc_dma CONFIG.AXI_SLICE_DEST 0
+ ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_2D_TRANSFER 0
+-ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_DATA_WIDTH_SRC 64
++ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_DATA_WIDTH_SRC 32
+ 
+ ad_ip_instance axi_sparSDR axi_sparSDR
+ 
+-- 
+2.17.1
+
