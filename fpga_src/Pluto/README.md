@@ -13,5 +13,5 @@ Follow these steps:
 4. Apply `3_SparSDR_1_iio_init.patch` to the Buildroot repository
 5. (optional) If you want to make a v2 image that sends compressed samples using
   version 2 of the compressed sample format, apply `4_SparSDR_2_for_Pluto.patch`
-  and `5_SparSDR_2_iio_init.patch` to the HDL repository.
+  and `5_SparSDR_2_iio_init.patch` to the Buildroot repository.
 6. Follow the standard instructions to generate an image.
