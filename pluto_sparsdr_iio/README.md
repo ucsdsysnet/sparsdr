@@ -5,7 +5,8 @@ compression settings.
 
 # Using a precompiled binary
 
-If your Pluto device is running Linux 5.4.0, you can probably use the
+If your Pluto device is running Linux 5.4.0 (run `uname -a` from the Pluto console to check the 
+Linux kernel version), you can probably use the
 [precompiled file](./precompiled/sparsdr_iio.ko). Skip to the "Installing"
 section below.
 
