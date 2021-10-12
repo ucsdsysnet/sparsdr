@@ -86,7 +86,7 @@ impl Sample {
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct DataSample {
-    /// The time of this sample, in units of 10 nanoseconds
+    /// The time of this sample, in units of 16.276 nanoseconds
     pub time: u32,
     /// The index in the FFT (0-2047) of this sample
     pub index: u16,
@@ -100,7 +100,7 @@ pub struct DataSample {
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct AverageSample {
-    /// The time of this sample, in units of 10 nanoseconds
+    /// The time of this sample, in units of 16.276 nanoseconds
     pub time: u32,
     /// The index in the FFT (0-2047) of this sample
     pub index: u16,
