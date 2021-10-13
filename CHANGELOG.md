@@ -4,6 +4,7 @@
 
 ### Pluto images
 
+ * Added support for Pluto hardware revision C
  * Fixed an issue that caused FFT samples for indexes 512 through 520 to have
    timestamp values one less than expected (format version 1)
  * Fixed an issue that corrupted the compressed samples (format version 2)
