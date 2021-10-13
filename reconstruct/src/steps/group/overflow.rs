@@ -16,7 +16,7 @@
  */
 
 //!
-//! Handles overflow of the 20-bit time counter
+//! Handles overflow of the 21-bit time counter
 //!
 
 /// 21 bits for Pluto
@@ -42,18 +42,11 @@ impl Overflow {
 
     /// Expands a 20-bit counter value into a 64-bit counter value, handling overflows correctly
     pub fn expand(&mut self, value: u32) -> u64 {
-        // Temporary workaround for the time value sometimes temporarily decreasing by 1
-        if value == self.previous.wrapping_sub(1) {
-            return self.expand(value.wrapping_add(1));
-        }
-
         let expanded = if value >= self.previous {
             // No overflow
             // Add offset and wrap
             self.offset.wrapping_add(u64::from(value))
         } else {
-            // For debugging only
-            println!("Overflowed {} -> {}", self.previous, value);
             // Overflow (assume counter has only overflowed once)
             self.offset = self.offset.wrapping_add(COUNTER_MAX + 1);
             self.offset.wrapping_add(u64::from(value))

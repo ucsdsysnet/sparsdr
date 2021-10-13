@@ -55,53 +55,53 @@ fn saturating_i16_to_u16(x: i16) -> u16 {
 mod test {
     use super::*;
     #[test]
-    fn test_all_2048() {
-        assert_eq!(BinRange::from(0..2048), choose_bins(2048, 0));
+    fn test_all_1024() {
+        assert_eq!(BinRange::from(0..1024), choose_bins(1024, 0));
     }
     #[test]
-    fn test_center_2047() {
-        assert_eq!(BinRange::from(1..2048), choose_bins(2047, 0));
+    fn test_center_1023() {
+        assert_eq!(BinRange::from(1..1024), choose_bins(1023, 0));
     }
     #[test]
-    fn test_center_2046() {
-        assert_eq!(BinRange::from(1..2047), choose_bins(2046, 0));
+    fn test_center_1022() {
+        assert_eq!(BinRange::from(1..1023), choose_bins(1022, 0));
     }
     #[test]
-    fn test_center_2045() {
-        assert_eq!(BinRange::from(2..2047), choose_bins(2045, 0));
+    fn test_center_1021() {
+        assert_eq!(BinRange::from(2..1023), choose_bins(1021, 0));
     }
     #[test]
-    fn test_center_2044() {
-        assert_eq!(BinRange::from(2..2046), choose_bins(2044, 0));
+    fn test_center_1020() {
+        assert_eq!(BinRange::from(2..1022), choose_bins(1020, 0));
     }
     #[test]
     fn test_center_1() {
-        assert_eq!(BinRange::from(1024..1025), choose_bins(1, 0));
+        assert_eq!(BinRange::from(512..513), choose_bins(1, 0));
     }
     #[test]
     fn test_center_2() {
-        assert_eq!(BinRange::from(1023..1025), choose_bins(2, 0));
+        assert_eq!(BinRange::from(511..513), choose_bins(2, 0));
     }
     #[test]
     fn test_center_3() {
-        assert_eq!(BinRange::from(1023..1026), choose_bins(3, 0));
+        assert_eq!(BinRange::from(511..514), choose_bins(3, 0));
     }
 
     #[test]
     fn test_offset_high_1() {
-        assert_eq!(BinRange::from(2047..2048), choose_bins(1, 1023));
+        assert_eq!(BinRange::from(1023..1024), choose_bins(1, 511));
     }
     #[test]
     fn test_offset_low_1() {
-        assert_eq!(BinRange::from(0..1), choose_bins(1, -1024));
+        assert_eq!(BinRange::from(0..1), choose_bins(1, -512));
     }
 
     #[test]
     fn test_low_end() {
-        assert_eq!(BinRange::from(21..472), choose_bins(451, -778));
+        assert_eq!(BinRange::from(11..236), choose_bins(225, -389));
     }
     #[test]
     fn test_off_low_end() {
-        assert_eq!(BinRange::from(0..512), choose_bins(1024, -1024));
+        assert_eq!(BinRange::from(0..256), choose_bins(512, -512));
     }
 }
