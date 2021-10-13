@@ -1,5 +1,10 @@
 # SparSDR patches for Pluto
 
+To make an image that uses compressed format version 1, use the patches in the
+`v1` folder. To make an image that uses compressed format version 2,
+use the patches in the `v2` folder and replace `V1` in the patch file
+names below with `V2`.
+
 To compile a SparSDR Pluto image, start by cloning recursively the
 [upstream repository](https://github.com/analogdevicesinc/plutosdr-fw):
 `git clone --recursive https://github.com/analogdevicesinc/plutosdr-fw.git`
@@ -8,11 +13,9 @@ Follow these steps:
 
 1. Switch to the v0.33 revision: `git checkout v0.33`
 2. Update the versions of the submodules: `git submodule update`
-3. Apply the two patches `1_Revert_to_Rev_B.patch` and `2_SparSDR_1_for_Pluto.patch` to the `hdl` folder
-4. Apply `3_SparSDR_1_iio_init.patch` to the `buildroot` folder
-5. (optional) If you want to make a v2 image that sends compressed samples using
-  version 2 of the compressed sample format, apply `4_SparSDR_2_for_Pluto.patch`
-  and `5_SparSDR_2_iio_init.patch` to the `buildroot` folder.
+4. Apply the patch `SparSDR_V1_Pluto_V0.33_buildroot.patch` to the `buildroot` folder
+3. Apply `SparSDR_V1_Pluto_V0.33_hdl.patch` to the `hdl` folder
+5. Apply `SparSDR_V1_Pluto_V0.33_linux.patch` to the `linux` folder
 6. Follow the [standard instructions](https://wiki.analog.com/university/tools/pluto/building_the_image) to generate an image.
 
 # Known issues and solutions
