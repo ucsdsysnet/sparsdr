@@ -144,6 +144,10 @@ void iio_device_source_impl::refill_thread()
         char error_description[512];
         iio_strerror(-status, error_description, sizeof error_description);
         std::cerr << "Failed to refill buffer: " << error_description << "\n";
+        if (-status == ETIMEDOUT) {
+            std::cerr << "This is normally caused by overflow because the "
+                "threshold is too low or too many bins are unmasked.\n";
+        }
     }
 
     d_thread_stopped = true;

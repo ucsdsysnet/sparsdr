@@ -51,6 +51,13 @@ private:
     /** IIO device used for tuning and gain */
     iio_device* d_ad9361_phy;
 
+    /** voltage0 input channel on the ad9361_phy device */
+    iio_channel* d_ad9361_voltage0_in;
+    /** voltage0 output channel on the ad9361_phy device */
+    iio_channel* d_ad9361_voltage0_out;
+    /** altvoltage0 output channel on the ad9361_phy device */
+    iio_channel* d_ad9361_altvoltage0_out;
+
     /**
      * Writes a boolean attribute of the SparSDR device
      */
@@ -64,20 +71,23 @@ private:
      * Unmasks bins in the provided range and sets the specified threshold
      */
     void apply_bin_range(const bin_range& range);
+    /**
+     * Sets up the AD9361
+     */
+    void configure_ad9361_phy();
 
 public:
-    compressing_pluto_source_impl(const std::string& uri);
+    compressing_pluto_source_impl(const std::string& uri, std::size_t buffer_size);
 
     virtual void set_frequency(unsigned long long frequency);
     virtual void set_gain(double gain);
-
-    virtual void set_enable_compression(bool enable);
     virtual void set_run_fft(bool enable);
     virtual void set_send_average_samples(bool enable);
     virtual void set_send_fft_samples(bool enable);
     virtual void start_all();
     virtual void stop_all();
     virtual void set_fft_size(std::uint32_t size);
+    virtual void set_shift_amount(std::uint8_t scaling);
     virtual void set_bin_threshold(std::uint16_t bin_index, std::uint32_t threshold);
     virtual void set_bin_window_value(std::uint16_t bin_index, std::uint16_t value);
     virtual void set_bin_mask(std::uint16_t bin_index);

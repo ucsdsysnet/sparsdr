@@ -51,8 +51,11 @@ public:
      *
      * \param uri The URI to use to create the IIO context. Example value:
      * `ip:192.168.2.1`
+     * \param buffer_size The size of compressed sample buffers, in 32-bit
+     * samples. Values that are too small may cause silent overflow and data loss.
+     *
      */
-    static sptr make(const std::string& uri);
+    static sptr make(const std::string& uri, std::size_t buffer_size = 1024 * 1024);
 
     // Front-end settings
 
@@ -74,17 +77,6 @@ public:
     // Compression settings
 
     /**
-     * Enables or disables the compression features
-     *
-     * When compression is disabled, the device acts like a nomal Pluto
-     * radio and sends uncompressed samples.
-     *
-     * When compression is enabled, the device can be configured to send
-     * compressed samples.
-     */
-    virtual void set_enable_compression(bool enable) = 0;
-
-    /**
      * Enables or disables running the FFT and sending the types of samples
      * that are enabled
      */
@@ -100,13 +92,12 @@ public:
     virtual void set_send_fft_samples(bool enable) = 0;
 
     /**
-     * Enables compression, enables FFT samples, enables average samples,
+     * Enables average samples, enables FFT samples,
      * and starts the FFT
      */
     virtual void start_all() = 0;
     /**
-     * Stops the FFT, disables FFT samples, disables average samples, and
-     * disables compression
+     * Stops the FFT, disables FFT samples, and disables average samples
      *
      * A stop_all() followed by start_all() can be used to recover from overflow.
      */
@@ -121,6 +112,15 @@ public:
      * The size must be a power of two between 8 and 1024 inclusive.
      */
     virtual void set_fft_size(std::uint32_t size) = 0;
+
+    /**
+     * Sets the shift amount used in the FFT
+     *
+     * Valid values are in the range [0, 8]. Smaller values increase the
+     * probability of numerical overflow in the FFT, but allow more precision
+     * with weak signals.
+     */
+    virtual void set_shift_amount(std::uint8_t scaling) = 0;
     /**
      * Sets the signal level threshold for one bin
      */
@@ -128,7 +128,12 @@ public:
     /**
      * Sets the window value for a bin
      *
-     * TODO: What is this?
+     * By default, the FPGA applies a Hann window to the time-domain samples.
+     * If this function is used to set a different value for each bin,
+     * a different window can be used.
+     *
+     * This function should only be called when the FFT is not running
+     * (see the set_run_fft() function).
      */
     virtual void set_bin_window_value(std::uint16_t bin_index, std::uint16_t value) = 0;
     /**
