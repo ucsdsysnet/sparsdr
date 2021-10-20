@@ -54,6 +54,7 @@ impl<I> Grouper<I> {
     fn create_window(&self, time: u64, bin: u16, amplitude: Complex32) -> Window {
         let mut window = Window::new(time, self.fft_size);
         window.set_amplitude(bin, amplitude);
+        window.active_bins_mut().set(bin.into(), true);
         window
     }
 }
