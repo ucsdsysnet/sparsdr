@@ -44,9 +44,9 @@ def set_FFT_size(self, size):
 def set_FFT_scaling(self, sched):
   self._u.set_user_register(10, sched, 0)
 
-# the value is divided by 2048, since in HW is it shifted left by 11
 def set_threshold(self, index, value):
-  self._u.set_user_register(11, ((index<<21)+(value>>11)), 0)
+  self._u.set_user_register(11, index, 0)
+  self._u.set_user_register(21, value, 0)
 
 def set_window_val(self, index, value):
   self._u.set_user_register(18, ((index<<16)+value), 0)
