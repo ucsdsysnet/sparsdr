@@ -1,0 +1,22 @@
+[package]
+name = "sparsdr_sample_parser"
+version = "0.1.0"
+authors = ["Sam Crow <scrow@eng.ucsd.edu>"]
+edition = "2018"
+description = "Parser for the SparSDR universal compressed sample format"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.6"
+num-traits = "0.2.6"
+simplelog = "0.8.0"
+byteorder = "1.2.6"
+
+[dependencies.num-complex]
+version = "0.3.1"
+default-features = false
+
+[[bin]]
+name = "print_samples"
+path = "src/print_samples.rs"
