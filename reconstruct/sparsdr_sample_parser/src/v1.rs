@@ -20,22 +20,52 @@
 use crate::{ParseError, Parser, Window, WindowKind};
 use byteorder::{ByteOrder, LittleEndian};
 use num_complex::Complex;
+use std::convert::TryInto;
 
 /// Length of a binary sample, bytes
 const SAMPLE_LENGTH: usize = 8;
 
-/// A parser that parses version 1 of the compressed sample format, as produced by a USRP N210
-pub struct V1N210SampleParser {
+/// A parser that parses version 1 of the compressed sample format, as produced by a USRP N210 or
+/// Pluto
+pub struct V1Parser {
+    /// The window currently being assembled
     current_window: Option<Window>,
+    /// The FFT size used for compression
+    fft_size: usize,
+    /// A function that parses some bytes into a sample
+    parse_one_sample: fn(&[u8; SAMPLE_LENGTH]) -> Sample,
 }
 
-impl Parser for V1N210SampleParser {
+impl V1Parser {
+    /// Creates a parser for the N210 v1 sample format
+    pub fn new_n210(fft_size: usize) -> Self {
+        V1Parser {
+            current_window: None,
+            fft_size,
+            parse_one_sample: n210_parse_one_sample,
+        }
+    }
+    /// Creates a parser for the Pluto v1 sample format
+    pub fn new_pluto(fft_size: usize) -> Self {
+        V1Parser {
+            current_window: None,
+            fft_size,
+            parse_one_sample: pluto_parse_one_sample,
+        }
+    }
+}
+
+impl Parser for V1Parser {
     fn sample_bytes(&self) -> usize {
         SAMPLE_LENGTH
     }
 
     fn parse(&mut self, bytes: &[u8]) -> Result<Option<Window>, ParseError> {
-        let sample = parse_one_sample(bytes);
+        let bytes: &[u8; SAMPLE_LENGTH] = bytes
+            .try_into()
+            .expect("Incorrect number of bytes for sample");
+
+        let sample = (self.parse_one_sample)(bytes);
         match self.current_window.take() {
             Some(Window { timestamp, kind }) => {
                 if timestamp == sample.time() {
@@ -67,32 +97,54 @@ impl Parser for V1N210SampleParser {
                             // or have an average window, but got a data sample with the same
                             // timestamp.
                             // This gets put into a new window with the same timestamp.
-                            self.current_window = Some(new_window_with_sample(sample));
+                            self.current_window =
+                                Some(new_window_with_sample(sample, self.fft_size));
                             Ok(Some(Window { timestamp, kind }))
                         }
                     }
                 } else {
                     // Start a new window
-                    self.current_window = Some(new_window_with_sample(sample));
+                    self.current_window = Some(new_window_with_sample(sample, self.fft_size));
                     // Return the window collected from earlier samples
                     Ok(Some(Window { timestamp, kind }))
                 }
             }
             None => {
-                self.current_window = Some(new_window_with_sample(sample));
+                self.current_window = Some(new_window_with_sample(sample, self.fft_size));
                 Ok(None)
             }
         }
     }
 }
 
-fn new_window_with_sample(sample: Sample) -> Window {
-    todo!()
+fn new_window_with_sample(sample: Sample, fft_size: usize) -> Window {
+    match sample {
+        Sample::Data(sample) => {
+            let mut bins = vec![Complex::default(); fft_size];
+            let entry = bins
+                .get_mut(usize::from(sample.index))
+                .expect("Data sample index out of range");
+            *entry = Complex::new(sample.real, sample.imag);
+            Window {
+                timestamp: sample.time,
+                kind: WindowKind::Data(bins),
+            }
+        }
+        Sample::Average(sample) => {
+            let mut averages = vec![0; fft_size];
+            let entry = averages
+                .get_mut(usize::from(sample.index))
+                .expect("Average sample index out of range");
+            *entry = sample.magnitude;
+            Window {
+                timestamp: sample.time,
+                kind: WindowKind::Average(averages),
+            }
+        }
+    }
 }
 
-fn parse_one_sample(bytes: &[u8]) -> Sample {
-    assert_eq!(bytes.len(), SAMPLE_LENGTH, "Incorrect sample length");
-
+fn n210_parse_one_sample(bytes: &[u8; SAMPLE_LENGTH]) -> Sample {
     // Little-endian
     type E = LittleEndian;
     let fft_index = E::read_u16(&bytes[0..2]);
@@ -129,6 +181,47 @@ fn parse_one_sample(bytes: &[u8]) -> Sample {
     }
 }
 
+/// Parses a sample (in the Pluto format) from a slice of 8 bytes
+///
+/// The main difference from the N210 format is that index is 10 bits instead of 11, and the
+/// timestamp is 21 bits instead of 20.
+fn pluto_parse_one_sample(bytes: &[u8; SAMPLE_LENGTH]) -> Sample {
+    // Little-endian
+    type E = LittleEndian;
+    let fft_index = E::read_u16(&bytes[6..8]);
+    let time = E::read_u16(&bytes[4..6]);
+    // Last 4 bytes may be either real/imaginary signal or average magnitude
+    let magnitude = {
+        // Magnitude is in two 2-byte chunks. Bytes within each chunk are little endian,
+        // but the more significant chunk is first.
+        let more_significant = E::read_u16(&bytes[2..4]);
+        let less_significant = E::read_u16(&bytes[0..2]);
+        u32::from(more_significant) << 16 | u32::from(less_significant)
+    };
+    let real = E::read_i16(&bytes[2..4]);
+    let imag = E::read_i16(&bytes[0..2]);
+
+    let is_average = ((fft_index >> 15) & 1) == 1;
+    let index = (fft_index >> 5) & 0x3ff;
+    // Reassemble time from MSBs and other bits
+    let time = u32::from(time) | (u32::from(fft_index & 0x1F) << 16);
+
+    if is_average {
+        Sample::Average(AverageSample {
+            time,
+            index,
+            magnitude,
+        })
+    } else {
+        Sample::Data(DataSample {
+            time,
+            index,
+            real,
+            imag,
+        })
+    }
+}
+
 /// A data or average sample
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -140,13 +233,6 @@ enum Sample {
 }
 
 impl Sample {
-    /// Returns the index of this sample
-    fn index(&self) -> u16 {
-        match *self {
-            Sample::Data(ref data) => data.index,
-            Sample::Average(ref average) => average.index,
-        }
-    }
     /// Returns the time of this sample
     fn time(&self) -> u32 {
         match *self {

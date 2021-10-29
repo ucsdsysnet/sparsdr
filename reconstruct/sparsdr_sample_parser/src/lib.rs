@@ -23,6 +23,7 @@ extern crate num_traits;
 mod v1;
 mod v2;
 
+pub use self::v1::V1Parser;
 pub use self::v2::V2Parser;
 
 use num_complex::Complex;
@@ -55,7 +56,7 @@ impl std::error::Error for ParseError {}
 
 mod fmt_impl {
     use super::ParseError;
-    use std::fmt::{Debug, Display, Formatter, Result};
+    use std::fmt::{Display, Formatter, Result};
 
     impl Display for ParseError {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result {
