@@ -23,7 +23,7 @@ extern crate sparsdr_sample_parser;
 
 use std::io::{self, BufWriter, ErrorKind, Read, Write};
 
-use sparsdr_sample_parser::Parser;
+use sparsdr_sample_parser::{Parser, V2Parser};
 
 fn main() -> Result<(), io::Error> {
     simplelog::TermLogger::init(
@@ -33,7 +33,7 @@ fn main() -> Result<(), io::Error> {
     )
     .unwrap();
 
-    let mut parser = Parser::new(1024);
+    let mut parser = V2Parser::new(1024);
 
     let stdin = io::stdin();
     let mut input = stdin.lock();
@@ -50,8 +50,7 @@ fn main() -> Result<(), io::Error> {
                 _ => return Err(e),
             }
         }
-        let sample = u32::from_le_bytes(sample_bytes);
-        match parser.accept(sample) {
+        match parser.parse(&sample_bytes) {
             Ok(None) => {}
             Ok(Some(_window)) => {
                 windows = windows.saturating_add(1);

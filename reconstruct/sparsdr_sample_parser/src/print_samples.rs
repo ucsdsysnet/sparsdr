@@ -23,7 +23,7 @@
 extern crate simplelog;
 extern crate sparsdr_sample_parser;
 
-use sparsdr_sample_parser::{Parser, WindowKind};
+use sparsdr_sample_parser::{Parser, V2Parser, WindowKind};
 use std::io;
 use std::io::{BufWriter, ErrorKind, Read, Write};
 
@@ -35,7 +35,7 @@ fn main() -> Result<(), io::Error> {
     )
     .unwrap();
 
-    let mut parser = Parser::new(1024);
+    let mut parser = V2Parser::new(1024);
 
     let stdin = io::stdin();
     let mut input = stdin.lock();
@@ -56,8 +56,7 @@ fn main() -> Result<(), io::Error> {
                 _ => return Err(e),
             }
         }
-        let sample = u32::from_le_bytes(sample_bytes);
-        match parser.accept(sample) {
+        match parser.parse(&sample_bytes) {
             Ok(None) => {}
             Ok(Some(window)) => match window.kind {
                 WindowKind::Data(data) => {

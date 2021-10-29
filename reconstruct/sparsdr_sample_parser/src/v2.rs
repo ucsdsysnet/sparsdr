@@ -59,7 +59,7 @@ impl V2Parser {
     ///
     /// If an error occurs, this function returns an error and the parser returns to the idle
     /// state, where it is expecting a data header or an average header.
-    pub fn accept(&mut self, sample: u32) -> Result<Option<Window>, ParseError> {
+    fn accept(&mut self, sample: u32) -> Result<Option<Window>, ParseError> {
         let state = mem::replace(&mut self.state, State::Idle);
         log::trace!("Sample {:#010x} in state {:?}", sample, state);
 
