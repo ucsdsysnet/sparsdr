@@ -1,8 +1,8 @@
-This application decompresses IQZip/SparSDR compressed files. It can be used offline with regular files for input
+This application reconstructs signals from SparSDR compressed files. It can be used offline with regular files for input
 and output, or in real-time using standard input/standard output or named pipes.
 
-By default, the application assumes that the compressed file was recorded with 100 Mhz of bandwidth. It decompresses
-the full signal using an inverse FFT of size 2048.
+By default, the application assumes that the compressed file was recorded using a USRP N210 using compressed sample
+format version 1 with 100 Mhz of bandwidth. It reconstructs the full frequency range using an inverse FFT of size 2048.
 
 There are two supported methods to decompress a smaller range of frequencies.
 

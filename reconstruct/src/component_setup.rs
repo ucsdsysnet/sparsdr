@@ -22,6 +22,7 @@ use std::io::{Result, Write};
 
 use crossbeam::channel;
 use sparsdr_bin_mask::BinMask;
+use window::Window;
 
 use crate::band_decompress::BandSetup;
 use crate::bins::BinRange;
@@ -47,16 +48,14 @@ pub struct StagesCombined<'w, I> {
 ///
 /// channel_capacity: the capacity of the channels connecting the input stage to each output stage
 ///
-/// input_time_log: A file or file-like thing where active channels and times will be logged
-///
 pub fn set_up_stages_combined<'w, I, B>(
-    samples: I,
+    windows: I,
     bands: B,
+    compression_fft_size: usize,
     channel_capacity: usize,
-    input_time_log: Option<Box<dyn Write>>,
 ) -> StagesCombined<'w, I::IntoIter>
 where
-    I: IntoIterator<Item = Result<Sample>>,
+    I: IntoIterator<Item = Result<Window>>,
     B: IntoIterator<Item = BandSetup<'w>>,
 {
     let bands = bands.into_iter();
@@ -65,8 +64,8 @@ where
 
     let mut input = InputSetup {
         samples: samples.into_iter(),
+        compression_fft_size,
         destinations: Vec::new(),
-        input_time_log,
     };
 
     for band_setup in bands {

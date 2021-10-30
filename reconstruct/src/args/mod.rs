@@ -35,24 +35,33 @@ pub struct Args {
     pub buffer: bool,
     /// Bandwidth of the signal before compression
     pub compressed_bandwidth: f32,
+    /// Size of the FFT used for compression
+    pub compression_fft_size: usize,
+    /// The compressed sample format
+    pub sample_format: CompressedFormat,
     /// Bands to decompress
     pub bands: Vec<BandArgs>,
     /// Log level
     pub log_level: LevelFilter,
     /// Flag to enable progress bar
     pub progress_bar: bool,
-    /// Flag to enable reporting of implementation-defined information
-    pub report: bool,
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
-    /// Window input time log path
-    pub input_time_log_path: Option<PathBuf>,
     /// Private field to prevent exhaustive matching and literal creation
     _0: (),
 }
 
 /// General help text
 const ABOUT: &str = include_str!("about.txt");
+
+/// Default FFT size for the N210 compression
+const N210_DEFAULT_COMPRESSION_FFT_SIZE: usize = 2048;
+/// Bandwidth/sample rate for N210 compression
+const N210_COMPRESSED_BANDWIDTH: f32 = 100e6;
+/// Default FFT size for the Pluto compression
+const PLUTO_DEFAULT_COMPRESSION_FFT_SIZE: usize = 1024;
+/// Bandwidth/sample rate for Pluto compression
+const PLUTO_COMPRESSED_BANDWIDTH: f32 = 61.44e6;
 
 impl Args {
     pub fn get() -> Self {
@@ -69,7 +78,8 @@ impl Args {
                         "A file to read compressed samples from. If no file is specified, samples \
                          will be read from standard input.",
                     ),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("destination")
                     .long("destination")
                     .takes_value(true)
@@ -78,14 +88,16 @@ impl Args {
                         "A file to write uncompressed samples to. If no file is specified, \
                          samples will be written to standard output.",
                     ),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("bins")
                     .long("bins")
                     .takes_value(true)
                     .default_value("2048")
                     .validator(validate::<u16>)
                     .help("The number of bins to decompress"),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("center_frequency")
                     .long("center-frequency")
                     .takes_value(true)
@@ -96,22 +108,113 @@ impl Args {
                         "The desired center frequency of the decompressed signal, relative to \
                          the center frequency of the compressed data.",
                     ),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("compressed_bandwidth")
                     .long("compressed-bandwidth")
                     .takes_value(true)
-                    .default_value("100000000")
                     .validator(validate::<f32>)
                     .value_name("hertz")
+                    .required_unless_one(&[
+                        "n210_v1_defaults",
+                        "n210_v2_defaults",
+                        "pluto_v1_defaults",
+                        "pluto_v2_defaults",
+                    ])
+                    .help("The bandwidth of the signal before compression, in hertz"),
+            )
+            .arg(
+                Arg::with_name("compression_fft_size")
+                    .long("compression-fft-size")
+                    .takes_value(true)
+                    .validator(validate::<usize>)
+                    .required_unless_one(&[
+                        "n210_v1_defaults",
+                        "n210_v2_defaults",
+                        "pluto_v1_defaults",
+                        "pluto_v2_defaults",
+                    ])
+                    .help("The number of bins in the FFT used to compress the received signal"),
+            )
+            .arg(
+                Arg::with_name("sample_format")
+                    .long("sample-format")
+                    .takes_value(true)
+                    .validator(validate::<CompressedFormat>)
+                    .possible_values(&["v1-n210", "v1-pluto", "v2"])
+                    .required_unless_one(&[
+                        "n210_v1_defaults",
+                        "n210_v2_defaults",
+                        "pluto_v1_defaults",
+                        "pluto_v2_defaults",
+                    ])
                     .help(
-                        "The bandwidth of the signal before compression (also known as Fs in the \
-                         MATLAB code). The default value is 100 MHz.",
+                        "The compressed sample format to use. This depends on the image \
+                loaded onto the radio.",
                     ),
-            ).arg(
+            )
+            .arg(
+                Arg::with_name("n210_v1_defaults")
+                    .long("n210-v1-defaults")
+                    .conflicts_with_all(&[
+                        "n210_v2_defaults",
+                        "pluto_v1_defaults",
+                        "pluto_v2_defaults",
+                    ])
+                    .help(
+                        "Sets default values for a USRP N210 using compressed sample format \
+                version 1 (equivalent to --compressed-bandwidth 100e6 --compression-fft-size \
+                2048 --sample-format v1-n210)",
+                    ),
+            )
+            .arg(
+                Arg::with_name("n210_v2_defaults")
+                    .long("n210-v2-defaults")
+                    .conflicts_with_all(&[
+                        "n210_v1_defaults",
+                        "pluto_v1_defaults",
+                        "pluto_v2_defaults",
+                    ])
+                    .help(
+                        "Sets default values for a USRP N210 using compressed sample format \
+                version 2 (equivalent to --compressed-bandwidth 100e6 --compression-fft-size \
+                2048 --sample-format v2)",
+                    ),
+            )
+            .arg(
+                Arg::with_name("pluto_v1_defaults")
+                    .long("pluto-v1-defaults")
+                    .conflicts_with_all(&[
+                        "n210_v1_defaults",
+                        "n210_v2_defaults",
+                        "pluto_v2_defaults",
+                    ])
+                    .help(
+                        "Sets default values for a Pluto using compressed sample format \
+                version 1 (equivalent to --compressed-bandwidth 61.44e6 --compression-fft-size \
+                1024 --sample-format v1-pluto)",
+                    ),
+            )
+            .arg(
+                Arg::with_name("pluto_v2_defaults")
+                    .long("pluto-v2-defaults")
+                    .conflicts_with_all(&[
+                        "n210_v1_defaults",
+                        "n210_v2_defaults",
+                        "pluto_v1_defaults",
+                    ])
+                    .help(
+                        "Sets default values for a Pluto using compressed sample format \
+                version 2 (equivalent to --compressed-bandwidth 61.44e6 --compression-fft-size \
+                1024 --sample-format v2)",
+                    ),
+            )
+            .arg(
                 Arg::with_name("unbuffered")
                     .long("unbuffered")
                     .help("Disables buffering on the source and destination"),
-            ).arg(
+            )
+            .arg(
                 Arg::with_name("log_level")
                     .long("log-level")
                     .takes_value(true)
@@ -119,40 +222,36 @@ impl Args {
                     .possible_values(&["OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"])
                     .help("The level of logging to enable"),
             )
-            .arg(Arg::with_name("decompress_band")
-                .long("decompress-band")
-                .takes_value(true)
-                .multiple(true)
-                .value_name("bins:frequency[[:path]:time_log_path]")
-                .help("The number of bins, center frequency, and output file path of a band to \
+            .arg(
+                Arg::with_name("decompress_band")
+                    .long("decompress-band")
+                    .takes_value(true)
+                    .multiple(true)
+                    .value_name("bins:frequency[:path]")
+                    .help(
+                        "The number of bins, center frequency, and output file path of a band to \
                     be decompressed. If the output file path is not specified, decompressed \
                     samples from this band will be written to standard output. This argument may \
-                    be repeated to decompress multiple bands.")
-                .conflicts_with_all(&["destination", "bins", "center_frequency"])
-                .validator(validate::<BandArgs>)
+                    be repeated to decompress multiple bands.",
+                    )
+                    .conflicts_with_all(&["destination", "bins", "center_frequency"])
+                    .validator(validate::<BandArgs>),
             )
-            .arg(Arg::with_name("no_progress")
-                .long("no-progress-bar")
-                .help("Disables the command-line progress bar")
+            .arg(
+                Arg::with_name("no_progress")
+                    .long("no-progress-bar")
+                    .help("Disables the command-line progress bar"),
             )
-            .arg(Arg::with_name("report")
-                .long("report")
-                .help("Displays a report of implementation-defined information about the \
-                reconstruction process")
-            )
-            .arg(Arg::with_name("channel_capacity")
-                .long("channel-capacity")
-                .takes_value(true)
-                .default_value("32")
-                .validator(validate::<usize>)
-                .value_name("windows")
-                .help("Capacity of input -> FFT/output stage channels (this option is unstable)")
-            )
-            .arg(Arg::with_name("input_log_path")
-                .long("input-log")
-                .takes_value(true)
-                .value_name("path")
-                .help("A path to a file to log the times when windows are read")
+            .arg(
+                Arg::with_name("channel_capacity")
+                    .long("channel-capacity")
+                    .takes_value(true)
+                    .default_value("32")
+                    .validator(validate::<usize>)
+                    .value_name("windows")
+                    .help(
+                        "Capacity of input -> FFT/output stage channels (this option is unstable)",
+                    ),
             )
             .get_matches();
 
@@ -178,24 +277,62 @@ impl Args {
             vec![band]
         };
 
+        let (compression_fft_size, compressed_bandwidth, sample_format) =
+            if matches.is_present("n210_v1_defaults") {
+                (
+                    N210_DEFAULT_COMPRESSION_FFT_SIZE,
+                    N210_COMPRESSED_BANDWIDTH,
+                    CompressedFormat::V1N210,
+                )
+            } else if matches.is_present("n210_v2_defaults") {
+                (
+                    N210_DEFAULT_COMPRESSION_FFT_SIZE,
+                    N210_COMPRESSED_BANDWIDTH,
+                    CompressedFormat::V2,
+                )
+            } else if matches.is_present("pluto_v1_defaults") {
+                (
+                    PLUTO_DEFAULT_COMPRESSION_FFT_SIZE,
+                    PLUTO_COMPRESSED_BANDWIDTH,
+                    CompressedFormat::V1Pluto,
+                )
+            } else if matches.is_present("pluto_v2_defaults") {
+                (
+                    PLUTO_DEFAULT_COMPRESSION_FFT_SIZE,
+                    PLUTO_COMPRESSED_BANDWIDTH,
+                    CompressedFormat::V2,
+                )
+            } else {
+                // Values must be specified individually
+                (
+                    matches
+                        .value_of("compression_fft_size")
+                        .unwrap()
+                        .parse()
+                        .unwrap(),
+                    matches
+                        .value_of("compressed_bandwidth")
+                        .unwrap()
+                        .parse()
+                        .unwrap(),
+                    matches.value_of("sample_format").unwrap().parse().unwrap(),
+                )
+            };
+
         Args {
             source_path: matches.value_of_os("source").map(PathBuf::from),
             buffer,
-            compressed_bandwidth: matches
-                .value_of("compressed_bandwidth")
-                .unwrap()
-                .parse()
-                .unwrap(),
+            compressed_bandwidth,
+            compression_fft_size,
+            sample_format,
             bands,
             log_level: matches.value_of("log_level").unwrap().parse().unwrap(),
-            report: matches.is_present("report"),
             progress_bar: !matches.is_present("no_progress"),
             channel_capacity: matches
                 .value_of("channel_capacity")
                 .unwrap()
                 .parse()
                 .unwrap(),
-            input_time_log_path: matches.value_of("input_log_path").map(PathBuf::from),
             _0: (),
         }
     }
@@ -210,4 +347,28 @@ where
     T::Err: ToString,
 {
     s.parse::<T>().map(|_| ()).map_err(|e| e.to_string())
+}
+
+/// A compressed sample format
+#[derive(Debug)]
+pub enum CompressedFormat {
+    /// Version 1 as produced by a USRP N210
+    V1N210,
+    /// Version 1 as produced by a Pluto
+    V1Pluto,
+    /// Version 2 from either device
+    V2,
+}
+
+impl FromStr for CompressedFormat {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "v1-n210" => Ok(CompressedFormat::V1N210),
+            "v1-pluto" => Ok(CompressedFormat::V1Pluto),
+            "v2" => Ok(CompressedFormat::V2),
+            _ => Err("Invalid compressed format, expected v1-n210, v1-pluto, or v2"),
+        }
+    }
 }

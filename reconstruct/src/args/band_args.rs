@@ -29,33 +29,28 @@ pub struct BandArgs {
     pub center_frequency: f32,
     /// Path to write to, or None to use standard output
     pub path: Option<PathBuf>,
-    /// Window time log path
-    pub time_log_path: Option<PathBuf>,
 }
 
 impl FromStr for BandArgs {
     type Err = ParseError;
 
-    /// Parses BandArgs from `bins:frequency[[:path]:time_log_path]`
+    /// Parses BandArgs from `bins:frequency[:path]`
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.split(':');
         let bins: &str = parts.next().ok_or(ParseError::Format)?;
         let frequency: &str = parts.next().ok_or(ParseError::Format)?;
         let path: Option<&str> = parts.next();
-        let time_log_path: Option<&str> = if path.is_some() { parts.next() } else { None };
 
         let bins = bins.parse::<u16>().map_err(|_| ParseError::BinNumber)?;
         let frequency = frequency
             .parse::<f32>()
             .map_err(|_| ParseError::CenterFrequency)?;
         let path = path.map(PathBuf::from);
-        let time_log_path = time_log_path.map(PathBuf::from);
 
         Ok(BandArgs {
             bins,
             center_frequency: frequency,
             path,
-            time_log_path,
         })
     }
 }
