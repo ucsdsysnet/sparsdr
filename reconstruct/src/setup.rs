@@ -18,8 +18,9 @@
 use std::fs::{self, File};
 use std::io::{self, BufReader, BufWriter, Read, Result, Write};
 
-use simplelog::LevelFilter;
+use crate::args::CompressedFormat;
 use log::debug;
+use simplelog::LevelFilter;
 
 use super::args::Args;
 use super::args::BandArgs;
@@ -36,16 +37,16 @@ pub struct Setup {
     pub log_level: LevelFilter,
     /// Bandwidth used to create the compressed data
     pub compressed_bandwidth: f32,
+    /// Size of the FFT used for compression
+    pub compression_fft_size: usize,
+    /// The compressed sample format
+    pub sample_format: CompressedFormat,
     /// Bands to decompress
     pub bands: Vec<BandSetup>,
     /// Flag to enable progress bar
     pub progress_bar: bool,
-    /// Flag to enable reporting of implementation-defined information
-    pub report: bool,
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
-    /// Window input log file
-    pub input_time_log: Option<Box<dyn Write>>,
     /// Private field to prevent exhaustive matching and literal creation
     _0: (),
 }
@@ -58,8 +59,6 @@ pub struct BandSetup {
     pub center_frequency: f32,
     /// Destination to write to
     pub destination: Box<dyn Write + Send>,
-    /// Window time log
-    pub time_log: Option<Box<dyn Write + Send>>,
 }
 
 impl Setup {
@@ -100,11 +99,6 @@ impl Setup {
             .map(|band_args| BandSetup::from_args(band_args, buffer))
             .collect::<Result<Vec<BandSetup>>>()?;
 
-        let input_time_log: Option<Box<dyn Write>> = match args.input_time_log_path {
-            Some(path) => Some(Box::new(BufWriter::new(File::create(path)?))),
-            None => None,
-        };
-
         debug!("Finished opening files");
 
         Ok(Setup {
@@ -112,11 +106,11 @@ impl Setup {
             source_length,
             log_level: args.log_level,
             compressed_bandwidth: args.compressed_bandwidth,
+            compression_fft_size: args.compression_fft_size,
+            sample_format: args.sample_format,
             bands,
             progress_bar: args.progress_bar,
-            report: args.report,
             channel_capacity: args.channel_capacity,
-            input_time_log,
             _0: (),
         })
     }
@@ -145,16 +139,10 @@ impl BandSetup {
             }
         };
 
-        let time_log: Option<Box<dyn Write + Send>> = match args.time_log_path {
-            Some(path) => Some(Box::new(BufWriter::new(File::create(path)?))),
-            None => None,
-        };
-
         Ok(BandSetup {
             bins: args.bins,
             center_frequency: args.center_frequency,
             destination,
-            time_log,
         })
     }
 }

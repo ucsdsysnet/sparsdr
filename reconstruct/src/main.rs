@@ -24,17 +24,13 @@
     const_err,
     dead_code,
     improper_ctypes,
-    legacy_directory_ownership,
     non_shorthand_field_patterns,
     no_mangle_generic_items,
     overflowing_literals,
     path_statements,
     patterns_in_fns_without_body,
-    plugin_as_library,
     private_in_public,
-    safe_extern_statics,
     unconditional_recursion,
-    unions_with_drop_fields,
     unused,
     unused_allocation,
     unused_comparisons,
@@ -58,15 +54,14 @@
 #[macro_use]
 extern crate clap;
 extern crate indicatif;
-extern crate signal_hook;
 extern crate log;
+extern crate signal_hook;
 extern crate simplelog;
 extern crate sparsdr_reconstruct;
 
 use indicatif::ProgressBar;
 use signal_hook::{flag::register, SIGHUP, SIGINT};
-use simplelog::{Config, TermLogger, SimpleLogger};
-use sparsdr_reconstruct::blocking::BlockLogger;
+use simplelog::{Config, SimpleLogger, TermLogger};
 use sparsdr_reconstruct::input::iqzip::CompressedSamples;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
 
@@ -94,15 +89,11 @@ fn run() -> io::Result<()> {
 
     let progress = create_progress_bar(&setup);
 
-    // Set up to read IQZip samples from file
-    let in_block_logger = BlockLogger::new();
+    // Set up to read samples from file
     let samples_in: CompressedSamples<'_, Box<dyn Read>> = if let Some(ref progress) = progress {
-        CompressedSamples::with_block_logger(
-            Box::new(progress.wrap_read(setup.source)),
-            &in_block_logger,
-        )
+        CompressedSamples::new(Box::new(progress.wrap_read(setup.source)))
     } else {
-        CompressedSamples::with_block_logger(Box::new(setup.source), &in_block_logger)
+        CompressedSamples::new(Box::new(setup.source))
     };
 
     // Set up signal handlers for clean exit
@@ -114,30 +105,19 @@ fn run() -> io::Result<()> {
     let mut decompress_setup = DecompressSetup::new(samples_in);
     decompress_setup
         .set_channel_capacity(setup.channel_capacity)
-        .set_source_block_logger(&in_block_logger)
         .set_stop_flag(Arc::clone(&stop_flag));
-    if let Some(input_time_log) = setup.input_time_log {
-        decompress_setup.set_input_time_log(input_time_log);
-    }
     for band in setup.bands {
         let mut band_setup = BandSetupBuilder::new(band.destination)
             .compressed_bandwidth(setup.compressed_bandwidth)
             .center_frequency(band.center_frequency)
             .bins(band.bins);
-        if let Some(time_log) = band.time_log {
-            band_setup = band_setup.time_log(time_log);
-        }
         decompress_setup.add_band(band_setup.build());
     }
 
-    let report = decompress(decompress_setup)?;
+    let _report = decompress(decompress_setup)?;
 
     if let Some(progress) = progress {
         progress.finish();
-    }
-
-    if setup.report {
-        eprintln!("{:#?}", report);
     }
 
     Ok(())

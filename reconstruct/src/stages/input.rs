@@ -18,30 +18,27 @@
 //! The input stage of the decompression, which reads samples from a source, groups them
 //! into windows, and shifts them into logical order
 
-use std::collections::BTreeMap;
-use std::io::{Error, ErrorKind, Result, Write};
+use std::convert::TryInto;
+use std::io::{Error, ErrorKind, Result};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use libc::{clock_gettime, timespec};
 use sparsdr_bin_mask::BinMask;
 
 use crate::bins::BinRange;
-use crate::blocking::BlockLogs;
 use crate::channel_ext::LoggingSender;
 use crate::input::Sample;
 use crate::iter_ext::IterExt;
 use crate::window::{Logical, Tag, Window};
-use crate::NATIVE_FFT_SIZE;
 
 /// The setup for the input stage
 pub struct InputSetup<I> {
     /// An iterator yielding samples from the source
     pub samples: I,
+    /// Number of FFT bins used for compression
+    pub compression_fft_size: usize,
     /// Send half of channels used to send windows to all FFT stages
     pub destinations: Vec<ToFft>,
-    /// A file or file-like thing where the time when each channel becomes active will be written
-    pub input_time_log: Option<Box<dyn Write>>,
 }
 
 /// Information about an FFT stage, and a channel that can be used to send windows there
@@ -81,15 +78,10 @@ impl ToFft {
     }
 }
 
-pub fn run_input_stage<I>(mut setup: InputSetup<I>, stop: Arc<AtomicBool>) -> Result<InputReport>
+pub fn run_input_stage<I>(mut setup: InputSetup<I>, stop: Arc<AtomicBool>) -> Result<()>
 where
     I: Iterator<Item = Result<Sample>>,
 {
-    // Write time log CSV headers
-    if let Some(log) = setup.input_time_log.as_mut() {
-        writeln!(log, "Channel,Tag,Seconds,Nanoseconds")?;
-    }
-
     // Tag windows that have newly active channels
     let mut next_tag = Tag::default();
 
@@ -98,12 +90,15 @@ where
     let shift = setup
         .samples
         .take_while(|_| !stop.load(Ordering::Relaxed))
-        .group(usize::from(NATIVE_FFT_SIZE))
-        .shift_result(NATIVE_FFT_SIZE);
+        .group(setup.compression_fft_size)
+        .shift_result(
+            setup
+                .compression_fft_size
+                .try_into()
+                .expect("FFT size too large"),
+        );
 
     // Process windows
-    // Latency measurement hack: detect when the channel changes from active to inactive
-    let mut prev_active = false;
     for window in shift {
         let mut window = window?;
         // Give this window a tag
@@ -114,17 +109,7 @@ where
         // Send to each interested FFT stage
         for fft_stage in setup.destinations.iter() {
             match fft_stage.send_if_interested(&window) {
-                Ok(sent) => {
-                    // Latency measurement hack that works correctly only when there is only one
-                    // band to decompress: Detect when the bins have become inactive and log that
-                    if !sent && prev_active {
-                        if let Some(ref mut log) = setup.input_time_log {
-                            log_inactive_channel(&mut *log, "BLE 37", window_tag)?;
-                        }
-                    }
-
-                    prev_active = sent;
-                }
+                Ok(_sent) => {}
                 Err(_) => {
                     // Other thread could have exited normally due to the stop flag, so just
                     // exit this thread normally
@@ -134,41 +119,5 @@ where
         }
     }
 
-    // Collect block logs
-    let channel_send_blocks = setup
-        .destinations
-        .into_iter()
-        .map(|to_fft| (to_fft.bins, to_fft.tx.logs()))
-        .collect();
-
-    Ok(InputReport {
-        channel_send_blocks,
-    })
-}
-
-/// Writes a log entry indicating that a channel with the provided name is active
-fn log_inactive_channel(destination: &mut dyn Write, channel_name: &str, tag: Tag) -> Result<()> {
-    let mut now = timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    };
-    // Use clock_gettime, which should be the same in C++ and Rust
-    let status = unsafe { clock_gettime(libc::CLOCK_MONOTONIC, &mut now) };
-    if status != 0 {
-        return Err(Error::last_os_error());
-    }
-    // CSV format: channel, tag, seconds, nanoseconds
-    writeln!(
-        destination,
-        "{},{},{},{}",
-        channel_name, tag, now.tv_sec, now.tv_nsec
-    )?;
     Ok(())
-}
-
-/// A report on the results of the input stage
-#[derive(Debug)]
-pub struct InputReport {
-    /// Logs of blocks on channels for sending to the FFT/output stages
-    pub channel_send_blocks: BTreeMap<BinRange, BlockLogs>,
 }
