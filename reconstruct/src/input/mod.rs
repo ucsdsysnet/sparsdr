@@ -19,27 +19,79 @@
 //! Parsers for reading sample input in various formats
 //!
 
-pub mod iqzip;
-pub mod matlab;
+use crate::window::Window;
+use num_complex::Complex;
+use sparsdr_sample_parser::{Parser, WindowKind};
+use std::io::{ErrorKind, Read, Result};
 
-use num_complex::Complex32;
-
-/// A compressed frequency-domain sample
-#[derive(Debug, Clone)]
-#[cfg_attr(test, derive(PartialEq))]
-pub struct Sample {
-    /// The time of this sample, in units of 10 nanoseconds
-    pub time: u32,
-    /// The index in the FFT (0-2047) of this sample
-    pub index: u16,
-    /// The amplitude of this sample
-    pub amplitude: Complex32,
+/// An adapter that reads bytes from a byte source, parses them, and discards average windows
+pub struct SampleReader<R, P> {
+    byte_source: R,
+    parser: P,
+    /// A buffer with a length equal to the length of a sample
+    buffer: Vec<u8>,
 }
 
-impl Sample {
-    /// Returns true if this sample should be decompressed with FFT 0 instead of FFT 1
-    pub fn is_fft_0(&self) -> bool {
-        // Moein knows why this works
-        u32::from((self.index >> 10) & 1) == self.time & 1
+impl<R, P> SampleReader<R, P>
+where
+    R: Read,
+    P: Parser,
+{
+    /// Creates a sample reader
+    pub fn new(byte_source: R, parser: P) -> Self {
+        let bytes_per_sample = parser.sample_bytes();
+        SampleReader {
+            byte_source,
+            parser,
+            buffer: vec![0u8; bytes_per_sample],
+        }
     }
+}
+
+impl<R, P> Iterator for SampleReader<R, P>
+where
+    R: Read,
+    P: Parser,
+{
+    type Item = Result<Window>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.byte_source.read_exact(&mut self.buffer) {
+                Ok(_) => {
+                    match self.parser.parse(&self.buffer) {
+                        Ok(Some(window)) => {
+                            match window.kind {
+                                WindowKind::Average(_averages) => { /* Try another sample */ }
+                                WindowKind::Data(bins) => {
+                                    break Some(Ok(Window::with_bins(
+                                        window.timestamp.into(),
+                                        bins.len(),
+                                        bins.into_iter().map(convert_complex),
+                                    )))
+                                }
+                            }
+                        }
+                        Ok(None) => { /* Try another sample */ }
+                        Err(_e) => {
+                            log::warn!("Compressed format parse error");
+                        }
+                    }
+                }
+                Err(e) if e.kind() == ErrorKind::UnexpectedEof => break None,
+                Err(e) => break Some(Err(e)),
+            }
+        }
+    }
+}
+
+/// Converts a 16-bit complex into a 32-bit float complex value
+///
+/// -32768 maps to -1.0 and 32767 maps to approximately 1.0 .
+fn convert_complex(bin: Complex<i16>) -> Complex<f32> {
+    Complex::new(map_value(bin.re), map_value(bin.im))
+}
+
+fn map_value(value: i16) -> f32 {
+    (value as f32) / 32768.0
 }

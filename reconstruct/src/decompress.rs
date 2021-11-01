@@ -33,6 +33,7 @@ use crate::blocking::BlockLogs;
 use crate::component_setup::set_up_stages_combined;
 use crate::stages::fft_and_output::{run_fft_and_output_stage, FftOutputReport};
 use crate::stages::input::run_input_stage;
+use crate::stages::input::InputReport;
 use crate::window::Window;
 
 /// Default channel capacity value
@@ -46,6 +47,8 @@ pub struct DecompressSetup<'w, I> {
     bands: Vec<BandSetup<'w>>,
     /// Number of bins in the FFT used for compression
     compression_fft_size: usize,
+    /// The number of bits in the window timestamp counter
+    timestamp_bits: u32,
     /// Capacity of input -> FFT/output stage channels
     channel_capacity: usize,
     /// Stop flag, used to stop compression before the end of the input file
@@ -56,11 +59,12 @@ pub struct DecompressSetup<'w, I> {
 
 impl<'w, I> DecompressSetup<'w, I> {
     /// Creates a new decompression setup with no bands and default channel capacity
-    pub fn new(source: I, compression_fft_size: usize) -> Self {
+    pub fn new(source: I, compression_fft_size: usize, timestamp_bits: u32) -> Self {
         DecompressSetup {
             source,
             bands: Vec::new(),
             compression_fft_size,
+            timestamp_bits,
             channel_capacity: DEFAULT_CHANNEL_CAPACITY,
             stop: None,
         }
@@ -96,6 +100,7 @@ where
         setup.source,
         setup.bands,
         setup.compression_fft_size,
+        setup.timestamp_bits,
         setup.channel_capacity,
     );
 

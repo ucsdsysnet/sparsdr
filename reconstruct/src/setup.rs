@@ -39,6 +39,8 @@ pub struct Setup {
     pub compressed_bandwidth: f32,
     /// Size of the FFT used for compression
     pub compression_fft_size: usize,
+    /// The number of bits in the window timestamp counter
+    pub timestamp_bits: u32,
     /// The compressed sample format
     pub sample_format: CompressedFormat,
     /// Bands to decompress
@@ -107,6 +109,7 @@ impl Setup {
             log_level: args.log_level,
             compressed_bandwidth: args.compressed_bandwidth,
             compression_fft_size: args.compression_fft_size,
+            timestamp_bits: args.timestamp_bits,
             sample_format: args.sample_format,
             bands,
             progress_bar: args.progress_bar,

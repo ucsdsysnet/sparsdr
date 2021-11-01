@@ -18,6 +18,8 @@
 //! The input stage of the decompression, which reads samples from a source, groups them
 //! into windows, and shifts them into logical order
 
+use crate::blocking::BlockLogs;
+use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::io::{Error, ErrorKind, Result};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -27,7 +29,6 @@ use sparsdr_bin_mask::BinMask;
 
 use crate::bins::BinRange;
 use crate::channel_ext::LoggingSender;
-use crate::input::Sample;
 use crate::iter_ext::IterExt;
 use crate::window::{Logical, Tag, Window};
 
@@ -37,6 +38,8 @@ pub struct InputSetup<I> {
     pub samples: I,
     /// Number of FFT bins used for compression
     pub compression_fft_size: usize,
+    /// The number of bits used to store the timestamp of each window
+    pub timestamp_bits: u32,
     /// Send half of channels used to send windows to all FFT stages
     pub destinations: Vec<ToFft>,
 }
@@ -78,9 +81,9 @@ impl ToFft {
     }
 }
 
-pub fn run_input_stage<I>(mut setup: InputSetup<I>, stop: Arc<AtomicBool>) -> Result<()>
+pub fn run_input_stage<I>(setup: InputSetup<I>, stop: Arc<AtomicBool>) -> Result<InputReport>
 where
-    I: Iterator<Item = Result<Sample>>,
+    I: Iterator<Item = Result<Window>>,
 {
     // Tag windows that have newly active channels
     let mut next_tag = Tag::default();
@@ -90,7 +93,7 @@ where
     let shift = setup
         .samples
         .take_while(|_| !stop.load(Ordering::Relaxed))
-        .group(setup.compression_fft_size)
+        .overflow_correct(setup.timestamp_bits)
         .shift_result(
             setup
                 .compression_fft_size
@@ -119,5 +122,21 @@ where
         }
     }
 
-    Ok(())
+    // Collect block logs
+    let channel_send_blocks = setup
+        .destinations
+        .into_iter()
+        .map(|to_fft| (to_fft.bins, to_fft.tx.logs()))
+        .collect();
+
+    Ok(InputReport {
+        channel_send_blocks,
+    })
+}
+
+/// A report on the results of the input stage
+#[derive(Debug)]
+pub struct InputReport {
+    /// Logs of blocks on channels for sending to the FFT/output stages
+    pub channel_send_blocks: BTreeMap<BinRange, BlockLogs>,
 }

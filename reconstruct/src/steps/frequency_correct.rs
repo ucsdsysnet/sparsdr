@@ -55,7 +55,7 @@ impl FrequencyCorrect {
     pub fn new(bin_offset: f32, fft_size: u16) -> Self {
         let correction_real_base = -bin_offset / f32::from(fft_size);
 
-        let correction_base = Complex32::exp(&(Complex32::i() * 2.0 * PI * correction_real_base));
+        let correction_base = Complex32::exp(Complex32::i() * 2.0 * PI * correction_real_base);
 
         FrequencyCorrect {
             correction_base,

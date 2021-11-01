@@ -63,6 +63,7 @@ extern crate crossbeam;
 extern crate libc;
 extern crate nix;
 extern crate sparsdr_bin_mask;
+extern crate sparsdr_sample_parser;
 
 /// Converts an Option<Result<T, E>> into T, returning None if the value is None
 /// or Some(Err(e)) if the value is Some(Err(e))

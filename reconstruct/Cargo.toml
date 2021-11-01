@@ -34,12 +34,12 @@ nix = "0.13.0"
 libc = "0.2.51"
 
 [dependencies.num-complex]
-version = "0.2.0"
+version = "0.3.0"
 default-features = false
 
 # Use the system-provided dynamically-linked FFTW to work around GPL
 [dependencies.fftw]
-version = "0.5.1"
+version = "0.7"
 default-features = false
 features = ["system"]
 

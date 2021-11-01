@@ -111,7 +111,7 @@ impl error::Error for Error {
         "sample read error"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::PartialSample => None,
             Error::Io(ref inner) => Some(inner),

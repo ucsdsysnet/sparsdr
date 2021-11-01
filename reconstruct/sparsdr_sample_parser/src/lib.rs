@@ -36,6 +36,18 @@ pub trait Parser {
     fn parse(&mut self, bytes: &[u8]) -> Result<Option<Window>, ParseError>;
 }
 
+impl Parser for Box<dyn Parser> {
+    fn sample_bytes(&self) -> usize {
+        let self0: &dyn Parser = &*self;
+        self0.sample_bytes()
+    }
+
+    fn parse(&mut self, bytes: &[u8]) -> Result<Option<Window>, ParseError> {
+        let self0: &mut dyn Parser = &mut *self;
+        self0.parse(bytes)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Window {
     pub timestamp: u32,

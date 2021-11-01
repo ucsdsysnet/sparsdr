@@ -23,7 +23,7 @@ pub mod buffered_pipe;
 pub mod fft;
 pub mod filter_bins;
 pub mod frequency_correct;
-pub mod group;
+pub mod overflow;
 pub mod overlap;
 pub mod phase_correct;
 pub mod shift;
