@@ -1,0 +1,478 @@
+From 9a46ced6f418f926a50cf683c5487a0a06c06787 Mon Sep 17 00:00:00 2001
+From: Sam Crow <scrow@eng.ucsd.edu>
+Date: Fri, 8 Oct 2021 17:41:14 -0700
+Subject: [PATCH] Add SparSDR configuration IIO driver
+
+---
+ arch/arm/boot/dts/zynq-pluto-sdr.dtsi |   6 +
+ arch/arm/configs/zynq_pluto_defconfig |   1 +
+ drivers/iio/adc/Kconfig               |   9 +
+ drivers/iio/adc/Makefile              |   1 +
+ drivers/iio/adc/sparsdr.c             | 394 ++++++++++++++++++++++++++
+ 5 files changed, 411 insertions(+)
+ create mode 100644 drivers/iio/adc/sparsdr.c
+
+diff --git a/arch/arm/boot/dts/zynq-pluto-sdr.dtsi b/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
+index e936f48dbd73..5b78ebfa436b 100644
+--- a/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
++++ b/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
+@@ -160,6 +160,12 @@
+ 			};
+ 		};
+ 
++		/* Address space used by the SparSDR driver to configure the FPGA */
++		sparsdr: sparsdr@7c440000 {
++			compatible = "ucsdsysnet,sparsdr-fpga-v2.00";
++			reg = <0x7c440000 0x10000>;
++		};
++
+ 		cf_ad9364_adc_core_0: cf-ad9361-lpc@79020000 {
+ 			compatible = "adi,axi-ad9361-6.00.a";
+ 			reg = <0x79020000 0x6000>;
+diff --git a/arch/arm/configs/zynq_pluto_defconfig b/arch/arm/configs/zynq_pluto_defconfig
+index ca72dd96a29d..3eb92d65b883 100644
+--- a/arch/arm/configs/zynq_pluto_defconfig
++++ b/arch/arm/configs/zynq_pluto_defconfig
+@@ -239,6 +239,7 @@ CONFIG_ADM1177=y
+ CONFIG_AD9361=y
+ CONFIG_ADMC=y
+ CONFIG_XILINX_XADC=y
++CONFIG_SPARSDR=y
+ CONFIG_CF_AXI_DDS=y
+ CONFIG_FPGA=y
+ CONFIG_FPGA_MGR_ZYNQ_FPGA=y
+diff --git a/drivers/iio/adc/Kconfig b/drivers/iio/adc/Kconfig
+index 3d64e6ee1e08..d730fb9d751f 100644
+--- a/drivers/iio/adc/Kconfig
++++ b/drivers/iio/adc/Kconfig
+@@ -1000,6 +1000,15 @@ config SC27XX_ADC
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called sc27xx_adc.
+ 
++config SPARSDR
++	tristate "SparSDR compression configuration"
++	depends on HAS_IOMEM
++	help
++	  Select this option to enable configuration of the SparSDR compression
++	  settings on an FPGA. This provides an IIO device with attributes.
++
++	  To compile this driver as a module, choose M here.
++
+ config SPEAR_ADC
+ 	tristate "ST SPEAr ADC"
+ 	depends on PLAT_SPEAR || COMPILE_TEST
+diff --git a/drivers/iio/adc/Makefile b/drivers/iio/adc/Makefile
+index 64539f534dbb..eb381f9fb016 100644
+--- a/drivers/iio/adc/Makefile
++++ b/drivers/iio/adc/Makefile
+@@ -137,6 +137,7 @@ obj-$(CONFIG_QCOM_PM8XXX_XOADC) += qcom-pm8xxx-xoadc.o
+ obj-$(CONFIG_RCAR_GYRO_ADC) += rcar-gyroadc.o
+ obj-$(CONFIG_ROCKCHIP_SARADC) += rockchip_saradc.o
+ obj-$(CONFIG_SC27XX_ADC) += sc27xx_adc.o
++obj-$(CONFIG_SPARSDR) += sparsdr.o
+ obj-$(CONFIG_SPEAR_ADC) += spear_adc.o
+ obj-$(CONFIG_STX104) += stx104.o
+ obj-$(CONFIG_SUN4I_GPADC) += sun4i-gpadc-iio.o
+diff --git a/drivers/iio/adc/sparsdr.c b/drivers/iio/adc/sparsdr.c
+new file mode 100644
+index 000000000000..4606c6f35877
+--- /dev/null
++++ b/drivers/iio/adc/sparsdr.c
+@@ -0,0 +1,394 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++/**
++ * Industrial I/O driver for configuring SparSDR compression on an Analog
++ * Devices ADALM-PLUTO (Pluto) software-defined radio
++ *
++ * Copyright (C) 2021 The Regents of the University of California
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License as published by the Free Software
++ * Foundation; either version 2 of the License, or (at your option) any later
++ * version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
++ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
++ * details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program; if not, write to the Free Software Foundation, Inc., 51
++ * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
++ */
++
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++
++#include <linux/device.h>
++#include <linux/iio/iio.h>
++#include <linux/iio/sysfs.h>
++#include <asm/io.h>
++
++MODULE_DESCRIPTION("IIO driver for configuring SparSDR compression");
++MODULE_AUTHOR("Sam Crow");
++MODULE_LICENSE("GPL");
++
++/** Writes a 32-bit value to a register on the FPGA */
++static void sparsdr_write_register(void __iomem *base, size_t index, u32 value)
++{
++	void __iomem *register_virtual = ((u32*) base) + index;
++	iowrite32(value, register_virtual);
++}
++
++/** Registes available on the FPGA */
++enum sparsdr_register {
++	REGISTER_SHIFT_AMOUNT = 10,
++	REGISTER_THRESHOLD_BIN_NUMBER = 11,
++	REGISTER_BIN_MASK = 12,
++	REGISTER_AVERAGE_WEIGHT = 13,
++	REGISTER_AVERAGE_INTERVAL = 14,
++	REGISTER_FFT_SEND = 15,
++	REGISTER_AVERAGE_SEND = 16,
++	REGISTER_RUN_FFT = 17,
++	REGISTER_WINDOW_VAL = 18,
++	REGISTER_ENABLE_COMPRESSION = 19,
++	REGISTER_FFT_SIZE = 20,
++	REGISTER_THRESHOLD_VALUE = 21,
++};
++
++/** SparSDR IIO attributes */
++enum sparsdr_dev_attr {
++	SPARSDR_ENABLE_COMPRESSION,
++	SPARSDR_RUN_FFT,
++	SPARSDR_SEND_FFT_SAMPLES,
++	SPARSDR_SEND_AVERAGE_SAMPLES,
++	SPARSDR_FFT_SIZE,
++	SPARSDR_SHIFT_AMOUNT,
++	SPARSDR_BIN_MASK,
++	SPARSDR_THRESHOLD_BIN_NUMBER,
++	SPARSDR_THRESHOLD_VALUE,
++	SPARSDR_AVERAGE_WEIGHT,
++	SPARSDR_AVERAGE_INTERVAL,
++	SPARSDR_WINDOW_VAL,
++};
++
++/**
++ * Private data used for this driver
++ */
++struct sparsdr_private_data {
++	/**
++	 * Base address of the SparSDR register block
++	 * (we assume that the block is large enough for all known registers)
++	 */
++	void __iomem *membase;
++	bool enable_compression;
++	bool run_fft;
++	bool send_fft_samples;
++	bool send_average_samples;
++	u32 fft_size;
++	u32 shift_amount;
++	u8 average_weight;
++	u32 average_interval;
++};
++
++/**
++ * Reads an attribute from this driver to user space
++ */
++static ssize_t sparsdr_attr_read(struct device *dev,
++				 struct device_attribute *attr, char *buf)
++{
++	struct iio_dev *indio_dev = dev_to_iio_dev(dev);
++	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
++	struct sparsdr_private_data *data = iio_priv(indio_dev);
++
++	int ret = 0;
++
++	mutex_lock(&indio_dev->mlock);
++	switch ((u32)this_attr->address) {
++	case SPARSDR_ENABLE_COMPRESSION:
++		ret = sprintf(buf, "%u\n",
++			      (unsigned int)data->enable_compression);
++		break;
++	case SPARSDR_RUN_FFT:
++		ret = sprintf(buf, "%u\n", (unsigned int)data->run_fft);
++		break;
++	case SPARSDR_SEND_FFT_SAMPLES:
++		ret = sprintf(buf, "%u\n",
++			      (unsigned int)data->send_fft_samples);
++		break;
++	case SPARSDR_SEND_AVERAGE_SAMPLES:
++		ret = sprintf(buf, "%u\n",
++			      (unsigned int)data->send_average_samples);
++		break;
++	case SPARSDR_FFT_SIZE:
++		ret = sprintf(buf, "%u\n", data->fft_size);
++		break;
++	case SPARSDR_SHIFT_AMOUNT:
++		ret = sprintf(buf, "%u\n", data->shift_amount);
++		break;
++	case SPARSDR_BIN_MASK:
++		// This doesn't really have a readable value
++		ret = sprintf(buf, "0\n");
++		break;
++	case SPARSDR_THRESHOLD_BIN_NUMBER:
++		// This doesn't really have a readable value
++		ret = sprintf(buf, "0\n");
++		break;
++	case SPARSDR_THRESHOLD_VALUE:
++		// This doesn't really have a readable value
++		ret = sprintf(buf, "0\n");
++		break;
++	case SPARSDR_AVERAGE_WEIGHT:
++		ret = sprintf(buf, "%u\n", (unsigned int)data->average_weight);
++		break;
++	case SPARSDR_AVERAGE_INTERVAL:
++		ret = sprintf(buf, "%u\n", data->average_interval);
++		break;
++	case SPARSDR_WINDOW_VAL:
++		// This doesn't really have a readable value
++		ret = sprintf(buf, "0\n");
++		break;
++	default:
++		ret = -EINVAL;
++		break;
++	}
++	mutex_unlock(&indio_dev->mlock);
++
++	return ret;
++}
++
++/**
++ * Writes an attribute from user space to this driver
++ */
++static ssize_t sparsdr_attr_write(struct device *dev,
++				  struct device_attribute *attr,
++				  const char *buf, size_t len)
++{
++	struct iio_dev *indio_dev = dev_to_iio_dev(dev);
++	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
++	struct sparsdr_private_data *data = iio_priv(indio_dev);
++
++	int ret = 0;
++	u32 mask_threshold_value;
++
++	mutex_lock(&indio_dev->mlock);
++	switch ((u32)this_attr->address) {
++	case SPARSDR_ENABLE_COMPRESSION:
++		ret = strtobool(buf, &data->enable_compression);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_ENABLE_COMPRESSION,
++				       (u32)data->enable_compression);
++		break;
++	case SPARSDR_RUN_FFT:
++		ret = strtobool(buf, &data->run_fft);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_RUN_FFT, (u32)data->run_fft);
++		break;
++	case SPARSDR_SEND_FFT_SAMPLES:
++		ret = strtobool(buf, &data->send_fft_samples);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_FFT_SEND,
++				       (u32)data->send_fft_samples);
++		break;
++	case SPARSDR_SEND_AVERAGE_SAMPLES:
++		ret = strtobool(buf, &data->send_average_samples);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_AVERAGE_SEND,
++				       (u32)data->send_average_samples);
++		break;
++	case SPARSDR_FFT_SIZE:
++		ret = kstrtou32(buf, 10, &data->fft_size);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_FFT_SIZE, data->fft_size);
++		break;
++	case SPARSDR_SHIFT_AMOUNT:
++		ret = kstrtou32(buf, 10, &data->shift_amount);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_SHIFT_AMOUNT, data->shift_amount);
++		break;
++	case SPARSDR_BIN_MASK:
++		ret = kstrtou32(buf, 10, &mask_threshold_value);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_BIN_MASK, mask_threshold_value);
++		break;
++	case SPARSDR_THRESHOLD_BIN_NUMBER:
++		ret = kstrtou32(buf, 10, &mask_threshold_value);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_THRESHOLD_BIN_NUMBER,
++				       mask_threshold_value);
++		break;
++	case SPARSDR_THRESHOLD_VALUE:
++		ret = kstrtou32(buf, 10, &mask_threshold_value);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_THRESHOLD_VALUE,
++				       mask_threshold_value);
++		break;
++	case SPARSDR_AVERAGE_WEIGHT:
++		ret = kstrtou8(buf, 10, &data->average_weight);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_AVERAGE_WEIGHT,
++				       (u32)data->average_weight);
++		break;
++	case SPARSDR_AVERAGE_INTERVAL:
++		ret = kstrtou32(buf, 10, &data->average_interval);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_AVERAGE_INTERVAL,
++				       data->average_interval);
++		break;
++	case SPARSDR_WINDOW_VAL:
++		ret = kstrtou32(buf, 10, &mask_threshold_value);
++		if (ret < 0) {
++			break;
++		}
++		sparsdr_write_register(data->membase, REGISTER_WINDOW_VAL,
++				       mask_threshold_value);
++		break;
++	default:
++		ret = -EINVAL;
++		break;
++	}
++	mutex_unlock(&indio_dev->mlock);
++
++	return ret ? ret : (ssize_t)len;
++}
++
++// Define attribute structs
++static IIO_DEVICE_ATTR(enable_compression, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_ENABLE_COMPRESSION);
++static IIO_DEVICE_ATTR(run_fft, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_RUN_FFT);
++static IIO_DEVICE_ATTR(send_fft_samples, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_SEND_FFT_SAMPLES);
++static IIO_DEVICE_ATTR(send_average_samples, S_IRUGO | S_IWUSR,
++		       sparsdr_attr_read, sparsdr_attr_write,
++		       SPARSDR_SEND_AVERAGE_SAMPLES);
++static IIO_DEVICE_ATTR(fft_size, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_FFT_SIZE);
++static IIO_DEVICE_ATTR(shift_amount, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_SHIFT_AMOUNT);
++static IIO_DEVICE_ATTR(bin_mask, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_BIN_MASK);
++static IIO_DEVICE_ATTR(threshold_bin_number, S_IRUGO | S_IWUSR,
++		       sparsdr_attr_read, sparsdr_attr_write,
++		       SPARSDR_THRESHOLD_BIN_NUMBER);
++static IIO_DEVICE_ATTR(threshold_value, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_THRESHOLD_VALUE);
++static IIO_DEVICE_ATTR(average_weight, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_AVERAGE_WEIGHT);
++static IIO_DEVICE_ATTR(average_interval, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_AVERAGE_INTERVAL);
++static IIO_DEVICE_ATTR(window_value, S_IRUGO | S_IWUSR, sparsdr_attr_read,
++		       sparsdr_attr_write, SPARSDR_WINDOW_VAL);
++
++static struct attribute *sparsdr_attributes[] = {
++	&iio_dev_attr_enable_compression.dev_attr.attr,
++	&iio_dev_attr_run_fft.dev_attr.attr,
++	&iio_dev_attr_send_fft_samples.dev_attr.attr,
++	&iio_dev_attr_send_average_samples.dev_attr.attr,
++	&iio_dev_attr_fft_size.dev_attr.attr,
++	&iio_dev_attr_shift_amount.dev_attr.attr,
++	&iio_dev_attr_bin_mask.dev_attr.attr,
++	&iio_dev_attr_threshold_bin_number.dev_attr.attr,
++	&iio_dev_attr_threshold_value.dev_attr.attr,
++	&iio_dev_attr_average_weight.dev_attr.attr,
++	&iio_dev_attr_average_interval.dev_attr.attr,
++	&iio_dev_attr_window_value.dev_attr.attr,
++	NULL,
++};
++
++static const struct attribute_group sparsdr_attribute_group = {
++	.attrs = sparsdr_attributes,
++};
++
++static const struct iio_info sparsdr_iio_info = {
++	.attrs = &sparsdr_attribute_group,
++};
++
++
++/** Probe function: called during startup to initialize the device */
++static int sparsdr_iio_probe(struct platform_device *pdev) {
++	int status;
++	struct resource *res;
++	struct sparsdr_private_data *data;
++	struct iio_dev *sparsdr_iio_dev;
++
++	// Part 1: Create an IIO device
++	// Allocate memory for the device
++	// This never gets freed because it stays around until the system shuts down.
++	sparsdr_iio_dev =
++		iio_device_alloc(sizeof(struct sparsdr_private_data));
++	if (sparsdr_iio_dev == NULL) {
++		return -ENOMEM;
++	}
++	// Fill in attributes
++	// TODO: Get name from the device tree to support multiple SparSDRs
++	sparsdr_iio_dev->name = "sparsdr";
++	sparsdr_iio_dev->info = &sparsdr_iio_info;
++
++	// Initialize default values in private data section
++	data = iio_priv(sparsdr_iio_dev);
++	data->enable_compression = true;
++	data->run_fft = true;
++	data->send_fft_samples = true;
++	data->send_average_samples = true;
++	// This is really the base-2 logarithm of the FFT size
++	data->fft_size = 10;
++	data->shift_amount = 8;
++	data->average_weight = 224;
++	data->average_interval = 16;
++
++	status = iio_device_register(sparsdr_iio_dev);
++	if (status != 0) {
++		return status;
++	}
++
++	// Part 2: Remap address space for registers
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	data->membase = devm_ioremap_resource(&pdev->dev, res);
++	if (IS_ERR(data->membase)) {
++		return PTR_ERR(data->membase);
++	}
++
++	return 0;
++}
++
++static struct of_device_id sparsdr_fpga_ids[] = {
++	{ .compatible = "ucsdsysnet,sparsdr-fpga-v2.00", },
++	{ },
++};
++
++MODULE_DEVICE_TABLE(of, sparsdr_fpga_ids);
++
++static struct platform_driver sparsdr_fpga_driver = {
++	.driver = {
++		.name = "sparsdr-fpga",
++		.of_match_table = sparsdr_fpga_ids,
++	},
++	.probe = sparsdr_iio_probe,
++};
++module_platform_driver(sparsdr_fpga_driver);
+-- 
+2.17.1
+
