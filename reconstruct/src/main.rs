@@ -58,16 +58,20 @@ extern crate log;
 extern crate signal_hook;
 extern crate simplelog;
 extern crate sparsdr_reconstruct;
+extern crate sparsdr_sample_parser;
 
 use indicatif::ProgressBar;
 use signal_hook::{flag::register, SIGHUP, SIGINT};
 use simplelog::{Config, SimpleLogger, TermLogger};
-use sparsdr_reconstruct::input::iqzip::CompressedSamples;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
+use std::convert::TryInto;
 
 mod args;
 mod setup;
 
+use crate::args::CompressedFormat;
+use sparsdr_reconstruct::input::SampleReader;
+use sparsdr_sample_parser::{Parser, V1Parser, V2Parser};
 use std::io::{self, Read};
 use std::process;
 use std::sync::atomic::AtomicBool;
@@ -85,16 +89,27 @@ fn run() -> io::Result<()> {
         eprintln!("Failed to set up simpler logger: {}", e);
     }
 
+    let parser: Box<dyn Parser> = match args.sample_format {
+        CompressedFormat::V1N210 => Box::new(V1Parser::new_n210(args.compression_fft_size)),
+        CompressedFormat::V1Pluto => Box::new(V1Parser::new_pluto(args.compression_fft_size)),
+        CompressedFormat::V2 => Box::new(V2Parser::new(
+            args.compression_fft_size
+                .try_into()
+                .expect("FFT size too large"),
+        )),
+    };
+
     let setup = Setup::from_args(args)?;
 
     let progress = create_progress_bar(&setup);
 
-    // Set up to read samples from file
-    let samples_in: CompressedSamples<'_, Box<dyn Read>> = if let Some(ref progress) = progress {
-        CompressedSamples::new(Box::new(progress.wrap_read(setup.source)))
-    } else {
-        CompressedSamples::new(Box::new(setup.source))
-    };
+    // Set up to read windows from the source
+    let windows_in: SampleReader<Box<dyn Read>, Box<dyn Parser>> =
+        if let Some(ref progress) = progress {
+            SampleReader::new(Box::new(Box::new(progress.wrap_read(setup.source))), parser)
+        } else {
+            SampleReader::new(Box::new(setup.source), parser)
+        };
 
     // Set up signal handlers for clean exit
     let stop_flag = Arc::new(AtomicBool::new(false));
@@ -102,15 +117,19 @@ fn run() -> io::Result<()> {
     register(SIGHUP, Arc::clone(&stop_flag))?;
 
     // Configure compression
-    let mut decompress_setup = DecompressSetup::new(samples_in);
+    let mut decompress_setup =
+        DecompressSetup::new(windows_in, setup.compression_fft_size, setup.timestamp_bits);
     decompress_setup
         .set_channel_capacity(setup.channel_capacity)
         .set_stop_flag(Arc::clone(&stop_flag));
     for band in setup.bands {
-        let mut band_setup = BandSetupBuilder::new(band.destination)
-            .compressed_bandwidth(setup.compressed_bandwidth)
-            .center_frequency(band.center_frequency)
-            .bins(band.bins);
+        let band_setup = BandSetupBuilder::new(
+            band.destination,
+            setup.compressed_bandwidth,
+            setup.compression_fft_size,
+            band.bins,
+        )
+        .center_frequency(band.center_frequency);
         decompress_setup.add_band(band_setup.build());
     }
 

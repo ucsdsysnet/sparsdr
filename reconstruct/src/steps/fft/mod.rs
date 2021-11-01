@@ -17,11 +17,10 @@
 
 //! The inverse FFT step
 
-mod hanning;
+mod hann;
 
-use self::hanning::HANNING_2048;
+use self::hann::HannWindow;
 use crate::window::{Status, TimeWindow, Window};
-use crate::NATIVE_FFT_SIZE;
 
 use fftw::array::AlignedVec;
 use fftw::plan::{C2CPlan, C2CPlan32};
@@ -45,19 +44,17 @@ pub struct Fft<I> {
 
 impl<I> Fft<I> {
     /// Creates a new FFT step
-    pub fn new(inner: I, fft_size: usize) -> Self {
-        let fft = C2CPlan32::aligned(&[fft_size], Sign::Backward, Flag::Measure)
+    pub fn new(inner: I, compression_fft_size: usize, fft_size: usize) -> Self {
+        let fft = C2CPlan32::aligned(&[fft_size], Sign::Backward, Flag::MEASURE)
             .expect("Failed to create FFT");
-        let decimation = NATIVE_FFT_SIZE as usize / fft_size;
+        let decimation = compression_fft_size / fft_size;
         info!("Decimation {}", decimation);
         // Select every decimation-th element for the Hanning window and sum
-        let window_sum = HANNING_2048
-            .iter()
-            .cloned()
+        let window_sum = HannWindow::new(compression_fft_size)
             .step_by(decimation)
             .sum::<f32>();
         info!("Window sum {}", window_sum);
-        let hop = usize::from(NATIVE_FFT_SIZE) / 2 / decimation;
+        let hop = compression_fft_size / 2 / decimation;
         let scale = hop as f32 / window_sum / (decimation as f32 * fft_size as f32);
         info!("Scale {}", scale);
 

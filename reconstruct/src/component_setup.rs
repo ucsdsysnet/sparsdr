@@ -18,18 +18,18 @@
 //! Determines a good setup for the stages of decompression
 
 use std::collections::BTreeMap;
-use std::io::{Result, Write};
+use std::io::Result;
 
 use crossbeam::channel;
+
 use sparsdr_bin_mask::BinMask;
-use window::Window;
 
 use crate::band_decompress::BandSetup;
 use crate::bins::BinRange;
 use crate::channel_ext::{LoggingReceiver, LoggingSender};
-use crate::input::Sample;
 use crate::stages::fft_and_output::{FftAndOutputSetup, OutputSetup};
 use crate::stages::input::{InputSetup, ToFft};
+use crate::window::Window;
 
 /// Setups for the input stage, and the combined FFT and output stages
 pub struct StagesCombined<'w, I> {
@@ -52,6 +52,7 @@ pub fn set_up_stages_combined<'w, I, B>(
     windows: I,
     bands: B,
     compression_fft_size: usize,
+    timestamp_bits: u32,
     channel_capacity: usize,
 ) -> StagesCombined<'w, I::IntoIter>
 where
@@ -63,8 +64,9 @@ where
     let mut ffts: BTreeMap<FftKey, FftAndOutputSetup<'w>> = BTreeMap::new();
 
     let mut input = InputSetup {
-        samples: samples.into_iter(),
+        samples: windows.into_iter(),
         compression_fft_size,
+        timestamp_bits,
         destinations: Vec::new(),
     };
 
@@ -84,6 +86,7 @@ where
             FftAndOutputSetup {
                 source: rx,
                 bins: band_setup.bins.clone(),
+                compression_fft_size,
                 fft_size: band_setup.fft_size,
                 fc_bins: band_setup.fc_bins,
                 timeout: band_setup.timeout,

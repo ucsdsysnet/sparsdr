@@ -70,8 +70,8 @@ fn main() {
 fn channel_to_frequency(channel_index: u16) -> Option<f64> {
     // Defined in BLE core specification volume 6 part B 1.4.1
     let rf_channel = match channel_index {
-        0...10 => channel_index + 1,
-        11...36 => channel_index + 2,
+        0..=10 => channel_index + 1,
+        11..=36 => channel_index + 2,
         37 => 0,
         38 => 12,
         39 => 39,

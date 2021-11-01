@@ -67,6 +67,8 @@ pub struct FftAndOutputSetup<'w> {
     pub source: LoggingReceiver<Window<Logical>>,
     /// The bins to decompress
     pub bins: BinRange,
+    /// The FFT size used for compression
+    pub compression_fft_size: usize,
     /// The actual FFT size to use
     pub fft_size: u16,
     /// Floor of the center frequency offset, in bins
@@ -120,7 +122,7 @@ pub fn run_fft_and_output_stage(
         .filter_bins(setup.bins, setup.fft_size)
         .shift(setup.fft_size)
         .phase_correct(setup.fc_bins)
-        .fft(setup.fft_size)
+        .fft(setup.compression_fft_size, setup.fft_size)
         .overlap(usize::from(setup.fft_size));
 
     // Set up a frequency corrector for each output

@@ -37,6 +37,8 @@ pub struct Args {
     pub compressed_bandwidth: f32,
     /// Size of the FFT used for compression
     pub compression_fft_size: usize,
+    /// Number of bits in the window timestamp counter
+    pub timestamp_bits: u32,
     /// The compressed sample format
     pub sample_format: CompressedFormat,
     /// Bands to decompress
@@ -62,6 +64,8 @@ const N210_COMPRESSED_BANDWIDTH: f32 = 100e6;
 const PLUTO_DEFAULT_COMPRESSION_FFT_SIZE: usize = 1024;
 /// Bandwidth/sample rate for Pluto compression
 const PLUTO_COMPRESSED_BANDWIDTH: f32 = 61.44e6;
+const N210_TIMESTAMP_BITS: u32 = 20;
+const PLUTO_TIMESTAMP_BITS: u32 = 21;
 
 impl Args {
     pub fn get() -> Self {
@@ -154,17 +158,37 @@ impl Args {
                     ),
             )
             .arg(
+                Arg::with_name("timestamp_bits")
+                    .long("timestamp-bits")
+                    .takes_value(true)
+                    .validator(validate::<u32>)
+                    .required_unless_one(&[
+                        "n210_v1_defaults",
+                        "n210_v2_defaults",
+                        "pluto_v1_defaults",
+                        "pluto_v2_defaults",
+                    ])
+                    .help(
+                        "The number of bits in the FPGA's window timestamp counter \
+                (used to correct timestamp overflow)",
+                    ),
+            )
+            .arg(
                 Arg::with_name("n210_v1_defaults")
                     .long("n210-v1-defaults")
                     .conflicts_with_all(&[
                         "n210_v2_defaults",
                         "pluto_v1_defaults",
                         "pluto_v2_defaults",
+                        "compressed_bandwidth",
+                        "compression_fft_size",
+                        "sample_format",
+                        "timestamp_bits",
                     ])
                     .help(
                         "Sets default values for a USRP N210 using compressed sample format \
                 version 1 (equivalent to --compressed-bandwidth 100e6 --compression-fft-size \
-                2048 --sample-format v1-n210)",
+                2048 --sample-format v1-n210 --timestamp-bits 20)",
                     ),
             )
             .arg(
@@ -174,11 +198,15 @@ impl Args {
                         "n210_v1_defaults",
                         "pluto_v1_defaults",
                         "pluto_v2_defaults",
+                        "compressed_bandwidth",
+                        "compression_fft_size",
+                        "sample_format",
+                        "timestamp_bits",
                     ])
                     .help(
                         "Sets default values for a USRP N210 using compressed sample format \
                 version 2 (equivalent to --compressed-bandwidth 100e6 --compression-fft-size \
-                2048 --sample-format v2)",
+                2048 --sample-format v2 --timestamp-bits 20)",
                     ),
             )
             .arg(
@@ -188,11 +216,15 @@ impl Args {
                         "n210_v1_defaults",
                         "n210_v2_defaults",
                         "pluto_v2_defaults",
+                        "compressed_bandwidth",
+                        "compression_fft_size",
+                        "sample_format",
+                        "timestamp_bits",
                     ])
                     .help(
                         "Sets default values for a Pluto using compressed sample format \
                 version 1 (equivalent to --compressed-bandwidth 61.44e6 --compression-fft-size \
-                1024 --sample-format v1-pluto)",
+                1024 --sample-format v1-pluto --timestamp-bits 21)",
                     ),
             )
             .arg(
@@ -202,11 +234,15 @@ impl Args {
                         "n210_v1_defaults",
                         "n210_v2_defaults",
                         "pluto_v1_defaults",
+                        "compressed_bandwidth",
+                        "compression_fft_size",
+                        "sample_format",
+                        "timestamp_bits",
                     ])
                     .help(
                         "Sets default values for a Pluto using compressed sample format \
                 version 2 (equivalent to --compressed-bandwidth 61.44e6 --compression-fft-size \
-                1024 --sample-format v2)",
+                1024 --sample-format v2 --timestamp-bits 21)",
                     ),
             )
             .arg(
@@ -272,35 +308,38 @@ impl Args {
                     .parse()
                     .unwrap(),
                 path: matches.value_of("destination").map(PathBuf::from),
-                time_log_path: None,
             };
             vec![band]
         };
 
-        let (compression_fft_size, compressed_bandwidth, sample_format) =
+        let (compression_fft_size, compressed_bandwidth, sample_format, timestamp_bits) =
             if matches.is_present("n210_v1_defaults") {
                 (
                     N210_DEFAULT_COMPRESSION_FFT_SIZE,
                     N210_COMPRESSED_BANDWIDTH,
                     CompressedFormat::V1N210,
+                    N210_TIMESTAMP_BITS,
                 )
             } else if matches.is_present("n210_v2_defaults") {
                 (
                     N210_DEFAULT_COMPRESSION_FFT_SIZE,
                     N210_COMPRESSED_BANDWIDTH,
                     CompressedFormat::V2,
+                    N210_TIMESTAMP_BITS,
                 )
             } else if matches.is_present("pluto_v1_defaults") {
                 (
                     PLUTO_DEFAULT_COMPRESSION_FFT_SIZE,
                     PLUTO_COMPRESSED_BANDWIDTH,
                     CompressedFormat::V1Pluto,
+                    PLUTO_TIMESTAMP_BITS,
                 )
             } else if matches.is_present("pluto_v2_defaults") {
                 (
                     PLUTO_DEFAULT_COMPRESSION_FFT_SIZE,
                     PLUTO_COMPRESSED_BANDWIDTH,
                     CompressedFormat::V2,
+                    PLUTO_TIMESTAMP_BITS,
                 )
             } else {
                 // Values must be specified individually
@@ -316,6 +355,7 @@ impl Args {
                         .parse()
                         .unwrap(),
                     matches.value_of("sample_format").unwrap().parse().unwrap(),
+                    matches.value_of("timestamp_bits").unwrap().parse().unwrap(),
                 )
             };
 
@@ -324,6 +364,7 @@ impl Args {
             buffer,
             compressed_bandwidth,
             compression_fft_size,
+            timestamp_bits,
             sample_format,
             bands,
             log_level: matches.value_of("log_level").unwrap().parse().unwrap(),

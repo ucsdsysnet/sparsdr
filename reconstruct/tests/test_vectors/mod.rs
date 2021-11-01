@@ -17,15 +17,20 @@
 
 mod uncompressed;
 
+use byteorder::{ByteOrder, LittleEndian};
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufReader, BufWriter, Read, Result, Seek, SeekFrom, Write};
+use std::io::{BufReader, BufWriter, ErrorKind, Read, Result, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use num_complex::Complex32;
-use sparsdr_reconstruct::input::matlab;
+use sparsdr_reconstruct::window::Window;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
 
 use self::uncompressed::SAMPLE_BYTES;
+
+const COMPRESSED_BANDWIDTH: f32 = 100e6;
+const COMPRESSION_FFT_SIZE: usize = 2048;
+const TIMESTAMP_BITS: u32 = 32;
 
 /// Creates a decompressor and tests it on some test vectors
 ///
@@ -60,13 +65,17 @@ pub fn test_with_vectors<P1, P2, P3>(
 
     {
         // Read samples in the MATLAB format
-        let samples_in = matlab::Samples::new(input_file);
+        let windows_in = MatlabWindows::new(input_file);
         let mut output_file = BufWriter::new(&mut output_file);
 
-        let band_setup = BandSetupBuilder::new(Box::new(&mut output_file))
-            .center_frequency(center_frequency)
-            .bins(bins);
-        let mut setup = DecompressSetup::new(samples_in);
+        let band_setup = BandSetupBuilder::new(
+            Box::new(&mut output_file),
+            COMPRESSED_BANDWIDTH,
+            COMPRESSION_FFT_SIZE,
+            bins,
+        )
+        .center_frequency(center_frequency);
+        let mut setup = DecompressSetup::new(windows_in, COMPRESSION_FFT_SIZE, TIMESTAMP_BITS);
         setup.add_band(band_setup.build());
 
         let info = decompress(setup).expect("Decompress failed");
@@ -149,4 +158,71 @@ fn sample_approx_equal(s1: &Complex32, s2: &Complex32) -> bool {
     // implementation can get in the worst case.
     const THRESHOLD: f32 = 2.5e-3;
     f32::hypot(s1.re - s2.re, s1.im - s2.im) < THRESHOLD
+}
+
+/// Reads compressed data from binary files produced by MATLAB
+///
+/// Each file contains zero or more chunks of 2048 complex amplitude values.
+///
+/// Each chunk contains 2048 real values, followed by 2048 imaginary values. Each of these is a
+/// 64-bit floating-point number in little-endian byte order
+///
+/// Chunks are assumed to have sequential time values.
+struct MatlabWindows<R> {
+    source: R,
+    real_values: Vec<f32>,
+    imaginary_values: Vec<f32>,
+    timestamp: u32,
+}
+
+impl<R> MatlabWindows<R> {
+    pub fn new(source: R) -> Self {
+        MatlabWindows {
+            source,
+            real_values: Vec::with_capacity(COMPRESSION_FFT_SIZE),
+            imaginary_values: Vec::with_capacity(COMPRESSION_FFT_SIZE),
+            timestamp: 0,
+        }
+    }
+}
+
+impl<R> Iterator for MatlabWindows<R>
+where
+    R: Read,
+{
+    type Item = Result<Window>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut buffer = [0u8; 8];
+        loop {
+            match self.source.read_exact(&mut buffer) {
+                Ok(()) => {
+                    let value = LittleEndian::read_f64(&buffer) as f32;
+                    if self.real_values.len() == COMPRESSION_FFT_SIZE {
+                        // Add imaginary
+                        self.imaginary_values.push(value);
+                        if self.imaginary_values.len() == COMPRESSION_FFT_SIZE {
+                            // Assemble a window from the collected samples
+                            let complex_bins = self
+                                .real_values
+                                .drain(..)
+                                .zip(self.imaginary_values.drain(..))
+                                .map(|(real, imaginary)| Complex32::new(real, imaginary));
+                            let window = Window::with_bins(
+                                self.timestamp.into(),
+                                COMPRESSION_FFT_SIZE,
+                                complex_bins,
+                            );
+                            self.timestamp = self.timestamp.wrapping_add(1);
+                            break Some(Ok(window));
+                        }
+                    } else {
+                        self.real_values.push(value);
+                    }
+                }
+                Err(e) if e.kind() == ErrorKind::UnexpectedEof => break None,
+                Err(e) => break Some(Err(e)),
+            }
+        }
+    }
 }

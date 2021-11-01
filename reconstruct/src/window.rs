@@ -24,14 +24,11 @@ use std::iter::Enumerate;
 use std::marker::PhantomData;
 use std::ops::Range;
 use std::slice::Iter;
-use std::u16;
 
 use num_complex::Complex32;
 use num_traits::Zero;
-use sparsdr_bin_mask::BinMask;
 
-#[cfg(test)]
-use super::input::Sample;
+use sparsdr_bin_mask::BinMask;
 
 use super::bins::BinRange;
 
@@ -149,48 +146,46 @@ impl<Ord> Window<Ord>
 where
     Ord: Ordering,
 {
-    /// Creates a window from an iterator of samples
-    ///
-    /// time: The time of this window
-    ///
-    /// size: The size of this window
-    ///
-    /// samples: An iterator that yields samples
-    ///
-    /// The returned window will contain amplitude values from the samples iterator.
+    /// Creates a window with the provided time, size and bins
     ///
     /// # Panics
     ///
-    /// This function will panic if any sample from samples has an index greater than or equal to
-    /// size.
-    ///
-    #[cfg(test)]
-    pub(crate) fn with_samples<I>(time: u64, size: usize, samples: I) -> Self
+    /// This function panics if size is greater than
+    pub fn with_bins<I>(time: u64, size: usize, bins: I) -> Self
     where
-        I: IntoIterator<Item = Sample>,
+        I: IntoIterator<Item = Complex32>,
     {
-        let mut bins = vec![Complex32::zero(); size];
+        assert!(
+            size <= sparsdr_bin_mask::BITS,
+            "Window size is larger than supported"
+        );
+
+        let mut stored_bins = Vec::with_capacity(size);
         let mut active_bins = BinMask::zero();
 
-        for sample in samples {
-            bins[usize::from(sample.index)] = sample.amplitude;
-            if !sample.amplitude.is_zero() {
-                active_bins.set(usize::from(sample.index), true);
+        for (i, bin) in bins.into_iter().enumerate() {
+            if !bin.is_zero() {
+                active_bins.set(i, true);
             }
+            stored_bins.push(bin);
         }
 
         Window {
             time,
-            bins,
+            bins: stored_bins,
             active_bins,
             tag: None,
-            _order_phantom: PhantomData,
+            _order_phantom: Default::default(),
         }
     }
 
     /// Returns the timestamp of this window
     pub fn time(&self) -> u64 {
         self.time
+    }
+    /// Sets the timestamp of this window
+    pub fn set_time(&mut self, time: u64) {
+        self.time = time;
     }
 
     /// Returns a reference to the bins
