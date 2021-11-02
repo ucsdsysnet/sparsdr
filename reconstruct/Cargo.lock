@@ -204,33 +204,6 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "criterion"
-version = "0.2.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0363053954f3e679645fc443321ca128b7b950a6fe288cf5f9335cc22ee58394"
-dependencies = [
- "atty",
- "cast",
- "clap",
- "criterion-plot 0.3.1",
- "csv",
- "itertools 0.8.2",
- "lazy_static",
- "libc",
- "num-traits",
- "rand_core 0.3.1",
- "rand_os",
- "rand_xoshiro",
- "rayon",
- "rayon-core",
- "serde",
- "serde_derive",
- "serde_json",
- "tinytemplate",
- "walkdir",
-]
-
-[[package]]
-name = "criterion"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70daa7ceec6cf143990669a04c7df13391d55fb27bd4079d252fca774ba244d8"
@@ -238,9 +211,9 @@ dependencies = [
  "atty",
  "cast",
  "clap",
- "criterion-plot 0.4.3",
+ "criterion-plot",
  "csv",
- "itertools 0.9.0",
+ "itertools",
  "lazy_static",
  "num-traits",
  "oorandom",
@@ -257,23 +230,12 @@ dependencies = [
 
 [[package]]
 name = "criterion-plot"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76f9212ddf2f4a9eb2d401635190600656a1f88a932ef53d06e7fa4c7e02fb8e"
-dependencies = [
- "byteorder",
- "cast",
- "itertools 0.8.2",
-]
-
-[[package]]
-name = "criterion-plot"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e022feadec601fba1649cfa83586381a4ad31c6bf3a9ab7d408118b05dd9889d"
 dependencies = [
  "cast",
- "itertools 0.9.0",
+ "itertools",
 ]
 
 [[package]]
@@ -514,15 +476,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61124eeebbd69b8190558df225adf7e4caafce0d743919e5d6b19652314ec5ec"
 dependencies = [
  "cfg-if 1.0.0",
-]
-
-[[package]]
-name = "itertools"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
-dependencies = [
- "either",
 ]
 
 [[package]]
@@ -953,16 +906,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rand_xoshiro"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03b418169fb9c46533f326efd6eed2576699c44ca92d3052a066214a8d828929"
-dependencies = [
- "byteorder",
- "rand_core 0.3.1",
-]
-
-[[package]]
 name = "rawpointer"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1222,19 +1165,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
 
 [[package]]
-name = "sparsdr_bin_mask"
-version = "0.1.0"
-dependencies = [
- "criterion 0.2.11",
-]
-
-[[package]]
 name = "sparsdr_reconstruct"
 version = "0.1.0"
 dependencies = [
  "byteorder",
  "clap",
- "criterion 0.3.3",
+ "criterion",
  "crossbeam",
  "fftw",
  "indicatif",
@@ -1245,7 +1181,6 @@ dependencies = [
  "num-traits",
  "signal-hook",
  "simplelog 0.5.3",
- "sparsdr_bin_mask",
  "sparsdr_sample_parser",
  "tempfile",
 ]

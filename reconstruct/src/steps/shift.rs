@@ -67,8 +67,6 @@ impl Shift {
             let bins = window.bins_mut();
             bins.rotate_right(half_size);
         }
-        // Do the same for the active bin bits
-        window.active_bins_mut().shift();
         window.into_other_ordering()
     }
 }

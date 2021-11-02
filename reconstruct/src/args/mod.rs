@@ -19,6 +19,7 @@
 
 mod band_args;
 
+use std::convert::TryInto;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -97,9 +98,11 @@ impl Args {
                 Arg::with_name("bins")
                     .long("bins")
                     .takes_value(true)
-                    .default_value("2048")
                     .validator(validate::<u16>)
-                    .help("The number of bins to decompress"),
+                    .help(
+                        "The number of bins to decompress. If no value is specified, the \
+                    compression FFT size is used.",
+                    ),
             )
             .arg(
                 Arg::with_name("center_frequency")
@@ -293,25 +296,6 @@ impl Args {
 
         let buffer = !matches.is_present("unbuffered");
 
-        let bands = if let Some(band_strings) = matches.values_of("decompress_band") {
-            // New multi-band version
-            band_strings
-                .map(|s| BandArgs::from_str(s).unwrap())
-                .collect()
-        } else {
-            // Legacy single-band version
-            let band = BandArgs {
-                bins: matches.value_of("bins").unwrap().parse().unwrap(),
-                center_frequency: matches
-                    .value_of("center_frequency")
-                    .unwrap()
-                    .parse()
-                    .unwrap(),
-                path: matches.value_of("destination").map(PathBuf::from),
-            };
-            vec![band]
-        };
-
         let (compression_fft_size, compressed_bandwidth, sample_format, timestamp_bits) =
             if matches.is_present("n210_v1_defaults") {
                 (
@@ -358,6 +342,28 @@ impl Args {
                     matches.value_of("timestamp_bits").unwrap().parse().unwrap(),
                 )
             };
+
+        let bands = if let Some(band_strings) = matches.values_of("decompress_band") {
+            // New multi-band version
+            band_strings
+                .map(|s| BandArgs::from_str(s).unwrap())
+                .collect()
+        } else {
+            // Legacy single-band version
+            let band = BandArgs {
+                bins: matches
+                    .value_of("bins")
+                    .map(|s| s.parse().unwrap())
+                    .unwrap_or(compression_fft_size.try_into().expect("FFT size too large")),
+                center_frequency: matches
+                    .value_of("center_frequency")
+                    .unwrap()
+                    .parse()
+                    .unwrap(),
+                path: matches.value_of("destination").map(PathBuf::from),
+            };
+            vec![band]
+        };
 
         Args {
             source_path: matches.value_of_os("source").map(PathBuf::from),

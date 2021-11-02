@@ -22,8 +22,6 @@ use std::io::Result;
 
 use crossbeam::channel;
 
-use sparsdr_bin_mask::BinMask;
-
 use crate::band_decompress::BandSetup;
 use crate::bins::BinRange;
 use crate::channel_ext::{LoggingReceiver, LoggingSender};
@@ -78,9 +76,9 @@ where
             let tx = LoggingSender::new(tx);
             let rx = LoggingReceiver::new(rx);
 
+            log::debug!("Band bin range {}", band_setup.bins);
             input.destinations.push(ToFft {
                 bins: band_setup.bins.clone(),
-                bin_mask: bin_range_to_masks(&band_setup.bins),
                 tx,
             });
             FftAndOutputSetup {
@@ -117,11 +115,4 @@ struct FftKey(BinRange, i64);
 /// Creates a key from a band setup
 fn key(band_setup: &BandSetup<'_>) -> FftKey {
     FftKey(band_setup.bins.clone(), band_setup.fc_bins as i64)
-}
-
-/// Creates a bin mask containing the same active bins as a bin range
-fn bin_range_to_masks(bin_range: &BinRange) -> BinMask {
-    let mut mask = BinMask::zero();
-    mask.set_range(bin_range.as_usize_range());
-    mask
 }

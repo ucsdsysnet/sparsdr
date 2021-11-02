@@ -36,15 +36,16 @@ pub trait Parser {
     fn parse(&mut self, bytes: &[u8]) -> Result<Option<Window>, ParseError>;
 }
 
-impl Parser for Box<dyn Parser> {
+impl<P> Parser for Box<P>
+where
+    P: Parser + ?Sized,
+{
     fn sample_bytes(&self) -> usize {
-        let self0: &dyn Parser = &*self;
-        self0.sample_bytes()
+        (**self).sample_bytes()
     }
 
     fn parse(&mut self, bytes: &[u8]) -> Result<Option<Window>, ParseError> {
-        let self0: &mut dyn Parser = &mut *self;
-        self0.parse(bytes)
+        (**self).parse(bytes)
     }
 }
 

@@ -28,8 +28,6 @@ use std::slice::Iter;
 use num_complex::Complex32;
 use num_traits::Zero;
 
-use sparsdr_bin_mask::BinMask;
-
 use super::bins::BinRange;
 
 /// Marker for FFT-native bin ordering
@@ -86,8 +84,6 @@ pub struct Window<Ord = Fft> {
     ///
     /// Each value is a complex amplitude (in frequency domain)
     bins: Vec<Complex32>,
-    /// A mask of bins that are active
-    active_bins: BinMask,
     /// An optional window tag
     tag: Option<Tag>,
     /// Order phantom
@@ -111,7 +107,6 @@ impl Window<Fft> {
         Window {
             time,
             bins: vec![Complex32::zero(); size],
-            active_bins: BinMask::zero(),
             tag: None,
             _order_phantom: PhantomData,
         }
@@ -124,7 +119,6 @@ impl Window<Logical> {
         Window {
             time,
             bins: vec![Complex32::zero(); size],
-            active_bins: BinMask::zero(),
             tag: None,
             _order_phantom: PhantomData,
         }
@@ -155,25 +149,11 @@ where
     where
         I: IntoIterator<Item = Complex32>,
     {
-        assert!(
-            size <= sparsdr_bin_mask::BITS,
-            "Window size is larger than supported"
-        );
-
-        let mut stored_bins = Vec::with_capacity(size);
-        let mut active_bins = BinMask::zero();
-
-        for (i, bin) in bins.into_iter().enumerate() {
-            if !bin.is_zero() {
-                active_bins.set(i, true);
-            }
-            stored_bins.push(bin);
-        }
-
+        let mut collected_bins: Vec<Complex32> = bins.into_iter().collect();
+        collected_bins.resize(size, Complex32::zero());
         Window {
             time,
-            bins: stored_bins,
-            active_bins,
+            bins: collected_bins,
             tag: None,
             _order_phantom: Default::default(),
         }
@@ -196,16 +176,6 @@ where
     /// Returns a mutable reference to the bins
     pub fn bins_mut(&mut self) -> &mut [Complex32] {
         &mut self.bins
-    }
-
-    /// Returns a reference to the mask of active bins
-    pub fn active_bins(&self) -> &BinMask {
-        &self.active_bins
-    }
-
-    /// Returns a mutable reference to the mask of active bins
-    pub fn active_bins_mut(&mut self) -> &mut BinMask {
-        &mut self.active_bins
     }
 
     /// Sets the amplitude in a bin
@@ -273,7 +243,6 @@ where
         Window {
             time: self.time,
             bins: self.bins,
-            active_bins: self.active_bins,
             tag: self.tag,
             _order_phantom: PhantomData,
         }

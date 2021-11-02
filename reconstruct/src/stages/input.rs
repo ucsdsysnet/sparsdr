@@ -19,13 +19,12 @@
 //! into windows, and shifts them into logical order
 
 use crate::blocking::BlockLogs;
+use num_traits::Zero;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::io::{Error, ErrorKind, Result};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-
-use sparsdr_bin_mask::BinMask;
 
 use crate::bins::BinRange;
 use crate::channel_ext::LoggingSender;
@@ -48,8 +47,6 @@ pub struct InputSetup<I> {
 pub struct ToFft {
     /// The range of bins the FFT stage is interested in
     pub bins: BinRange,
-    /// The mask of bins the FFT stage is interested in (same as bins)
-    pub bin_mask: BinMask,
     /// A sender on the channel to the FFT stage
     pub tx: LoggingSender<Window<Logical>>,
 }
@@ -61,7 +58,11 @@ impl ToFft {
     /// it returns true if the window was sent.
     pub fn send_if_interested(&self, window: &Window<Logical>) -> Result<bool> {
         // Check if the stage is interested
-        if window.active_bins().overlaps(&self.bin_mask) {
+        let interested = self
+            .bins
+            .as_usize_range()
+            .any(|index| !window.bins()[index].is_zero());
+        if interested {
             match self.tx.send(window.clone()) {
                 Ok(()) => Ok(true),
                 Err(_) => {
