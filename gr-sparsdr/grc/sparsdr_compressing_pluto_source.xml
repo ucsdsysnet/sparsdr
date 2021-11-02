@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<block>
+  <name>Compressing Pluto Source</name>
+  <key>sparsdr_compressing_pluto_source</key>
+  <category>[SparSDR]</category>
+  <flags>throttle</flags>
+  <import>import sparsdr</import>
+  <make>sparsdr.compressing_pluto_source($uri, $buffer_size)
+self.$(id).set_frequency($frequency)
+self.$(id).set_gain($gain)
+
+self.$(id).stop_all()
+self.$(id).set_shift_amount($shift_amount)
+self.$(id).set_fft_size($fft_size)
+self.$(id).set_bin_spec($bin_spec)
+self.$(id).set_average_interval($average_interval)
+self.$(id).start_all()
+  </make>
+  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
+       Sub-nodes:
+       * name
+       * key (makes the value accessible as $keyname, e.g. in the make node)
+       * type -->
+  <param>
+    <name>IIO context URI</name>
+    <key>uri</key>
+    <value>ip:192.168.2.1</value>
+    <type>string</type>
+  </param>
+  <param>
+    <name>Bin specification</name>
+    <key>bin_spec</key>
+    <value>0..8:1</value>
+    <type>string</type>
+  </param>
+  <param>
+    <name>Average sample interval</name>
+    <key>average_interval</key>
+    <value>2 ** 20</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Center frequency</name>
+    <key>frequency</key>
+    <value>2412000000</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Gain</name>
+    <key>gain</key>
+    <value>60</value>
+    <type>float</type>
+  </param>
+  <param>
+    <name>Buffer size (samples)</name>
+    <key>buffer_size</key>
+    <value>1024 * 1024</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Shift amount</name>
+    <key>shift_amount</key>
+    <value>6</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>FFT size</name>
+    <key>fft_size</key>
+    <value>1024</value>
+    <type>int</type>
+  </param>
+
+  <!-- FFT size must be a power of two in the range [8, 1024] -->
+  <check>$fft_size >= 8 and $fft_size &lt;= 1024 and ($fft_size &amp; ($fft_size - 1)) == 0</check>
+  <!-- Average interval must be a power of two in the range [8, 2 ** 31] -->
+  <check>$average_interval >= 8 and $average_interval &lt;= (2 ** 31) and ($average_interval &amp; ($average_interval - 1)) == 0</check>
+
+  <!-- Make one 'sink' node per input. Sub-nodes:
+       * name (an identifier for the GUI)
+       * type
+       * vlen
+       * optional (set to 1 for optional inputs) -->
+
+  <!-- Make one 'source' node per output. Sub-nodes:
+       * name (an identifier for the GUI)
+       * type
+       * vlen
+       * optional (set to 1 for optional inputs) -->
+  <source>
+    <name>out</name>
+    <type>sc16</type>
+  </source>
+</block>

@@ -25,9 +25,9 @@
 #include <gnuradio/attributes.h>
 
 #ifdef gnuradio_sparsdr_EXPORTS
-#  define SPARSDR_API __GR_ATTR_EXPORT
+#define SPARSDR_API __GR_ATTR_EXPORT
 #else
-#  define SPARSDR_API __GR_ATTR_IMPORT
+#define SPARSDR_API __GR_ATTR_IMPORT
 #endif
 
 #endif /* INCLUDED_SPARSDR_API_H */
