@@ -33,6 +33,7 @@ list(APPEND sparsdr_sources
     compressing_pluto_source_impl.cc
     iio_device_source_impl.cc
     reconstruct_impl.cc
+    endian_converter.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)
@@ -47,6 +48,7 @@ target_link_libraries(gnuradio-sparsdr
 	${GNURADIO_ALL_LIBRARIES}
     ${PYTHON_LIBRARIES}
     ${IIO_LIBRARIES}
+    ${UHD_LIBRARIES}
 	Qt5::Widgets
 )
 set_target_properties(gnuradio-sparsdr PROPERTIES DEFINE_SYMBOL "gnuradio_sparsdr_EXPORTS")

@@ -26,6 +26,7 @@
 
 #include "compressing_usrp_source_impl.h"
 #include "detail/registers.h"
+#include "endian_converter.h"
 #include <gnuradio/io_signature.h>
 
 namespace gr {
@@ -63,11 +64,14 @@ compressing_usrp_source_impl::compressing_usrp_source_impl(
     : gr::hier_block2("compressing_usrp_source",
                       gr::io_signature::make(0, 0, 0),
                       gr::io_signature::make(1, 1, sizeof(std::uint32_t))),
-      d_usrp(gr::uhd::usrp_source::make(
-          device_addr,
-          // Always use sc16 to prevent interpreting the samples as numbers
-          ::uhd::stream_args_t("sc16", "sc16")))
+      d_usrp(nullptr)
 {
+    endian_converter::register_converter();
+
+    // The sparsdr_sample format uses the custom
+    // converter that was just registered
+    d_usrp = gr::uhd::usrp_source::make(device_addr,
+                                        ::uhd::stream_args_t("sc16", "sparsdr_sample"));
     // Connect the all-important output
     connect(d_usrp, 0, self(), 0);
 }
