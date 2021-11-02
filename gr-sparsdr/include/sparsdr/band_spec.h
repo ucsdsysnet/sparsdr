@@ -29,7 +29,8 @@ namespace sparsdr {
 /*!
  * \brief A specification of a band to reconstruct
  */
-class band_spec {
+class band_spec
+{
 private:
     /*!
      * \brief The frequency to decompress, relative to the center frequency of
@@ -38,6 +39,7 @@ private:
     float d_frequency;
     /*! \brief the number of bins to decompress */
     uint16_t d_bins;
+
 public:
     /*!
      * \brief creates a band specification
@@ -47,9 +49,8 @@ public:
      *
      * \param bins the number of bins to decompress
      */
-    inline band_spec(float frequency, uint16_t bins) :
-        d_frequency(frequency),
-        d_bins(bins)
+    inline band_spec(float frequency, uint16_t bins)
+        : d_frequency(frequency), d_bins(bins)
     {
     }
 
@@ -57,24 +58,14 @@ public:
      * \brief Creates a band specification with frequency and bins both set
      * to zero
      */
-    inline band_spec() :
-        d_frequency(0.0),
-        d_bins(0)
-    {
-    }
+    inline band_spec() : d_frequency(0.0), d_bins(0) {}
 
 
-    inline float frequency()
-    {
-        return d_frequency;
-    }
-    inline uint16_t bins()
-    {
-        return d_bins;
-    }
+    inline float frequency() { return d_frequency; }
+    inline uint16_t bins() { return d_bins; }
 };
 
-}
-}
+} // namespace sparsdr
+} // namespace gr
 
 #endif

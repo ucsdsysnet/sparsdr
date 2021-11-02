@@ -29,16 +29,10 @@ include_directories(
 link_directories(${Boost_LIBRARY_DIRS})
 
 list(APPEND sparsdr_sources
-    average_detector_impl.cc
-    real_time_receiver_impl.cc
-    multi_sniffer_impl.cc
-    reconstruct_impl.cc
     compressing_usrp_source_impl.cc
-    gui/average_waterfall_impl.cc
-	gui/stream_average_model.cc
-	gui/average_model.cpp
-	gui/average_waterfall_view.cpp
-    sample_distributor_impl.cc
+    compressing_pluto_source_impl.cc
+    iio_device_source_impl.cc
+    reconstruct_impl.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)
@@ -52,9 +46,16 @@ target_link_libraries(gnuradio-sparsdr
 	${Boost_LIBRARIES}
 	${GNURADIO_ALL_LIBRARIES}
     ${PYTHON_LIBRARIES}
+    ${IIO_LIBRARIES}
 	Qt5::Widgets
 )
 set_target_properties(gnuradio-sparsdr PROPERTIES DEFINE_SYMBOL "gnuradio_sparsdr_EXPORTS")
+target_include_directories(gnuradio-sparsdr
+    PRIVATE
+    ${IIO_INCLUDE_DIRS}
+)
+# Extra compiler warnings
+target_compile_options(gnuradio-sparsdr PRIVATE -Wall -Wextra -pedantic)
 
 if(APPLE)
     set_target_properties(gnuradio-sparsdr PROPERTIES

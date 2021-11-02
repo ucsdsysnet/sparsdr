@@ -22,29 +22,18 @@ namespace std {
 %include "sparsdr_swig_doc.i"
 
 %{
-#include "sparsdr/average_detector.h"
-#include "sparsdr/real_time_receiver.h"
-#include "sparsdr/multi_sniffer.h"
 #include "sparsdr/reconstruct.h"
-#include "sparsdr/mask_range.h"
 #include "sparsdr/compressing_usrp_source.h"
-#include "sparsdr/average_waterfall.h"
-#include "sparsdr/sample_distributor.h"
+#include "sparsdr/compressing_pluto_source.h"
+#include "sparsdr/iio_device_source.h"
 using namespace gr::sparsdr;
 %}
 
-%include "sparsdr/average_detector.h"
-GR_SWIG_BLOCK_MAGIC2(sparsdr, average_detector);
-%include "sparsdr/real_time_receiver.h"
-GR_SWIG_BLOCK_MAGIC2(sparsdr, real_time_receiver);
-%include "sparsdr/multi_sniffer.h"
-GR_SWIG_BLOCK_MAGIC2(sparsdr, multi_sniffer);
 %include "sparsdr/reconstruct.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, reconstruct);
 %include "sparsdr/compressing_usrp_source.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, compressing_usrp_source);
-%include "sparsdr/average_waterfall.h"
-GR_SWIG_BLOCK_MAGIC2(sparsdr, average_waterfall);
-
-%include "sparsdr/sample_distributor.h"
-GR_SWIG_BLOCK_MAGIC2(sparsdr, sample_distributor);
+%include "sparsdr/compressing_pluto_source.h"
+GR_SWIG_BLOCK_MAGIC2(sparsdr, compressing_pluto_source);
+%include "sparsdr/iio_device_source.h"
+GR_SWIG_BLOCK_MAGIC2(sparsdr, iio_device_source);

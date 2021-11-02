@@ -24,63 +24,53 @@
 
 #include <stdexcept>
 
-#include <gnuradio/io_signature.h>
 #include "compressing_usrp_source_impl.h"
-#include <sparsdr/detail/registers.h>
+#include "detail/registers.h"
+#include <gnuradio/io_signature.h>
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
 
-    namespace {
-    /**
-     * Returns the number of leading zeros in the binary representation of
-     * a number
-     */
-    uint32_t
-    leading_zeros(uint32_t value)
-    {
-        uint32_t zeros = 0;
-        while ((value >> 31) == 0 && zeros < 32) {
-            value <<= 1;
-            zeros += 1;
-        }
-        return zeros;
+namespace {
+/**
+ * Returns the number of leading zeros in the binary representation of
+ * a number
+ */
+uint32_t leading_zeros(uint32_t value)
+{
+    uint32_t zeros = 0;
+    while ((value >> 31) == 0 && zeros < 32) {
+        value <<= 1;
+        zeros += 1;
     }
-    }
+    return zeros;
+}
+} // namespace
 
-    namespace registers = gr::sparsdr::detail::registers;
+namespace registers = gr::sparsdr::detail::registers;
 
-    compressing_usrp_source::sptr
-    compressing_usrp_source::make(const ::uhd::device_addr_t& device_addr)
-    {
-      return gnuradio::get_initial_sptr
-        (new compressing_usrp_source_impl(device_addr));
-    }
+compressing_usrp_source::sptr
+compressing_usrp_source::make(const ::uhd::device_addr_t& device_addr)
+{
+    return gnuradio::get_initial_sptr(new compressing_usrp_source_impl(device_addr));
+}
 
-    /*
-     * The private constructor
-     */
-    compressing_usrp_source_impl::compressing_usrp_source_impl(const ::uhd::device_addr_t& device_addr)
-      : gr::hier_block2("compressing_usrp_source",
-          gr::io_signature::make(0, 0, 0),
-          gr::io_signature::make(1, 1, sizeof(std::uint32_t))),
+/*
+ * The private constructor
+ */
+compressing_usrp_source_impl::compressing_usrp_source_impl(
+    const ::uhd::device_addr_t& device_addr)
+    : gr::hier_block2("compressing_usrp_source",
+                      gr::io_signature::make(0, 0, 0),
+                      gr::io_signature::make(1, 1, sizeof(std::uint32_t))),
       d_usrp(gr::uhd::usrp_source::make(
           device_addr,
           // Always use sc16 to prevent interpreting the samples as numbers
-          ::uhd::stream_args_t("sc16", "sc16")
-      ))
-    {
-        // Connect the all-important output
-        connect(d_usrp, 0, self(), 0);
-    }
-
-    /*
-     * Our virtual destructor.
-     */
-    compressing_usrp_source_impl::~compressing_usrp_source_impl()
-    {
-    }
-
+          ::uhd::stream_args_t("sc16", "sc16")))
+{
+    // Connect the all-important output
+    connect(d_usrp, 0, self(), 0);
+}
 
     // USRP settings
 
