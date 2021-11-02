@@ -46,11 +46,12 @@ private:
     /*! \brief The sparsdr_reconstruct child process, or 0 if none exists */
     pid_t d_child;
 
-    void start_subprocess();
+    void start_subprocess(const std::string& sample_format);
 
 public:
     reconstruct_impl(const std::vector<band_spec>& bands,
-                     const std::string& reconstruct_path);
+                     const std::string& reconstruct_path,
+                     const std::string& sample_format);
     ~reconstruct_impl();
 };
 

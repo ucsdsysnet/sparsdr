@@ -356,6 +356,10 @@
       <value></value>
     </param>
     <param>
+      <key>compressed_format</key>
+      <value>Pluto v1</value>
+    </param>
+    <param>
       <key>affinity</key>
       <value></value>
     </param>
@@ -369,7 +373,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(424, 172)</value>
+      <value>(424, 164)</value>
     </param>
     <param>
       <key>_rotation</key>

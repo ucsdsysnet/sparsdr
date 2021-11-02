@@ -106,7 +106,7 @@ $(id)_bands.push_back(sparsdr.band_spec($band_30_frequency, $band_30_bins))
 #if $band_count() > 31
 $(id)_bands.push_back(sparsdr.band_spec($band_31_frequency, $band_31_bins))
 #end if
-self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path))
+self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path), sample_format=$compressed_format)
 
   </var_make>
   <!-- Use var_make instead -->
@@ -125,6 +125,27 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=dis
     <key>band_count</key>
     <value>1</value>
     <type>int</type>
+  </param>
+  <param>
+    <name>Compressed format</name>
+    <key>compressed_format</key>
+    <type>string</type>
+    <option>
+      <name>N210 v1</name>
+      <key>N210 v1</key>
+    </option>
+    <option>
+      <name>N210 v2</name>
+      <key>N210 v2</key>
+    </option>
+    <option>
+      <name>Pluto v1</name>
+      <key>Pluto v1</key>
+    </option>
+    <option>
+      <name>Pluto v2</name>
+      <key>Pluto v2</key>
+    </option>
   </param>
 
 
@@ -675,6 +696,7 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=dis
 
   <check>32 >= $band_count</check>
   <check>$band_count > 0</check>
+  <check>len($compressed_format) != 0</check>
 
   <sink>
     <name>in</name>
