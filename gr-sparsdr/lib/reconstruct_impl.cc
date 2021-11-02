@@ -50,16 +50,19 @@ std::string make_pipe_path(const std::string& temp_dir, std::size_t index)
 } // namespace
 
 reconstruct::sptr reconstruct::make(std::vector<band_spec> bands,
-                                    const std::string& reconstruct_path)
+                                    const std::string& reconstruct_path,
+                                    const std::string& sample_format)
 {
-    return gnuradio::get_initial_sptr(new reconstruct_impl(bands, reconstruct_path));
+    return gnuradio::get_initial_sptr(
+        new reconstruct_impl(bands, reconstruct_path, sample_format));
 }
 
 /*
  * The private constructor
  */
 reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
-                                   const std::string& reconstruct_path)
+                                   const std::string& reconstruct_path,
+                                   const std::string& sample_format)
     : gr::hier_block2(
           "reconstruct",
           // One input for compressed samples
@@ -73,10 +76,10 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
       d_temp_dir(),
       d_child(0)
 {
-    start_subprocess();
+    start_subprocess(sample_format);
 }
 
-void reconstruct_impl::start_subprocess()
+void reconstruct_impl::start_subprocess(const std::string& sample_format)
 {
     // Start assembling the command
     std::vector<std::string> arguments;
@@ -86,6 +89,19 @@ void reconstruct_impl::start_subprocess()
     // Debug log output
     arguments.push_back("--log-level");
     arguments.push_back("INFO");
+
+    // Sample format
+    if (sample_format == "N210 v1") {
+        arguments.push_back("--n210-v1-defaults");
+    } else if (sample_format == "N210 v2") {
+        arguments.push_back("--n210-v2-defaults");
+    } else if (sample_format == "Pluto v1") {
+        arguments.push_back("--pluto-v1-defaults");
+    } else if (sample_format == "Pluto v2") {
+        arguments.push_back("--pluto-v2-defaults");
+    } else {
+        throw std::runtime_error("Unsupported sample format");
+    }
 
     // Create a temporary directory for the pipes
     std::string temp_dir("sparsdr_reconstruct_XXXXXX");
