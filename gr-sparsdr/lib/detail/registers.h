@@ -7,8 +7,8 @@ namespace gr {
       namespace registers {
         /** Scaling (what is this?) */
         static const uint8_t SCALING = 10;
-        /** Per-bin threshold set command */
-        static const uint8_t THRESHOLD = 11;
+        /** Bin number for threshold adjustment */
+        static const uint8_t THRESHOLD_BIN_NUMBER = 11;
         /** Per-bin mask set command */
         static const uint8_t MASK = 12;
         /** Average weight */
@@ -25,6 +25,8 @@ namespace gr {
         static const uint8_t ENABLE_COMPRESSION = 19;
         /** FFT size */
         static const uint8_t FFT_SIZE = 20;
+        /** Threshold value (used with THRESHOLD_BIN_NUMBER) */
+        static const uint8_t THRESHOLD_VALUE = 21;
       }
     }
   }

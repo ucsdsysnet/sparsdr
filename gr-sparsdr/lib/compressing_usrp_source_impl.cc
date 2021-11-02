@@ -140,17 +140,10 @@ void compressing_usrp_source_impl::set_fft_scaling(uint32_t scaling)
 
 void compressing_usrp_source_impl::set_threshold(uint16_t index, uint32_t threshold)
 {
-    // Register format:
-    // Bits 31:21 : index (11 bits)
-    // Bits 20:0 : threshold shifted right by 11 bits (21 bits)
-
-    // Check that index fits within 11 bits
-    if (index > 0x7ffu) {
-        throw std::out_of_range("index must fit within 11 bits");
-    }
-
-    const uint32_t command = (index << 21) | (threshold >> 11);
-    d_usrp->set_user_register(registers::THRESHOLD, command);
+    // First write the threshold value, then write the bin number to apply
+    // the change
+    d_usrp->set_user_register(registers::THRESHOLD_VALUE, threshold);
+    d_usrp->set_user_register(registers::THRESHOLD_BIN_NUMBER, index);
 }
 
 void compressing_usrp_source_impl::set_mask_enabled(uint16_t index, bool enabled)
