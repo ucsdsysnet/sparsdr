@@ -3,6 +3,7 @@
   <name>Compressing USRP Source</name>
   <key>sparsdr_compressing_usrp_source</key>
   <category>[SparSDR]</category>
+  <flags>throttle</flags>
   <import>import sparsdr</import>
   <import>from gnuradio import uhd</import>
   <make>sparsdr.compressing_usrp_source(uhd.device_addr($device_addr))
