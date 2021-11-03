@@ -34,6 +34,7 @@ list(APPEND sparsdr_sources
     iio_device_source_impl.cc
     reconstruct_impl.cc
     endian_converter.cc
+    swap_16_impl.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)
@@ -81,6 +82,7 @@ include_directories(${CPPUNIT_INCLUDE_DIRS})
 list(APPEND test_sparsdr_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sparsdr.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/qa_sparsdr.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/qa_swap_16.cc
 )
 
 add_executable(test-sparsdr ${test_sparsdr_sources})

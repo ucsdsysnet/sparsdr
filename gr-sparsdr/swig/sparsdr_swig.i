@@ -26,6 +26,7 @@ namespace std {
 #include "sparsdr/compressing_usrp_source.h"
 #include "sparsdr/compressing_pluto_source.h"
 #include "sparsdr/iio_device_source.h"
+#include "sparsdr/swap_16.h"
 using namespace gr::sparsdr;
 %}
 
@@ -37,3 +38,5 @@ GR_SWIG_BLOCK_MAGIC2(sparsdr, compressing_usrp_source);
 GR_SWIG_BLOCK_MAGIC2(sparsdr, compressing_pluto_source);
 %include "sparsdr/iio_device_source.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, iio_device_source);
+%include "sparsdr/swap_16.h"
+GR_SWIG_BLOCK_MAGIC2(sparsdr, swap_16);
