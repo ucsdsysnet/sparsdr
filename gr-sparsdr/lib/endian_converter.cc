@@ -32,12 +32,14 @@ operator()(const input_type& in, const output_type& out, const size_t num)
 void endian_converter::register_converter()
 {
     uhd::convert::id_type id;
-    id.input_format = "sparsdr_sample_item32_be";
+    // The USRP2 driver takes the wire format sc16 and appends _item32_be
+    id.input_format = "sc16_item32_be";
     id.num_inputs = 1;
-    id.output_format = "sc16";
+    // The sparsdr_sample format is just a name for a byte stream
+    id.output_format = "sparsdr_sample";
     id.num_outputs = 1;
 
-    uhd::convert::register_bytes_per_item("sparsdr_sample_item32_be", 4);
+    uhd::convert::register_bytes_per_item("sparsdr_sample", 4);
     uhd::convert::register_converter(id,
                                      []() -> uhd::convert::converter::sptr {
                                          return boost::make_shared<endian_converter>();

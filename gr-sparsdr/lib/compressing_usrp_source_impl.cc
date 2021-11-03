@@ -71,7 +71,7 @@ compressing_usrp_source_impl::compressing_usrp_source_impl(
     // The sparsdr_sample format uses the custom
     // converter that was just registered
     d_usrp = gr::uhd::usrp_source::make(device_addr,
-                                        ::uhd::stream_args_t("sc16", "sparsdr_sample"));
+                                        ::uhd::stream_args_t("sparsdr_sample", "sc16"));
     // Connect the all-important output
     connect(d_usrp, 0, self(), 0);
 }
