@@ -147,18 +147,17 @@ fn new_window_with_sample(sample: Sample, fft_size: usize) -> Window {
 fn n210_parse_one_sample(bytes: &[u8; SAMPLE_LENGTH]) -> Sample {
     // Little-endian
     type E = LittleEndian;
-    let fft_index = E::read_u16(&bytes[0..2]);
-    let time = E::read_u16(&bytes[2..4]);
+    let fft_index = E::read_u16(&bytes[2..4]);
+    let time = E::read_u16(&bytes[0..2]);
     // Last 4 bytes may be either real/imaginary signal or average magnitude
     let magnitude = {
-        // Magnitude is in two 2-byte chunks. Bytes within each chunk are little endian,
-        // but the more significant chunk is first.
-        let more_significant = E::read_u16(&bytes[4..6]);
-        let less_significant = E::read_u16(&bytes[6..8]);
+        // Magnitude is 32 bits, little-endian
+        let more_significant = E::read_u16(&bytes[6..8]);
+        let less_significant = E::read_u16(&bytes[4..6]);
         u32::from(more_significant) << 16 | u32::from(less_significant)
     };
-    let real = E::read_i16(&bytes[4..6]);
-    let imag = E::read_i16(&bytes[6..8]);
+    let real = E::read_i16(&bytes[6..8]);
+    let imag = E::read_i16(&bytes[4..6]);
 
     let is_average = ((fft_index >> 15) & 1) == 1;
     let index = (fft_index >> 4) & 0x7ff;
