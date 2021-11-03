@@ -33,7 +33,6 @@ extern crate statrs;
 use image::{ImageBuffer, Rgb, RgbImage};
 use num_traits::Zero;
 use regex::Regex;
-use sparsdr_reconstruct::bins::BinRange;
 use sparsdr_reconstruct::input::SampleReader;
 use sparsdr_reconstruct::iter_ext::IterExt;
 use sparsdr_reconstruct::window::{Logical, Status, Window};
@@ -63,7 +62,7 @@ const NATIVE_FFT_SIZE: u16 = 1024;
 /// Number of bins used when reconstructing
 const RECONSTRUCTION_FFT_SIZE: u16 = 64;
 
-/// Range of bins representing the Bluetooth channel
+/// Range of bins representing the Bluetooth channel, in frequency order
 const BINS: Range<u16> = 928..962;
 
 fn main() -> Result<(), io::Error> {
@@ -79,8 +78,7 @@ fn main() -> Result<(), io::Error> {
     let sample_reader = SampleReader::new(compressed_file, parser);
     let windows = sample_reader
         .shift_result(NATIVE_FFT_SIZE)
-        .map(|window_result| Status::Ok(window_result.unwrap()))
-        .filter_bins(BinRange::from(BINS), NATIVE_FFT_SIZE);
+        .map(|window_result| Status::Ok(window_result.unwrap()));
 
     // Calculate the number of samples that each window reconstructs to
 
@@ -307,12 +305,14 @@ fn parse_decoded_packets(path: &OsStr) -> Result<Vec<DecodedPacket>, io::Error> 
         .collect())
 }
 
+#[derive(Debug)]
 struct BinMask {
     bins: Vec<bool>,
 }
 
 impl BinMask {
     pub fn new(bins: Vec<bool>) -> Self {
+        assert_eq!(bins.len(), NATIVE_FFT_SIZE.into());
         BinMask { bins }
     }
 
