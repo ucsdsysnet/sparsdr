@@ -26,10 +26,12 @@
  */
 
 #include "qa_sparsdr.h"
+#include "qa_swap_16.h"
 
 CppUnit::TestSuite* qa_sparsdr::suite()
 {
     CppUnit::TestSuite* s = new CppUnit::TestSuite("sparsdr");
+    s->addTest(gr::sparsdr::qa_swap_16::suite());
 
     return s;
 }
