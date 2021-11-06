@@ -26,5 +26,7 @@ install(FILES
     compressing_usrp_source.h
     iio_device_source.h
     reconstruct.h
-    swap_16.h DESTINATION include/sparsdr
+    swap_16.h
+    combined_usrp_receiver.h
+    combined_pluto_receiver.h DESTINATION include/sparsdr
 )

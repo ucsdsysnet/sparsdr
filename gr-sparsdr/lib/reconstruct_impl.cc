@@ -180,7 +180,7 @@ void reconstruct_impl::start_subprocess(const std::string& sample_format)
     // Create a file sink to write the compressed samples
     const auto compressed_file_sink =
         gr::blocks::file_sink::make(sizeof(uint32_t), compressed_pipe.c_str());
-    connect(this->to_basic_block(), 0, compressed_file_sink, 0);
+    connect(self(), 0, compressed_file_sink, 0);
 
     for (auto iter = d_bands.begin(); iter != d_bands.end(); ++iter) {
         // Get index for file name
@@ -190,7 +190,7 @@ void reconstruct_impl::start_subprocess(const std::string& sample_format)
         const auto band_file_source =
             gr::blocks::file_source::make(sizeof(gr_complex), pipe_path.c_str());
         // Connect it to the appropriate output of this block
-        connect(band_file_source, 0, this->to_basic_block(), i);
+        connect(band_file_source, 0, self(), i);
     }
 }
 

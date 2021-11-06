@@ -33,8 +33,12 @@ class band_spec
 {
 private:
     /*!
-     * \brief The frequency to decompress, relative to the center frequency of
-     * the original capture
+     * \brief The frequency to decompress,
+     *
+     * When used with a reconstruct block, this frequency is relative to the
+     * center frequency of the original capture.
+     *
+     * When used with a combined receiver block, this frequency is absolute.
      */
     float d_frequency;
     /*! \brief the number of bins to decompress */
@@ -46,6 +50,11 @@ public:
      *
      * \param frequency The frequency to decompress, in hertz relative to the
      * center frequency of the compressed capture
+     *
+     * When used with a reconstruct block, this frequency is relative to the
+     * center frequency of the original capture.
+     *
+     * When used with a combined receiver block, this frequency is absolute.
      *
      * \param bins the number of bins to decompress
      */
@@ -61,8 +70,8 @@ public:
     inline band_spec() : d_frequency(0.0), d_bins(0) {}
 
 
-    inline float frequency() { return d_frequency; }
-    inline uint16_t bins() { return d_bins; }
+    inline float frequency() const { return d_frequency; }
+    inline uint16_t bins() const { return d_bins; }
 };
 
 } // namespace sparsdr

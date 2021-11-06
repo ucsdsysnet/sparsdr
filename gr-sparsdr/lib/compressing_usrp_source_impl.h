@@ -21,6 +21,7 @@
 #ifndef INCLUDED_SPARSDR_COMPRESSING_USRP_SOURCE_IMPL_H
 #define INCLUDED_SPARSDR_COMPRESSING_USRP_SOURCE_IMPL_H
 
+#include <gnuradio/uhd/usrp_source.h>
 #include <sparsdr/compressing_usrp_source.h>
 
 namespace gr {
@@ -38,7 +39,7 @@ public:
 
     virtual void set_gain(double gain);
     virtual ::uhd::tune_result_t
-    set_center_freq(const ::uhd::tune_request_t tune_request);
+    set_center_freq(const ::uhd::tune_request_t& tune_request);
     virtual void set_antenna(const std::string& ant);
 
     virtual void set_compression_enabled(bool enabled);
