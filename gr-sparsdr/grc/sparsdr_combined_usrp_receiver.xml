@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<block>
+  <name>combined_usrp_receiver</name>
+  <key>sparsdr_combined_usrp_receiver</key>
+  <category>[SparSDR]</category>
+  <import>import sparsdr</import>
+  <make>sparsdr.combined_usrp_receiver($device_addr, $format_version)</make>
+  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
+       Sub-nodes:
+       * name
+       * key (makes the value accessible as $keyname, e.g. in the make node)
+       * type -->
+  <param>
+    <name>...</name>
+    <key>...</key>
+    <type>...</type>
+  </param>
+
+  <!-- Make one 'source' node per output. Sub-nodes:
+       * name (an identifier for the GUI)
+       * type
+       * vlen
+       * optional (set to 1 for optional inputs) -->
+  <source>
+    <name>out</name>
+    <type><!-- e.g. int, float, complex, byte, short, xxx_vector, ...--></type>
+  </source>
+</block>

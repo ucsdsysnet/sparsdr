@@ -131,7 +131,8 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
       d_ad9361_phy(nullptr),
       d_ad9361_voltage0_in(nullptr),
       d_ad9361_voltage0_out(nullptr),
-      d_ad9361_altvoltage0_out(nullptr)
+      d_ad9361_altvoltage0_out(nullptr),
+      d_format_version(0)
 {
     d_iio_context = iio_create_context_from_uri(uri.c_str());
     if (!d_iio_context) {
@@ -142,11 +143,8 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
     const char* const format_version_string =
         iio_context_get_attr_value(d_iio_context, "sparsdr_format_version");
     if (format_version_string) {
-        // Expect version 1
-        if (std::strcmp(format_version_string, "1") != 0) {
-            std::cerr << "Unexpected sparsdr_format_version " << format_version_string
-                      << ". Reconstruction may not work correctly.\n";
-        }
+        d_format_version = boost::lexical_cast<unsigned int>(
+            format_version_string, std::strlen(format_version_string));
     } else {
         std::cerr << "IIO context does not have a sparsdr_format_version attribute. "
                   << "Check that the correct SparSDR image is loaded.\n";
@@ -192,6 +190,11 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
     const auto source_block =
         iio_device_source::make(cf_ad9361_lpc, "voltage0", buffer_size);
     connect(source_block, 0, self(), 0);
+}
+
+unsigned int compressing_pluto_source_impl::format_version() const
+{
+    return d_format_version;
 }
 
 void compressing_pluto_source_impl::set_frequency(unsigned long long frequency)

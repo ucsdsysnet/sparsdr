@@ -57,6 +57,12 @@ public:
      */
     static sptr make(const std::string& uri, std::size_t buffer_size = 1024 * 1024);
 
+    /**
+     * Returns the SparSDR compressed sample format version that this device
+     * sends
+     */
+    virtual unsigned int format_version() const = 0;
+
     // Front-end settings
 
     /**

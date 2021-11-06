@@ -35,6 +35,9 @@ list(APPEND sparsdr_sources
     reconstruct_impl.cc
     endian_converter.cc
     swap_16_impl.cc
+    combined_usrp_receiver_impl.cc
+    combined_common.cc
+    combined_pluto_receiver_impl.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)

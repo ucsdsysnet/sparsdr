@@ -23,8 +23,10 @@
 #define INCLUDED_SPARSDR_COMPRESSING_USRP_SOURCE_H
 
 #include <gnuradio/hier_block2.h>
-#include <gnuradio/uhd/usrp_source.h>
 #include <sparsdr/api.h>
+#include <uhd/types/device_addr.hpp>
+#include <uhd/types/tune_request.hpp>
+#include <uhd/types/tune_result.hpp>
 
 namespace gr {
 namespace sparsdr {
@@ -66,7 +68,7 @@ public:
      * \return a tune result with the actual frequencies
      */
     virtual ::uhd::tune_result_t
-    set_center_freq(const ::uhd::tune_request_t tune_request) = 0;
+    set_center_freq(const ::uhd::tune_request_t& tune_request) = 0;
 
     /*!
      * Set the antenna to use.

@@ -76,21 +76,18 @@ compressing_usrp_source_impl::compressing_usrp_source_impl(
     connect(d_usrp, 0, self(), 0);
 }
 
-    // USRP settings
+// USRP settings
 
-    void
-    compressing_usrp_source_impl::set_gain(double gain)
-    {
-        d_usrp->set_gain(gain);
-    }
-    ::uhd::tune_result_t
-    compressing_usrp_source_impl::set_center_freq(const ::uhd::tune_request_t tune_request) {
-        return d_usrp->set_center_freq(tune_request);
-    }
-    void
-    compressing_usrp_source_impl::set_antenna(const std::string& ant) {
-        d_usrp->set_antenna(ant);
-    }
+void compressing_usrp_source_impl::set_gain(double gain) { d_usrp->set_gain(gain); }
+::uhd::tune_result_t
+compressing_usrp_source_impl::set_center_freq(const ::uhd::tune_request_t& tune_request)
+{
+    return d_usrp->set_center_freq(tune_request);
+}
+void compressing_usrp_source_impl::set_antenna(const std::string& ant)
+{
+    d_usrp->set_antenna(ant);
+}
 
 
     // SparSDR-specific settings

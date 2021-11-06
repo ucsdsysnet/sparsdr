@@ -57,6 +57,8 @@ private:
     iio_channel* d_ad9361_voltage0_out;
     /** altvoltage0 output channel on the ad9361_phy device */
     iio_channel* d_ad9361_altvoltage0_out;
+    /** Compressed sample format version */
+    unsigned int d_format_version;
 
     /**
      * Writes a boolean attribute of the SparSDR device
@@ -79,22 +81,26 @@ private:
 public:
     compressing_pluto_source_impl(const std::string& uri, std::size_t buffer_size);
 
-    virtual void set_frequency(unsigned long long frequency);
-    virtual void set_gain(double gain);
-    virtual void set_run_fft(bool enable);
-    virtual void set_send_average_samples(bool enable);
-    virtual void set_send_fft_samples(bool enable);
-    virtual void start_all();
-    virtual void stop_all();
-    virtual void set_fft_size(std::uint32_t size);
-    virtual void set_shift_amount(std::uint8_t scaling);
-    virtual void set_bin_threshold(std::uint16_t bin_index, std::uint32_t threshold);
-    virtual void set_bin_window_value(std::uint16_t bin_index, std::uint16_t value);
-    virtual void set_bin_mask(std::uint16_t bin_index);
-    virtual void clear_bin_mask(std::uint16_t bin_index);
-    virtual void set_bin_spec(const std::string& spec);
-    virtual void set_average_weight(float weight);
-    virtual void set_average_interval(std::uint32_t interval);
+    virtual unsigned int format_version() const override;
+
+    virtual void set_frequency(unsigned long long frequency) override;
+    virtual void set_gain(double gain) override;
+    virtual void set_run_fft(bool enable) override;
+    virtual void set_send_average_samples(bool enable) override;
+    virtual void set_send_fft_samples(bool enable) override;
+    virtual void start_all() override;
+    virtual void stop_all() override;
+    virtual void set_fft_size(std::uint32_t size) override;
+    virtual void set_shift_amount(std::uint8_t scaling) override;
+    virtual void set_bin_threshold(std::uint16_t bin_index,
+                                   std::uint32_t threshold) override;
+    virtual void set_bin_window_value(std::uint16_t bin_index,
+                                      std::uint16_t value) override;
+    virtual void set_bin_mask(std::uint16_t bin_index) override;
+    virtual void clear_bin_mask(std::uint16_t bin_index) override;
+    virtual void set_bin_spec(const std::string& spec) override;
+    virtual void set_average_weight(float weight) override;
+    virtual void set_average_interval(std::uint32_t interval) override;
 
     ~compressing_pluto_source_impl();
 };
