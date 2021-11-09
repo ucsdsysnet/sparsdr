@@ -53,6 +53,10 @@ impl V1Parser {
             parse_one_sample: pluto_parse_one_sample,
         }
     }
+    /// Returns an incomplete window, if a window is currently being assembled
+    pub fn flush(&mut self) -> Option<Window> {
+        self.current_window.take()
+    }
 }
 
 impl Parser for V1Parser {
@@ -191,8 +195,7 @@ fn pluto_parse_one_sample(bytes: &[u8; SAMPLE_LENGTH]) -> Sample {
     let time = E::read_u16(&bytes[4..6]);
     // Last 4 bytes may be either real/imaginary signal or average magnitude
     let magnitude = {
-        // Magnitude is in two 2-byte chunks. Bytes within each chunk are little endian,
-        // but the more significant chunk is first.
+        // Magnitude is just four bytes, little-endian
         let more_significant = E::read_u16(&bytes[2..4]);
         let less_significant = E::read_u16(&bytes[0..2]);
         u32::from(more_significant) << 16 | u32::from(less_significant)
