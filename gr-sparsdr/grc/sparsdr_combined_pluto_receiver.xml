@@ -1,20 +1,719 @@
 <?xml version="1.0"?>
 <block>
-  <name>combined_pluto_receiver</name>
-  <key>sparsdr_combined_pluto_receiver</key>
+  <name>Pluto Receive and Reconstruct</name>
+  <!-- The variable_ prefix is required to generate code from the var_make
+  template -->
+  <key>variable_sparsdr_combined_pluto_receiver</key>
   <category>[SparSDR]</category>
+  <flags>throttle</flags>
   <import>import sparsdr</import>
-  <make>sparsdr.combined_pluto_receiver($uri, $buffer_size, $bands, $reconstruct_path)</make>
-  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
-       Sub-nodes:
-       * name
-       * key (makes the value accessible as $keyname, e.g. in the make node)
-       * type -->
+  <import>import distutils.spawn</import>
+
+  <var_make>
+$(id)_bands = sparsdr.band_spec_vector()
+#if $band_count() > 0
+$(id)_bands.push_back(sparsdr.band_spec($band_0_frequency, $band_0_bins))
+#end if
+#if $band_count() > 1
+$(id)_bands.push_back(sparsdr.band_spec($band_1_frequency, $band_1_bins))
+#end if
+#if $band_count() > 2
+$(id)_bands.push_back(sparsdr.band_spec($band_2_frequency, $band_2_bins))
+#end if
+#if $band_count() > 3
+$(id)_bands.push_back(sparsdr.band_spec($band_3_frequency, $band_3_bins))
+#end if
+#if $band_count() > 4
+$(id)_bands.push_back(sparsdr.band_spec($band_4_frequency, $band_4_bins))
+#end if
+#if $band_count() > 5
+$(id)_bands.push_back(sparsdr.band_spec($band_5_frequency, $band_5_bins))
+#end if
+#if $band_count() > 6
+$(id)_bands.push_back(sparsdr.band_spec($band_6_frequency, $band_6_bins))
+#end if
+#if $band_count() > 7
+$(id)_bands.push_back(sparsdr.band_spec($band_7_frequency, $band_7_bins))
+#end if
+#if $band_count() > 8
+$(id)_bands.push_back(sparsdr.band_spec($band_8_frequency, $band_8_bins))
+#end if
+#if $band_count() > 9
+$(id)_bands.push_back(sparsdr.band_spec($band_9_frequency, $band_9_bins))
+#end if
+#if $band_count() > 10
+$(id)_bands.push_back(sparsdr.band_spec($band_10_frequency, $band_10_bins))
+#end if
+#if $band_count() > 11
+$(id)_bands.push_back(sparsdr.band_spec($band_11_frequency, $band_11_bins))
+#end if
+#if $band_count() > 12
+$(id)_bands.push_back(sparsdr.band_spec($band_12_frequency, $band_12_bins))
+#end if
+#if $band_count() > 13
+$(id)_bands.push_back(sparsdr.band_spec($band_13_frequency, $band_13_bins))
+#end if
+#if $band_count() > 14
+$(id)_bands.push_back(sparsdr.band_spec($band_14_frequency, $band_14_bins))
+#end if
+#if $band_count() > 15
+$(id)_bands.push_back(sparsdr.band_spec($band_15_frequency, $band_15_bins))
+#end if
+#if $band_count() > 16
+$(id)_bands.push_back(sparsdr.band_spec($band_16_frequency, $band_16_bins))
+#end if
+#if $band_count() > 17
+$(id)_bands.push_back(sparsdr.band_spec($band_17_frequency, $band_17_bins))
+#end if
+#if $band_count() > 18
+$(id)_bands.push_back(sparsdr.band_spec($band_18_frequency, $band_18_bins))
+#end if
+#if $band_count() > 19
+$(id)_bands.push_back(sparsdr.band_spec($band_19_frequency, $band_19_bins))
+#end if
+#if $band_count() > 20
+$(id)_bands.push_back(sparsdr.band_spec($band_20_frequency, $band_20_bins))
+#end if
+#if $band_count() > 21
+$(id)_bands.push_back(sparsdr.band_spec($band_21_frequency, $band_21_bins))
+#end if
+#if $band_count() > 22
+$(id)_bands.push_back(sparsdr.band_spec($band_22_frequency, $band_22_bins))
+#end if
+#if $band_count() > 23
+$(id)_bands.push_back(sparsdr.band_spec($band_23_frequency, $band_23_bins))
+#end if
+#if $band_count() > 24
+$(id)_bands.push_back(sparsdr.band_spec($band_24_frequency, $band_24_bins))
+#end if
+#if $band_count() > 25
+$(id)_bands.push_back(sparsdr.band_spec($band_25_frequency, $band_25_bins))
+#end if
+#if $band_count() > 26
+$(id)_bands.push_back(sparsdr.band_spec($band_26_frequency, $band_26_bins))
+#end if
+#if $band_count() > 27
+$(id)_bands.push_back(sparsdr.band_spec($band_27_frequency, $band_27_bins))
+#end if
+#if $band_count() > 28
+$(id)_bands.push_back(sparsdr.band_spec($band_28_frequency, $band_28_bins))
+#end if
+#if $band_count() > 29
+$(id)_bands.push_back(sparsdr.band_spec($band_29_frequency, $band_29_bins))
+#end if
+#if $band_count() > 30
+$(id)_bands.push_back(sparsdr.band_spec($band_30_frequency, $band_30_bins))
+#end if
+#if $band_count() > 31
+$(id)_bands.push_back(sparsdr.band_spec($band_31_frequency, $band_31_bins))
+#end if
+self.$(id) = $(id) = sparsdr.combined_pluto_receiver(uri=$uri, buffer_size=$buffer_size, bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path))
+
+self.$(id).set_gain($gain)
+
+self.$(id).stop_all()
+self.$(id).set_shift_amount($shift_amount)
+self.$(id).set_fft_size(1024)
+self.$(id).set_bin_spec($bin_spec)
+self.$(id).start_all()
+  </var_make>
+  <!-- Use var_make instead -->
+  <make></make>
+
+  <!-- Non-band parameters -->
+  <!-- Path to the sparsdr_reconstruct executable -->
   <param>
-    <name>...</name>
-    <key>...</key>
-    <type>...</type>
+    <name>Executable</name>
+    <key>reconstruct_path</key>
+    <value>sparsdr_reconstruct</value>
+    <type>string</type>
   </param>
+  <param>
+    <name>IIO context URI</name>
+    <key>uri</key>
+    <value>ip:192.168.2.1</value>
+    <type>string</type>
+  </param>
+  <param>
+    <name>Bin specification</name>
+    <key>bin_spec</key>
+    <value>0..8:1</value>
+    <type>string</type>
+  </param>
+  <param>
+    <name>Gain</name>
+    <key>gain</key>
+    <value>60</value>
+    <type>float</type>
+  </param>
+  <param>
+    <name>Buffer size (samples)</name>
+    <key>buffer_size</key>
+    <value>1024 * 1024</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Shift amount</name>
+    <key>shift_amount</key>
+    <value>6</value>
+    <type>int</type>
+  </param>
+  <!-- Number of bands -->
+  <param>
+    <name>Bands</name>
+    <key>band_count</key>
+    <value>1</value>
+    <type>int</type>
+  </param>
+
+  <!-- Band parameters -->
+  <param>
+    <name>Band 0 frequency</name>
+    <key>band_0_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 0 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 0 bins</name>
+    <key>band_0_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 0 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 1 frequency</name>
+    <key>band_1_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 1 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 1 bins</name>
+    <key>band_1_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 1 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 2 frequency</name>
+    <key>band_2_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 2 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 2 bins</name>
+    <key>band_2_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 2 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 3 frequency</name>
+    <key>band_3_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 3 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 3 bins</name>
+    <key>band_3_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 3 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 4 frequency</name>
+    <key>band_4_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 4 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 4 bins</name>
+    <key>band_4_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 4 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 5 frequency</name>
+    <key>band_5_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 5 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 5 bins</name>
+    <key>band_5_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 5 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 6 frequency</name>
+    <key>band_6_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 6 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 6 bins</name>
+    <key>band_6_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 6 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 7 frequency</name>
+    <key>band_7_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 7 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 7 bins</name>
+    <key>band_7_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 7 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 8 frequency</name>
+    <key>band_8_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 8 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 8 bins</name>
+    <key>band_8_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 8 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 9 frequency</name>
+    <key>band_9_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 9 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 9 bins</name>
+    <key>band_9_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 9 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 10 frequency</name>
+    <key>band_10_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 10 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 10 bins</name>
+    <key>band_10_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 10 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 11 frequency</name>
+    <key>band_11_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 11 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 11 bins</name>
+    <key>band_11_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 11 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 12 frequency</name>
+    <key>band_12_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 12 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 12 bins</name>
+    <key>band_12_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 12 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 13 frequency</name>
+    <key>band_13_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 13 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 13 bins</name>
+    <key>band_13_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 13 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 14 frequency</name>
+    <key>band_14_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 14 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 14 bins</name>
+    <key>band_14_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 14 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 15 frequency</name>
+    <key>band_15_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 15 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 15 bins</name>
+    <key>band_15_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 15 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 16 frequency</name>
+    <key>band_16_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 16 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 16 bins</name>
+    <key>band_16_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 16 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 17 frequency</name>
+    <key>band_17_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 17 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 17 bins</name>
+    <key>band_17_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 17 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 18 frequency</name>
+    <key>band_18_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 18 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 18 bins</name>
+    <key>band_18_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 18 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 19 frequency</name>
+    <key>band_19_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 19 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 19 bins</name>
+    <key>band_19_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 19 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 20 frequency</name>
+    <key>band_20_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 20 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 20 bins</name>
+    <key>band_20_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 20 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 21 frequency</name>
+    <key>band_21_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 21 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 21 bins</name>
+    <key>band_21_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 21 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 22 frequency</name>
+    <key>band_22_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 22 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 22 bins</name>
+    <key>band_22_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 22 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 23 frequency</name>
+    <key>band_23_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 23 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 23 bins</name>
+    <key>band_23_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 23 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 24 frequency</name>
+    <key>band_24_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 24 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 24 bins</name>
+    <key>band_24_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 24 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 25 frequency</name>
+    <key>band_25_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 25 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 25 bins</name>
+    <key>band_25_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 25 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 26 frequency</name>
+    <key>band_26_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 26 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 26 bins</name>
+    <key>band_26_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 26 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 27 frequency</name>
+    <key>band_27_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 27 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 27 bins</name>
+    <key>band_27_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 27 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 28 frequency</name>
+    <key>band_28_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 28 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 28 bins</name>
+    <key>band_28_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 28 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 29 frequency</name>
+    <key>band_29_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 29 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 29 bins</name>
+    <key>band_29_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 29 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 30 frequency</name>
+    <key>band_30_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 30 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 30 bins</name>
+    <key>band_30_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 30 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+  <param>
+    <name>Band 31 frequency</name>
+    <key>band_31_frequency</key>
+    <value>0.0</value>
+    <type>real</type>
+		<hide>#if $band_count() > 31 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+  <param>
+    <name>Band 31 bins</name>
+    <key>band_31_bins</key>
+    <value>1024</value>
+    <type>int</type>
+		<hide>#if $band_count() > 31 then 'none' else 'all'#</hide>
+		<tab>Bands</tab>
+  </param>
+
+
+  <check>32 >= $band_count</check>
+  <check>$band_count > 0</check>
 
   <!-- Make one 'source' node per output. Sub-nodes:
        * name (an identifier for the GUI)
@@ -22,7 +721,8 @@
        * vlen
        * optional (set to 1 for optional inputs) -->
   <source>
-    <name>out</name>
-    <type><!-- e.g. int, float, complex, byte, short, xxx_vector, ...--></type>
+   <name>out</name>
+   <type>complex</type>
+   <nports>$band_count</nports>
   </source>
 </block>

@@ -59,7 +59,7 @@ combined_usrp_receiver_impl::combined_usrp_receiver_impl(
     : gr::hier_block2(
           "combined_usrp_receiver",
           gr::io_signature::make(0, 0, 1),
-          gr::io_signature::make(bands.size(), bands.size(), sizeof(std::uint32_t))),
+          gr::io_signature::make(bands.size(), bands.size(), sizeof(gr_complex))),
       d_usrp(nullptr),
       d_reconstruct(nullptr)
 {
@@ -128,6 +128,7 @@ void combined_usrp_receiver_impl::set_average_send_enabled(bool enabled)
 }
 void combined_usrp_receiver_impl::start_all() { d_usrp->start_all(); }
 void combined_usrp_receiver_impl::stop_all() { d_usrp->stop_all(); }
+void combined_usrp_receiver_impl::set_fft_size(uint32_t size) { d_usrp->set_fft_size(size); }
 void combined_usrp_receiver_impl::set_fft_scaling(uint32_t scaling)
 {
     d_usrp->set_fft_scaling(scaling);

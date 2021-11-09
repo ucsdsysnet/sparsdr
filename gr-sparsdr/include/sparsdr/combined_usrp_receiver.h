@@ -73,8 +73,7 @@ public:
     virtual void set_average_send_enabled(bool enabled) = 0;
     virtual void start_all() = 0;
     virtual void stop_all() = 0;
-    // set_fft_size is left out because this block and the reconstruct block
-    // currently do not support any non-standard FFT sizes.
+    virtual void set_fft_size(uint32_t size) = 0;
     virtual void set_fft_scaling(uint32_t scaling) = 0;
     virtual void set_threshold(uint16_t index, uint32_t threshold) = 0;
     virtual void set_mask_enabled(uint16_t index, bool enabled) = 0;

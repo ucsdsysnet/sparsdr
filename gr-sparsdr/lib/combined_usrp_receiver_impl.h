@@ -53,6 +53,7 @@ public:
     virtual void set_average_send_enabled(bool enabled) override;
     virtual void start_all() override;
     virtual void stop_all() override;
+    virtual void set_fft_size(uint32_t size) override;
     virtual void set_fft_scaling(uint32_t scaling) override;
     virtual void set_threshold(uint16_t index, uint32_t threshold) override;
     virtual void set_mask_enabled(uint16_t index, bool enabled) override;
