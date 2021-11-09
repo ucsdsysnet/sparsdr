@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <block>
-  <name>combined_usrp_receiver</name>
-  <key>sparsdr_combined_usrp_receiver</key>
+  <name>USRP Receive and Reconstruct</name>
+  <!-- The variable_ prefix is required to generate code from the var_make
+  template -->
+  <key>variable_sparsdr_combined_usrp_receiver</key>
   <category>[SparSDR]</category>
   <import>import sparsdr</import>
   <make>sparsdr.combined_usrp_receiver($device_addr, $format_version)</make>

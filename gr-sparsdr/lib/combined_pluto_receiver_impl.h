@@ -42,7 +42,23 @@ public:
                                  const std::string& reconstruct_path);
     ~combined_pluto_receiver_impl();
 
-    // Where all the action really happens
+    // Compressing pluto source delegate functions
+    virtual void set_frequency(unsigned long long frequency) override;
+    virtual void set_gain(double gain) override;
+    virtual void set_run_fft(bool enable) override;
+    virtual void set_send_average_samples(bool enable) override;
+    virtual void set_send_fft_samples(bool enable) override;
+    virtual void start_all() override;
+    virtual void stop_all() override;
+    virtual void set_fft_size(std::uint32_t size) override;
+    virtual void set_shift_amount(std::uint8_t scaling) override;
+    virtual void set_bin_threshold(std::uint16_t bin_index,
+                                   std::uint32_t threshold) override;
+    virtual void set_bin_window_value(std::uint16_t bin_index,
+                                      std::uint16_t value) override;
+    virtual void set_bin_mask(std::uint16_t bin_index) override;
+    virtual void clear_bin_mask(std::uint16_t bin_index) override;
+    virtual void set_bin_spec(const std::string& spec) override;
 };
 
 } // namespace sparsdr

@@ -58,6 +58,22 @@ public:
                      std::size_t buffer_size,
                      const std::vector<band_spec>& bands,
                      const std::string& reconstruct_path = "sparsdr_reconstruct");
+
+    // Compressing pluto source delegate functions
+    virtual void set_frequency(unsigned long long frequency) = 0;
+    virtual void set_gain(double gain) = 0;
+    virtual void set_run_fft(bool enable) = 0;
+    virtual void set_send_average_samples(bool enable) = 0;
+    virtual void set_send_fft_samples(bool enable) = 0;
+    virtual void start_all() = 0;
+    virtual void stop_all() = 0;
+    virtual void set_fft_size(std::uint32_t size) = 0;
+    virtual void set_shift_amount(std::uint8_t scaling) = 0;
+    virtual void set_bin_threshold(std::uint16_t bin_index, std::uint32_t threshold) = 0;
+    virtual void set_bin_window_value(std::uint16_t bin_index, std::uint16_t value) = 0;
+    virtual void set_bin_mask(std::uint16_t bin_index) = 0;
+    virtual void clear_bin_mask(std::uint16_t bin_index) = 0;
+    virtual void set_bin_spec(const std::string& spec) = 0;
 };
 
 } // namespace sparsdr
