@@ -90,105 +90,93 @@ void compressing_usrp_source_impl::set_antenna(const std::string& ant)
 }
 
 
-    // SparSDR-specific settings
+// SparSDR-specific settings
 
-    void
-    compressing_usrp_source_impl::set_compression_enabled(bool enabled)
-    {
-        d_usrp->set_user_register(registers::ENABLE_COMPRESSION, enabled);
+void compressing_usrp_source_impl::set_compression_enabled(bool enabled)
+{
+    d_usrp->set_user_register(registers::ENABLE_COMPRESSION, enabled);
+}
+
+void compressing_usrp_source_impl::set_fft_enabled(bool enabled)
+{
+    d_usrp->set_user_register(registers::RUN_FFT, enabled);
+}
+
+void compressing_usrp_source_impl::set_fft_send_enabled(bool enabled)
+{
+    d_usrp->set_user_register(registers::FFT_SEND, enabled);
+}
+
+void compressing_usrp_source_impl::set_average_send_enabled(bool enabled)
+{
+    d_usrp->set_user_register(registers::AVG_SEND, enabled);
+}
+
+void compressing_usrp_source_impl::start_all()
+{
+    set_fft_send_enabled(true);
+    set_average_send_enabled(true);
+    set_fft_enabled(true);
+}
+
+void compressing_usrp_source_impl::stop_all()
+{
+    set_fft_enabled(false);
+    set_average_send_enabled(false);
+    set_fft_send_enabled(false);
+}
+
+void compressing_usrp_source_impl::set_fft_size(uint32_t size)
+{
+    d_usrp->set_user_register(registers::FFT_SIZE, size);
+}
+
+void compressing_usrp_source_impl::set_fft_scaling(uint32_t scaling)
+{
+    d_usrp->set_user_register(registers::SCALING, scaling);
+}
+
+void compressing_usrp_source_impl::set_threshold(uint16_t index, uint32_t threshold)
+{
+    // First write the threshold value, then write the bin number to apply
+    // the change
+    d_usrp->set_user_register(registers::THRESHOLD_VALUE, threshold);
+    d_usrp->set_user_register(registers::THRESHOLD_BIN_NUMBER, index);
+}
+
+void compressing_usrp_source_impl::set_mask_enabled(uint16_t index, bool enabled)
+{
+    // Register format:
+    // Bits 31:1 : index (31 bits)
+    // Bit 0 : set mask (1) / clear mask (0)
+
+    // Check that index fits within 31 bits
+    if (index > 0x7fffffffu) {
+        throw std::out_of_range("index must fit within 31 bits");
     }
+    const uint32_t command = (index << 1) | enabled;
+    d_usrp->set_user_register(registers::MASK, command);
+}
 
-    void
-    compressing_usrp_source_impl::set_fft_enabled(bool enabled)
-    {
-        d_usrp->set_user_register(registers::RUN_FFT, enabled);
+void compressing_usrp_source_impl::set_average_weight(float weight)
+{
+    if (weight < 0.0 || weight > 1.0) {
+        throw std::out_of_range("weight must be in the range [0, 1]");
     }
+    // Map to 0...255
+    const uint8_t mapped = static_cast<uint8_t>(weight * 255.0);
+    d_usrp->set_user_register(registers::AVG_WEIGHT, mapped);
+}
 
-    void
-    compressing_usrp_source_impl::set_fft_send_enabled(bool enabled)
-    {
-        d_usrp->set_user_register(registers::FFT_SEND, enabled);
+void compressing_usrp_source_impl::set_average_packet_interval(uint32_t interval)
+{
+    if (interval == 0) {
+        throw std::out_of_range("interval must not be 0");
     }
+    // Register format: ceiling of the base-2 logarithm of the interval
+    const uint32_t ceiling_log_interval = 31 - leading_zeros(interval);
+    d_usrp->set_user_register(registers::AVG_INTERVAL, ceiling_log_interval);
+}
 
-    void
-    compressing_usrp_source_impl::set_average_send_enabled(bool enabled)
-    {
-        d_usrp->set_user_register(registers::AVG_SEND, enabled);
-    }
-
-    void
-    compressing_usrp_source_impl::start_all()
-    {
-        set_fft_send_enabled(true);
-        set_average_send_enabled(true);
-        set_fft_enabled(true);
-    }
-
-    void
-    compressing_usrp_source_impl::stop_all()
-    {
-        set_fft_enabled(false);
-        set_average_send_enabled(false);
-        set_fft_send_enabled(false);
-    }
-
-    void
-    compressing_usrp_source_impl::set_fft_size(uint32_t size)
-    {
-        d_usrp->set_user_register(registers::FFT_SIZE, size);
-    }
-
-    void
-    compressing_usrp_source_impl::set_fft_scaling(uint32_t scaling)
-    {
-        d_usrp->set_user_register(registers::SCALING, scaling);
-    }
-
-    void
-    compressing_usrp_source_impl::set_threshold(uint16_t index, uint32_t threshold)
-    {
-        // First write the threshold value, then write the bin number to apply
-        // the change
-        d_usrp->set_user_register(registers::THRESHOLD_VALUE, threshold);
-        d_usrp->set_user_register(registers::THRESHOLD_BIN_NUMBER, index);
-    }
-
-    void
-    compressing_usrp_source_impl::set_mask_enabled(uint16_t index, bool enabled)
-    {
-        // Register format:
-        // Bits 31:1 : index (31 bits)
-        // Bit 0 : set mask (1) / clear mask (0)
-
-        // Check that index fits within 31 bits
-        if (index > 0x7fffffffu) {
-            throw std::out_of_range("index must fit within 31 bits");
-        }
-        const uint32_t command = (index << 1) | enabled;
-        d_usrp->set_user_register(registers::MASK, command);
-    }
-
-    void
-    compressing_usrp_source_impl::set_average_weight(float weight)
-    {
-        if (weight < 0.0 || weight > 1.0) {
-            throw std::out_of_range("weight must be in the range [0, 1]");
-        }
-        // Map to 0...255
-        const uint8_t mapped = static_cast<uint8_t>(weight * 255.0);
-        d_usrp->set_user_register(registers::AVG_WEIGHT, mapped);
-    }
-
-    void
-    compressing_usrp_source_impl::set_average_packet_interval(uint32_t interval)
-    {
-        if (interval == 0) {
-            throw std::out_of_range("interval must not be 0");
-        }
-        // Register format: ceiling of the base-2 logarithm of the interval
-        const uint32_t ceiling_log_interval = 31 - leading_zeros(interval);
-        d_usrp->set_user_register(registers::AVG_INTERVAL, ceiling_log_interval);
-    }
-
-  } /* namespace sparsdr */
+} /* namespace sparsdr */
 } /* namespace gr */

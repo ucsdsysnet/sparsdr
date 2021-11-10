@@ -128,7 +128,10 @@ void combined_usrp_receiver_impl::set_average_send_enabled(bool enabled)
 }
 void combined_usrp_receiver_impl::start_all() { d_usrp->start_all(); }
 void combined_usrp_receiver_impl::stop_all() { d_usrp->stop_all(); }
-void combined_usrp_receiver_impl::set_fft_size(uint32_t size) { d_usrp->set_fft_size(size); }
+void combined_usrp_receiver_impl::set_fft_size(uint32_t size)
+{
+    d_usrp->set_fft_size(size);
+}
 void combined_usrp_receiver_impl::set_fft_scaling(uint32_t scaling)
 {
     d_usrp->set_fft_scaling(scaling);
