@@ -15,12 +15,16 @@
  *
  */
 
+//!
+//! Simple tests for the v2
+//!
+
 extern crate num_complex;
 extern crate simplelog;
 extern crate sparsdr_sample_parser;
 
 use num_complex::Complex;
-use sparsdr_sample_parser::{Parser, Window, WindowKind};
+use sparsdr_sample_parser::{ParseError, Parser, V2Parser, Window, WindowKind};
 use std::sync::Once;
 
 const HEADER_BIT: u32 = 0x80000000;
@@ -47,7 +51,7 @@ fn make_complex(re: i16, imag: i16) -> u32 {
 fn basic_1_bin() {
     LOG_INIT.call_once(log_init);
 
-    let mut parser = Parser::new(1);
+    let mut parser = V2Parser::new(1);
     // Begin FFT window
     assert_eq!(Ok(None), parser.accept(HEADER_BIT | 37));
     // Bin index 0
@@ -94,7 +98,7 @@ fn basic_1_bin() {
 fn basic_2_bins() {
     LOG_INIT.call_once(log_init);
 
-    let mut parser = Parser::new(2);
+    let mut parser = V2Parser::new(2);
     // Begin FFT window
     assert_eq!(Ok(None), parser.accept(HEADER_BIT | 37));
     // Bin index 0
@@ -177,7 +181,7 @@ fn basic_2_bins() {
 #[test]
 fn basic_8_bins() {
     LOG_INIT.call_once(log_init);
-    let mut parser = Parser::new(8);
+    let mut parser = V2Parser::new(8);
     // Begin FFT window
     assert_eq!(Ok(None), parser.accept(HEADER_BIT | MAX_TIME));
     // Two values at indexes 2 and 3
@@ -208,4 +212,13 @@ fn basic_8_bins() {
         })),
         parser.accept(HEADER_BIT | HEADER_AVERAGE_BIT | 0)
     );
+}
+
+trait TestParserExt {
+    fn accept(&mut self, sample: u32) -> Result<Option<Window>, ParseError>;
+}
+impl TestParserExt for V2Parser {
+    fn accept(&mut self, sample: u32) -> Result<Option<Window>, ParseError> {
+        self.parse(&sample.to_le_bytes())
+    }
 }
