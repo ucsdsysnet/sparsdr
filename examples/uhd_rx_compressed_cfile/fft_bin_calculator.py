@@ -5,9 +5,10 @@ from math import ceil, floor
 
 # For Pluto fft_size is 1024, capture_bw is 61.44, filter_bw is 56
 fft_size   = 2048
-half_fft   = int(fft_size/2)
 capture_bw = 100
 filter_bw  = 100 # set to 40 for WBX
+
+half_fft   = int(fft_size/2)
 rnd_digits = 4
 
 
@@ -33,6 +34,11 @@ def bins_calc (ccf, bcf, bw):
     br = int(br) - 1
   else:
     br = floor(br)
+
+  # Frequency range captured
+  lf = round(cl + bl*binw, rnd_digits)
+  rf = round(cl + (br+1)*binw, rnd_digits)
+  print ("Frequency range:",lf,"to",rf)
 
   # FFT half window shift, so center frequency is at bin 0
   bl = bl ^ half_fft
