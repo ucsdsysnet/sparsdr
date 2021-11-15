@@ -146,6 +146,12 @@ void reconstruct_impl::start_subprocess(const std::string& sample_format)
         arguments.push_back(arg_stream.str());
     }
 
+    std::cout << "Launching reconstruct: " << d_reconstruct_path;
+    for (const auto& arg : arguments) {
+        std::cout << ' ' << arg;
+    }
+    std::cout << '\n';
+
     // Low-level manual fork and exec
 
     // Assemble arguments for exec
