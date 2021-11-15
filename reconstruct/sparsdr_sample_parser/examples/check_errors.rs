@@ -27,7 +27,7 @@ use sparsdr_sample_parser::{Parser, V2Parser};
 
 fn main() -> Result<(), io::Error> {
     simplelog::TermLogger::init(
-        simplelog::LevelFilter::Warn,
+        simplelog::LevelFilter::Error,
         simplelog::Config::default(),
         simplelog::TerminalMode::Stdout,
     )

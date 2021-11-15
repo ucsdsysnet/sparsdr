@@ -210,14 +210,14 @@ fn state_for_header(header: Header, fft_size: u32) -> State {
         // FFT
         State::Data {
             timestamp,
-            bins: vec![Complex::default(); fft_size as usize],
+            bins: Vec::with_capacity(fft_size as usize),
             data_state: DataState::OutsideGroup,
         }
     } else {
         // Average
         State::Average {
             timestamp,
-            bins: vec![u32::default(); fft_size as usize],
+            bins: Vec::with_capacity(fft_size as usize),
         }
     }
 }
