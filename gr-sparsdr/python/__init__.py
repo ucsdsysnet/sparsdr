@@ -24,11 +24,7 @@ description here (python/__init__.py).
 '''
 
 # import swig generated symbols into the sparsdr namespace
-try:
-	# this might fail if the module is python-only
-	from sparsdr_swig import *
-except ImportError:
-	pass
+from sparsdr_swig import *
 
 # import any pure python here
 #
