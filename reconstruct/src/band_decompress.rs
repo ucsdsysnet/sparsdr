@@ -122,10 +122,8 @@ impl<'w> BandSetupBuilder<'w> {
 
     /// Builds a setup from this builder
     pub fn build(self) -> BandSetup<'w> {
-        let fft_size = self
-            .bins
-            .checked_next_power_of_two()
-            .expect("FFT size too large to round up");
+        assert_eq!(self.bins % 2, 0, "FFT size must be even");
+        let fft_size = self.bins;
 
         let exact_bin_offset =
             self.compression_fft_size as f32 * self.center_frequency / self.compressed_bandwidth;
