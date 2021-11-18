@@ -29,6 +29,7 @@ use simplelog::LevelFilter;
 pub use self::band_args::BandArgs;
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct Args {
     /// Path to source file, or None for stdin
     pub source_path: Option<PathBuf>,
@@ -50,8 +51,6 @@ pub struct Args {
     pub progress_bar: bool,
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
-    /// Private field to prevent exhaustive matching and literal creation
-    _0: (),
 }
 
 /// General help text
@@ -98,10 +97,22 @@ impl Args {
                 Arg::with_name("bins")
                     .long("bins")
                     .takes_value(true)
-                    .validator(validate::<u16>)
+                    .validator(validate_positive_even_number)
                     .help(
-                        "The number of bins to decompress. If no value is specified, the \
-                    compression FFT size is used.",
+                        "The number of bins to reconstruct. This must be an even number. \
+                        The default value is the number of bins in the FFT used for compression.",
+                    ),
+            )
+            .arg(
+                Arg::with_name("reconstruct_fft_bins")
+                    .long("reconstruct-fft-bins")
+                    .takes_value(true)
+                    .validator(validate_positive_even_number)
+                    .help(
+                        "The FFT size to use when reconstructing. This must be an even number \
+                    greater than or equal to the \"bins\" parameter. This can be used to generate \
+                    reconstructed samples with a higher sample rate, without expanding the \
+                    frequency range. The default value is the same as the \"bins\" parameter",
                     ),
             )
             .arg(
@@ -262,18 +273,26 @@ impl Args {
                     .help("The level of logging to enable"),
             )
             .arg(
-                Arg::with_name("decompress_band")
-                    .long("decompress-band")
+                Arg::with_name("reconstruct_band")
+                    .long("reconstruct-band")
                     .takes_value(true)
                     .multiple(true)
-                    .value_name("bins:frequency[:path]")
+                    .value_name("bins:fft_bins:frequency[:path]")
                     .help(
                         "The number of bins, center frequency, and output file path of a band to \
                     be decompressed. If the output file path is not specified, decompressed \
                     samples from this band will be written to standard output. This argument may \
-                    be repeated to decompress multiple bands.",
+                    be repeated to decompress multiple bands. \
+                    \"bins\" and \"fft_bins\" must be positive and even. fft_bins must be greater \
+                    than or equal to bins. \
+                    The frequency is relative to the center frequency used to receive the samples",
                     )
-                    .conflicts_with_all(&["destination", "bins", "center_frequency"])
+                    .conflicts_with_all(&[
+                        "destination",
+                        "bins",
+                        "reconstruct_fft_bins",
+                        "center_frequency",
+                    ])
                     .validator(validate::<BandArgs>),
             )
             .arg(
@@ -343,18 +362,33 @@ impl Args {
                 )
             };
 
-        let bands = if let Some(band_strings) = matches.values_of("decompress_band") {
+        let bands = if let Some(band_strings) = matches.values_of("reconstruct_band") {
             // New multi-band version
             band_strings
                 .map(|s| BandArgs::from_str(s).unwrap())
                 .collect()
         } else {
             // Legacy single-band version
+            let bins = matches
+                .value_of("bins")
+                .map(|s| s.parse().unwrap())
+                .unwrap_or_else(|| compression_fft_size.try_into().expect("FFT size too large"));
+
+            let fft_bins = matches
+                .value_of("reconstruct_fft_bins")
+                .map(|s| s.parse().unwrap())
+                .unwrap_or(bins);
+            assert!(
+                bins <= fft_bins,
+                "Number of reconstruct FFT bins {} \
+            must be greater than or equal to number of bins {}",
+                fft_bins,
+                bins
+            );
+
             let band = BandArgs {
-                bins: matches
-                    .value_of("bins")
-                    .map(|s| s.parse().unwrap())
-                    .unwrap_or(compression_fft_size.try_into().expect("FFT size too large")),
+                bins,
+                fft_bins,
                 center_frequency: matches
                     .value_of("center_frequency")
                     .unwrap()
@@ -380,7 +414,6 @@ impl Args {
                 .unwrap()
                 .parse()
                 .unwrap(),
-            _0: (),
         }
     }
 }
@@ -394,6 +427,23 @@ where
     T::Err: ToString,
 {
     s.parse::<T>().map(|_| ()).map_err(|e| e.to_string())
+}
+
+/// Validates that a string can be parsed into a posiitve, even 16-bit integer
+// As required by clap, this function accepts a String.
+#[allow(clippy::needless_pass_by_value)]
+fn validate_positive_even_number(s: String) -> Result<(), String> {
+    s.parse::<u16>()
+        .map_err(|e| e.to_string())
+        .and_then(|value| {
+            if value % 2 != 0 {
+                Err("Value must be an even number".into())
+            } else if value < 2 {
+                Err("Value must be positive".into())
+            } else {
+                Ok(())
+            }
+        })
 }
 
 /// A compressed sample format

@@ -110,7 +110,7 @@ void reconstruct_impl::start_subprocess(const std::string& sample_format)
         std::cerr << "sparsdr::reconstruct failed to create temporary \
                 directory: "
                   << ::strerror(errno) << '\n';
-        return;
+        throw std::runtime_error("Can't create temporary directory");
     }
     d_temp_dir = temp_dir;
     // Create a pipe for compressed things
@@ -119,7 +119,7 @@ void reconstruct_impl::start_subprocess(const std::string& sample_format)
     if (compressed_pipe_status != 0) {
         std::cerr << "sparsdr::reconstruct failed to create a named pipe: "
                   << ::strerror(errno) << '\n';
-        return;
+        throw std::runtime_error("Can't create named pipe");
     }
     d_pipes.emplace_back(std::move(compressed_pipe));
     // Add the source argument to the command
@@ -140,9 +140,10 @@ void reconstruct_impl::start_subprocess(const std::string& sample_format)
         d_pipes.emplace_back(std::move(pipe_path));
 
         // Add this band to the command
-        arguments.push_back("--decompress-band");
+        arguments.push_back("--reconstruct-band");
         std::stringstream arg_stream;
-        arg_stream << iter->bins() << ":" << iter->frequency() << ":" << pipe_path;
+        // Selection bins and FFT bins are currently the same
+        arg_stream << iter->bins() << ":" << iter->bins() << ":" << iter->frequency() << ":" << pipe_path;
         arguments.push_back(arg_stream.str());
     }
 

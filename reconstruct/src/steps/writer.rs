@@ -27,6 +27,7 @@ use crate::blocking::BlockLogger;
 use crate::window::{Tag, TimeWindow};
 
 /// Writes samples to a destination
+#[derive(Debug, Default)]
 pub struct Writer {
     /// The index of the next sample to be written
     sample_index: u32,
@@ -35,7 +36,7 @@ pub struct Writer {
 impl Writer {
     /// Creates a new writer
     pub fn new() -> Self {
-        Writer { sample_index: 0 }
+        Writer::default()
     }
 
     /// Writes windows to a destination and returns the total number of samples written

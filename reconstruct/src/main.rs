@@ -128,6 +128,7 @@ fn run() -> io::Result<()> {
             setup.compressed_bandwidth,
             setup.compression_fft_size,
             band.bins,
+            band.fft_bins,
         )
         .center_frequency(band.center_frequency);
         decompress_setup.add_band(band_setup.build());

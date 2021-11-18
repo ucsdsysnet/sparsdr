@@ -115,13 +115,8 @@ where
     }
 
     fn handle_end(&mut self) -> Option<TimeWindow> {
-        if let Some(prev) = self.prev_window.take() {
-            // Need to send the second half of the previous window
-            Some(prev.into_second_half())
-        } else {
-            // The end
-            None
-        }
+        // If there is a previous window, need to send its second half
+        self.prev_window.take().map(TimeWindow::into_second_half)
     }
 }
 

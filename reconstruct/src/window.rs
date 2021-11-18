@@ -376,6 +376,11 @@ impl TimeWindow {
         self.samples.len()
     }
 
+    /// Returns true if this window does not contain any samples
+    pub fn is_empty(&self) -> bool {
+        self.samples.is_empty()
+    }
+
     /// Returns a reference to the samples in this window
     pub fn samples(&self) -> &[Complex32] {
         &self.samples

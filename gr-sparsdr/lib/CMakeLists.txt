@@ -53,7 +53,6 @@ target_link_libraries(gnuradio-sparsdr
     ${PYTHON_LIBRARIES}
     ${IIO_LIBRARIES}
     ${UHD_LIBRARIES}
-	Qt5::Widgets
 )
 set_target_properties(gnuradio-sparsdr PROPERTIES DEFINE_SYMBOL "gnuradio_sparsdr_EXPORTS")
 target_include_directories(gnuradio-sparsdr

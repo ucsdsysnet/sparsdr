@@ -73,6 +73,7 @@ pub fn test_with_vectors<P1, P2, P3>(
             COMPRESSED_BANDWIDTH,
             COMPRESSION_FFT_SIZE,
             bins,
+            bins,
         )
         .center_frequency(center_frequency);
         let mut setup = DecompressSetup::new(windows_in, COMPRESSION_FFT_SIZE, TIMESTAMP_BITS);

@@ -61,8 +61,10 @@ pub struct BandSetupBuilder<'w> {
     center_frequency: f32,
     /// The number of FFT bins used to compress the signals
     compression_fft_size: usize,
-    /// The number of bins to decompress
+    /// The number of bins to select
     bins: u16,
+    /// The inverse FFT size
+    fft_bins: u16,
     /// Time to wait for a compressed sample before flushing output
     timeout: Duration,
     /// The destination to write decompressed samples to
@@ -79,12 +81,14 @@ impl<'w> BandSetupBuilder<'w> {
         compressed_bandwidth: f32,
         compression_fft_size: usize,
         bins: u16,
+        fft_bins: u16,
     ) -> Self {
         BandSetupBuilder {
             compressed_bandwidth,
             center_frequency: 0.0,
             compression_fft_size,
             bins,
+            fft_bins,
             timeout: TIMEOUT,
             destination,
             time_log: None,
@@ -122,8 +126,7 @@ impl<'w> BandSetupBuilder<'w> {
 
     /// Builds a setup from this builder
     pub fn build(self) -> BandSetup<'w> {
-        assert_eq!(self.bins % 2, 0, "FFT size must be even");
-        let fft_size = self.bins;
+        let fft_size = self.fft_bins;
 
         let exact_bin_offset =
             self.compression_fft_size as f32 * self.center_frequency / self.compressed_bandwidth;

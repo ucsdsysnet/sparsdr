@@ -116,6 +116,8 @@ where
     let (input_report, fft_output_reports): (InputReport, BTreeMap<BinRange, FftOutputReport>) =
         thread::scope(|scope| {
             // Start a thread for each FFT and output stage
+            // The threads all need to be started here before running the input stage.
+            #[allow(clippy::needless_collect)]
             let fft_and_output_threads: Vec<(
                 BinRange,
                 ScopedJoinHandle<'_, Result<FftOutputReport>>,

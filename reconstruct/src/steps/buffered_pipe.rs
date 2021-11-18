@@ -124,10 +124,10 @@ impl Write for BufferedPipe {
                         // Someone read from the pipe
                         // Switch to blocking and write the new data
                         self.set_blocking().map_err(nix_to_std)?;
-                        self.pipe.write(buf)?;
+                        let bytes_written = self.pipe.write(buf)?;
 
                         // Switch to direct mode
-                        (State::Direct, Ok(buf.len()))
+                        (State::Direct, Ok(bytes_written))
                     }
                     Err(e) => {
                         if e.kind() == ErrorKind::WouldBlock || e.kind() == ErrorKind::TimedOut {

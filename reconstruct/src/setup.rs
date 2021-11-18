@@ -28,6 +28,7 @@ use super::args::BandArgs;
 /// The setup for a decompression operation
 ///
 /// A Setup is created from the command-line arguments (Args)
+#[non_exhaustive]
 pub struct Setup {
     /// Source for compressed samples
     pub source: Box<dyn Read + Send>,
@@ -49,14 +50,14 @@ pub struct Setup {
     pub progress_bar: bool,
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
-    /// Private field to prevent exhaustive matching and literal creation
-    _0: (),
 }
 
 /// The setup for decompressing a band
 pub struct BandSetup {
-    /// Number of bins to decompress
+    /// Number of bins to select
     pub bins: u16,
+    /// Reconstruction FFT size
+    pub fft_bins: u16,
     /// Center frequency to decompress
     pub center_frequency: f32,
     /// Destination to write to
@@ -114,7 +115,6 @@ impl Setup {
             bands,
             progress_bar: args.progress_bar,
             channel_capacity: args.channel_capacity,
-            _0: (),
         })
     }
 }
@@ -144,6 +144,7 @@ impl BandSetup {
 
         Ok(BandSetup {
             bins: args.bins,
+            fft_bins: args.fft_bins,
             center_frequency: args.center_frequency,
             destination,
         })

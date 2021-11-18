@@ -47,15 +47,12 @@ impl Overflow {
 
     /// Expands a 20-bit counter value into a 64-bit counter value, handling overflows correctly
     pub fn expand(&mut self, value: u32) -> u64 {
-        let expanded = if value >= self.previous {
-            // No overflow
-            // Add offset and wrap
-            self.offset.wrapping_add(u64::from(value))
-        } else {
+        if value < self.previous {
             // Overflow (assume counter has only overflowed once)
             self.offset = self.offset.wrapping_add(self.max + 1);
-            self.offset.wrapping_add(u64::from(value))
-        };
+        }
+        let expanded = self.offset.wrapping_add(u64::from(value));
+
         self.previous = value;
         expanded
     }
