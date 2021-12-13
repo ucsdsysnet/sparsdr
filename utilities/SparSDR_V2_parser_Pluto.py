@@ -3,20 +3,31 @@
 from sys import stdin
 from struct import unpack
 
-fft_size_log2=11
-FFT_size = 2**fft_size_log2
+conv_2_V1   = False
+V1_out_file = "v1_out.iqz"
+
+fft_size_log2 = 10
+FFT_size      = 2**fft_size_log2
 
 fft_time_offset = int(0)
 avg_time_offset = int(0)
-last_fft_time = int(0)
-last_avg_time = int(0)
+last_fft_time   = int(0)
+last_avg_time   = int(0)
 
 first_zero = 0
 after_zero = False
-in_FFT = True
-in_avg = False
-after_hdr = False
-FFT_index = 0
+in_FFT     = True
+in_avg     = False
+after_hdr  = False
+FFT_index  = 0
+
+# Clock is 61.44MHz, and we cut (fft_size_log-1) bits to show start of window
+ts = 16.2760417 * (1 << (fft_size_log2-1))
+
+v1_time_bits  = 32-1-fft_size_log2
+v1_time_mask  = (2**(v1_time_bits))-1
+if (conv_2_V1):
+  v1_out = open(V1_out_file, "wb")
 
 while True:
   b = stdin.buffer.read(4)
@@ -68,10 +79,8 @@ while True:
         if (time < last_avg_time):
           avg_time_offset += (1<<30)
         last_avg_time = time
-        # Clock is 100mhz, and we cut (fft_size_log-1) bits to show start of window
         # Average sample times always have fft_size_log bits tail zero
-        fixed_avg_time = 10 * (((time & 0x3FFFFFFE) + avg_time_offset) << (fft_size_log2-1))
-        fixed_avg_time = 10 * ((time + avg_time_offset) << (fft_size_log2-1))
+        fixed_avg_time = ((time & 0x3FFFFFFE) + avg_time_offset) * ts
         print ("Average header at time", fixed_avg_time,"(ns)")
         FFT_index = 0
         in_avg = True
@@ -80,8 +89,7 @@ while True:
         if (time < last_fft_time):
           fft_time_offset += (1<<30)
         last_fft_time = time
-        # Clock is 100mhz, and we cut (fft_size_log-1) bits to show start of window
-        fixed_fft_time = 10 * ((time + fft_time_offset) << (fft_size_log2-1))
+        fixed_fft_time = (time + fft_time_offset) * ts
         print ("FFT header at time", fixed_fft_time,"(ns)")
         in_avg = False
         in_FFT = True
@@ -100,5 +108,11 @@ while True:
         print ("(FFT index)")
         after_hdr = False
       else:
-        print ("FFT, index", FFT_index, ":", real, ",", imag)
+        print ("FFT, index", FFT_index, ":", real, ",", imag, "( power =", (real*real)+(imag*imag), ")")
+        if (conv_2_V1):
+          v1_conv = (FFT_index << (v1_time_bits+32)) | ((last_fft_time & v1_time_mask) << 32) | value
+          v1_out.write(v1_conv.to_bytes(8,'little'))
         FFT_index += 1
+
+if (conv_2_V1):
+  v1_out.close()
