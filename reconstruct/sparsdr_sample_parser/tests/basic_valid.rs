@@ -43,8 +43,8 @@ fn log_init() {
 }
 
 fn make_complex(re: i16, imag: i16) -> u32 {
-    // Imaginary part at higher address (more significant)
-    ((imag as u16 as u32) << 16) | (re as u16 as u32)
+    // Real part at higher address (more significant)
+    ((re as u16 as u32) << 16) | (imag as u16 as u32)
 }
 
 #[test]

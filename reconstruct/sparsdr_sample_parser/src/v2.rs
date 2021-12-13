@@ -179,7 +179,7 @@ impl V2Parser {
                     } else {
                         // Extract real and imaginary parts of the sample
                         let complex_sample =
-                            Complex::new((sample & 0xffff) as i16, (sample >> 16) as i16);
+                            Complex::new((sample >> 16) as i16, (sample & 0xffff) as i16);
                         bins.push(complex_sample);
 
                         return_value = Ok(None);
