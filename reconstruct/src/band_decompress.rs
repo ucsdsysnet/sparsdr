@@ -130,8 +130,19 @@ impl<'w> BandSetupBuilder<'w> {
 
         let exact_bin_offset =
             self.compression_fft_size as f32 * self.center_frequency / self.compressed_bandwidth;
-        let fc_bins = exact_bin_offset.floor();
+        // For fc_bins, round towards zero
+        let fc_bins = if exact_bin_offset >= 0.0 {
+            exact_bin_offset.floor()
+        } else {
+            exact_bin_offset.ceil()
+        };
         let bin_offset = exact_bin_offset.fract();
+        log::debug!(
+            "Offset {} bins, whole fc_bins {}, fractional bin_offset {} bins",
+            exact_bin_offset,
+            fc_bins,
+            bin_offset
+        );
 
         let bin_range = choose_bins(self.bins, fc_bins as i16, self.compression_fft_size);
 
