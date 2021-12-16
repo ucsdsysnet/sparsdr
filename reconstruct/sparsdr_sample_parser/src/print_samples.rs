@@ -23,6 +23,7 @@
 extern crate simplelog;
 extern crate sparsdr_sample_parser;
 
+use num_traits::Zero;
 use sparsdr_sample_parser::{Parser, V2Parser, WindowKind};
 use std::io;
 use std::io::{BufWriter, ErrorKind, Read, Write};
@@ -35,7 +36,7 @@ fn main() -> Result<(), io::Error> {
     )
     .unwrap();
 
-    let mut parser = V2Parser::new(1024);
+    let mut parser = V2Parser::new(512);
 
     let stdin = io::stdin();
     let mut input = stdin.lock();
@@ -62,21 +63,23 @@ fn main() -> Result<(), io::Error> {
                 WindowKind::Data(data) => {
                     let fft_no = window.timestamp & 0x1;
                     for (i, value) in data.iter().enumerate() {
-                        let status = writeln!(
-                            output,
-                            "{:<10}    FFT sample {:>10}  {:>10}  {:>10}  {:>10}  {:>10}",
-                            sample_index, fft_no, i, window.timestamp, value.re, value.im
-                        );
+                        if !value.is_zero() {
+                            let status = writeln!(
+                                output,
+                                "{:<10}    FFT sample {:>10}  {:>10}  {:>10}  {:>10}  {:>10}",
+                                sample_index, fft_no, i, window.timestamp, value.re, value.im
+                            );
 
-                        if let Err(e) = status {
-                            if e.kind() == ErrorKind::BrokenPipe {
-                                break;
-                            } else {
-                                return Err(e);
+                            if let Err(e) = status {
+                                if e.kind() == ErrorKind::BrokenPipe {
+                                    break;
+                                } else {
+                                    return Err(e);
+                                }
                             }
-                        }
 
-                        sample_index += 1;
+                            sample_index += 1;
+                        }
                     }
                 }
                 WindowKind::Average(average) => {

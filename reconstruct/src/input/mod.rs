@@ -30,6 +30,7 @@ pub struct SampleReader<R, P> {
     parser: P,
     /// A buffer with a length equal to the length of a sample
     buffer: Vec<u8>,
+    last_data_window_time: Option<u32>,
 }
 
 impl<R, P> SampleReader<R, P>
@@ -44,6 +45,7 @@ where
             byte_source,
             parser,
             buffer: vec![0u8; bytes_per_sample],
+            last_data_window_time: None,
         }
     }
 }
@@ -64,11 +66,22 @@ where
                             match window.kind {
                                 WindowKind::Average(_averages) => { /* Try another sample */ }
                                 WindowKind::Data(bins) => {
+                                    // Check window time
+                                    if let Some(last_window_time) = &self.last_data_window_time {
+                                        assert_ne!(
+                                            window.timestamp, *last_window_time,
+                                            "In sample reader, current window (time {}) has the same time as \
+                                    previous window",
+                                            window.timestamp
+                                        );
+                                    }
+                                    self.last_data_window_time = Some(window.timestamp);
+
                                     break Some(Ok(Window::with_bins(
                                         window.timestamp.into(),
                                         bins.len(),
                                         bins.into_iter().map(convert_complex),
-                                    )))
+                                    )));
                                 }
                             }
                         }

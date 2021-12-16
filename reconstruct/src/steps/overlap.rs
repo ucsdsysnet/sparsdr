@@ -71,7 +71,9 @@ where
         if let Some(mut prev_window) = self.prev_window.take() {
             assert!(
                 new_window.time() > prev_window.time(),
-                "New window is not after previous window"
+                "New window (time {}) is not after previous window (time {})",
+                new_window.time(),
+                prev_window.time()
             );
             let time_difference = new_window.time() - prev_window.time();
             match time_difference {

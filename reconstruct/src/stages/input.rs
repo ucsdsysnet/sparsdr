@@ -102,9 +102,22 @@ where
                 .expect("FFT size too large"),
         );
 
+    let mut prev_window_time: Option<u64> = None;
+
     // Process windows
     for window in shift {
         let mut window = window?;
+
+        if let Some(prev_window_time) = prev_window_time {
+            assert!(
+                window.time() > prev_window_time,
+                "Current window (time {}) is not after previous window (time {})",
+                window.time(),
+                prev_window_time
+            );
+        }
+        prev_window_time = Some(window.time());
+
         // Give this window a tag
         let window_tag = next_tag;
         window.set_tag(window_tag);

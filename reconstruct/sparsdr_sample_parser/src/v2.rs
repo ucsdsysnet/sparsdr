@@ -98,6 +98,7 @@ impl V2Parser {
                     // All bins have been received, so this should be a zero that marks the end of
                     // the average window
                     if sample == 0 {
+                        log::trace!("End of averages, returning window with time {}", timestamp);
                         return_value = Ok(Some(Window {
                             timestamp,
                             kind: WindowKind::Average(bins),
@@ -126,6 +127,7 @@ impl V2Parser {
                         bins.push(Complex::zero());
                     }
 
+                    log::trace!("Got header, returning window with time {}", timestamp);
                     return_value = Ok(Some(Window {
                         timestamp,
                         kind: WindowKind::Data(bins),
@@ -206,6 +208,11 @@ impl V2Parser {
 
 fn state_for_header(header: Header, fft_size: u32) -> State {
     let timestamp = header.timestamp();
+    log::trace!(
+        "state_for_header {:#010x} => timestamp {}",
+        header.0,
+        timestamp
+    );
     if header.is_fft_header() {
         // FFT
         State::Data {
