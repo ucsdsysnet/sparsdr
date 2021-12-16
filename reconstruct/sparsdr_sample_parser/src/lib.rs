@@ -24,7 +24,7 @@ mod v1;
 mod v2;
 
 pub use self::v1::V1Parser;
-pub use self::v2::V2Parser;
+pub use self::v2::{V2Parser, V2TimeWorkaroundParser};
 
 use num_complex::Complex;
 

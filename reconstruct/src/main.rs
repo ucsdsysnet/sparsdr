@@ -71,7 +71,7 @@ mod setup;
 
 use crate::args::CompressedFormat;
 use sparsdr_reconstruct::input::SampleReader;
-use sparsdr_sample_parser::{Parser, V1Parser, V2Parser};
+use sparsdr_sample_parser::{Parser, V1Parser, V2TimeWorkaroundParser};
 use std::io::{self, Read};
 use std::process;
 use std::sync::atomic::AtomicBool;
@@ -92,7 +92,7 @@ fn run() -> io::Result<()> {
     let parser: Box<dyn Parser> = match args.sample_format {
         CompressedFormat::V1N210 => Box::new(V1Parser::new_n210(args.compression_fft_size)),
         CompressedFormat::V1Pluto => Box::new(V1Parser::new_pluto(args.compression_fft_size)),
-        CompressedFormat::V2 => Box::new(V2Parser::new(
+        CompressedFormat::V2 => Box::new(V2TimeWorkaroundParser::new(
             args.compression_fft_size
                 .try_into()
                 .expect("FFT size too large"),

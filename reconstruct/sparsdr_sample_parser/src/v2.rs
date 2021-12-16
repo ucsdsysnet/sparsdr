@@ -299,3 +299,63 @@ mod fmt_impl {
         }
     }
 }
+
+/// Applies a workaround for an FPGA bug that causes consecutive FFT windows with the same timestamp
+/// in some situations
+pub struct V2TimeWorkaroundParser {
+    inner: V2Parser,
+}
+
+impl V2TimeWorkaroundParser {
+    pub fn new(fft_size: u32) -> Self {
+        V2TimeWorkaroundParser {
+            inner: V2Parser::new(fft_size),
+        }
+    }
+}
+
+impl Parser for V2TimeWorkaroundParser {
+    fn sample_bytes(&self) -> usize {
+        self.inner.sample_bytes()
+    }
+
+    fn parse(&mut self, bytes: &[u8]) -> Result<Option<Window>, ParseError> {
+        self.inner.parse(bytes).map(|maybe_window| {
+            maybe_window.map(|window| apply_window_workaround(window, self.inner.fft_size))
+        })
+    }
+}
+
+fn apply_window_workaround(mut window: Window, fft_size: u32) -> Window {
+    if fft_size < 1024 {
+        match &window.kind {
+            WindowKind::Average(_) => {
+                // No change for average windows
+                window
+            }
+            WindowKind::Data(data) => {
+                match data.iter().position(|bin| !bin.is_zero()) {
+                    Some(index) if index >= (fft_size / 2) as usize => {
+                        // First active bin is in the second half
+                        // Decrease time by 1
+                        window.timestamp = window.timestamp.wrapping_sub(1);
+                        window
+                    }
+                    Some(_index) => {
+                        // First active bin is in the first half
+                        // No change
+                        window
+                    }
+                    None => {
+                        // No change for windows that are all zero (this is not expected
+                        // to happen anyway)
+                        window
+                    }
+                }
+            }
+        }
+    } else {
+        // No change
+        window
+    }
+}
