@@ -51,6 +51,7 @@ pub struct DecompressSetup<'w, I> {
     timestamp_bits: u32,
     /// Capacity of input -> FFT/output stage channels
     channel_capacity: usize,
+    flush_samples: u32,
     /// Stop flag, used to stop compression before the end of the input file
     ///
     /// When this is set to true, all decompression threads will cleanly exit
@@ -59,12 +60,18 @@ pub struct DecompressSetup<'w, I> {
 
 impl<'w, I> DecompressSetup<'w, I> {
     /// Creates a new decompression setup with no bands and default channel capacity
-    pub fn new(source: I, compression_fft_size: usize, timestamp_bits: u32) -> Self {
+    pub fn new(
+        source: I,
+        compression_fft_size: usize,
+        timestamp_bits: u32,
+        flush_samples: u32,
+    ) -> Self {
         DecompressSetup {
             source,
             bands: Vec::new(),
             compression_fft_size,
             timestamp_bits,
+            flush_samples,
             channel_capacity: DEFAULT_CHANNEL_CAPACITY,
             stop: None,
         }
@@ -102,6 +109,7 @@ where
         setup.compression_fft_size,
         setup.timestamp_bits,
         setup.channel_capacity,
+        setup.flush_samples,
     );
 
     // Measure time

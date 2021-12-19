@@ -51,6 +51,8 @@ pub struct Args {
     pub progress_bar: bool,
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
+    /// The number of zero samples written to each reconstructed sample file in time gaps
+    pub flush_samples: u32,
 }
 
 /// General help text
@@ -311,6 +313,15 @@ impl Args {
                         "Capacity of input -> FFT/output stage channels (this option is unstable)",
                     ),
             )
+            .arg(
+                Arg::with_name("flush_samples")
+                    .long("flush-samples")
+                    .takes_value(true)
+                    .default_value("0")
+                    .validator(validate::<u32>)
+                    .value_name("samples")
+                    .help("The number of output zero samples written in time gaps"),
+            )
             .get_matches();
 
         let buffer = !matches.is_present("unbuffered");
@@ -414,6 +425,7 @@ impl Args {
                 .unwrap()
                 .parse()
                 .unwrap(),
+            flush_samples: matches.value_of("flush_samples").unwrap().parse().unwrap(),
         }
     }
 }

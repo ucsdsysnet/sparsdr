@@ -126,25 +126,48 @@ impl<I> Iterator for Overlap<I>
 where
     I: Iterator<Item = Status<TimeWindow>>,
 {
-    type Item = TimeWindow;
+    type Item = FlushWindow;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.inner.next() {
                 Some(Status::Ok(new_window)) => {
                     assert_eq!(new_window.len(), self.window_size, "Incorrect window size");
-                    return self.handle_window(new_window);
+                    return self.handle_window(new_window).map(FlushWindow::not_flushed);
                 }
                 Some(Status::Timeout) => {
                     if let Some(prev) = self.prev_window.take() {
                         // Send the second half of the window
-                        return Some(prev.into_second_half());
+                        return Some(prev.into_second_half()).map(FlushWindow::flushed);
                     } else {
                         // Continue waiting for something to happen
                     }
                 }
-                None => return self.handle_end(),
+                None => return self.handle_end().map(FlushWindow::flushed),
             }
+        }
+    }
+}
+
+/// A time window that may have been flushed due to a timeout status
+#[derive(Debug, Clone)]
+pub struct FlushWindow {
+    /// The window of samples
+    pub window: TimeWindow,
+    /// True if this window was flushed due to a timeout
+    pub flushed: bool,
+}
+impl FlushWindow {
+    fn not_flushed(window: TimeWindow) -> Self {
+        FlushWindow {
+            window,
+            flushed: false,
+        }
+    }
+    fn flushed(window: TimeWindow) -> Self {
+        FlushWindow {
+            window,
+            flushed: true,
         }
     }
 }
@@ -237,7 +260,10 @@ mod test {
         I: IntoIterator<Item = Status<TimeWindow>>,
     {
         let overlap = Overlap::new(windows.into_iter(), window_size);
-        let result = overlap.flatten().collect::<Vec<Complex32>>();
+        let result = overlap
+            .map(|ow| ow.window)
+            .flatten()
+            .collect::<Vec<Complex32>>();
         assert_eq!(&*result, expected);
     }
 }

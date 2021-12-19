@@ -24,7 +24,7 @@ fn main() -> Result<(), io::Error> {
     let stdout = io::stdout();
     let mut output = BufWriter::new(stdout.lock());
 
-    loop {
+    for i in 0u64.. {
         let mut sample_bytes = [0u8; 4];
         if let Err(e) = input.read_exact(&mut sample_bytes) {
             match e.kind() {
@@ -33,7 +33,7 @@ fn main() -> Result<(), io::Error> {
             }
         }
         let sample = u32::from_le_bytes(sample_bytes);
-        writeln!(output, "{:#010x}", sample)?;
+        writeln!(output, "{}: {:#010x}", i, sample)?;
     }
 
     Ok(())

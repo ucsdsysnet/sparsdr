@@ -52,6 +52,7 @@ pub fn set_up_stages_combined<'w, I, B>(
     compression_fft_size: usize,
     timestamp_bits: u32,
     channel_capacity: usize,
+    flush_samples: u32,
 ) -> StagesCombined<'w, I::IntoIter>
 where
     I: IntoIterator<Item = Result<Window>>,
@@ -88,6 +89,7 @@ where
                 fft_size: band_setup.fft_size,
                 fc_bins: band_setup.fc_bins,
                 timeout: band_setup.timeout,
+                flush_samples,
                 outputs: vec![],
             }
         });

@@ -49,6 +49,7 @@ fn main() -> Result<(), io::Error> {
     )?;
 
     let mut sample_index = 0u64;
+    let mut samples_read = 0u64;
     loop {
         let mut sample_bytes = [0u8; 4];
         if let Err(e) = input.read_exact(&mut sample_bytes) {
@@ -103,7 +104,7 @@ fn main() -> Result<(), io::Error> {
                 }
             },
             Err(e) => {
-                if let Err(e) = writeln!(output, "Parse error {:?}", e) {
+                if let Err(e) = writeln!(output, "Parse error {:?} at sample {}", e, samples_read) {
                     if e.kind() == ErrorKind::BrokenPipe {
                         break;
                     } else {
@@ -112,6 +113,7 @@ fn main() -> Result<(), io::Error> {
                 }
             }
         }
+        samples_read += 1;
     }
 
     Ok(())

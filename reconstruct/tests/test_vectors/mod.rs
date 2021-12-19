@@ -76,7 +76,7 @@ pub fn test_with_vectors<P1, P2, P3>(
             bins,
         )
         .center_frequency(center_frequency);
-        let mut setup = DecompressSetup::new(windows_in, COMPRESSION_FFT_SIZE, TIMESTAMP_BITS);
+        let mut setup = DecompressSetup::new(windows_in, COMPRESSION_FFT_SIZE, TIMESTAMP_BITS, 0);
         setup.add_band(band_setup.build());
 
         let info = decompress(setup).expect("Decompress failed");

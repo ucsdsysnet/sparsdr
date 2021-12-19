@@ -22,7 +22,7 @@ use super::bins::choice::choose_bins;
 use super::bins::BinRange;
 
 /// Default timeout before flushing samples to output
-pub const TIMEOUT: Duration = Duration::from_millis(100);
+pub const TIMEOUT: Duration = Duration::from_millis(500);
 
 /// Setup for decompression of one band
 pub struct BandSetup<'w> {

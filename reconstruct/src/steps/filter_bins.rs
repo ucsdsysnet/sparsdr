@@ -19,6 +19,7 @@
 
 use num_complex::Complex32;
 use num_traits::Zero;
+use std::convert::TryFrom;
 
 use crate::bins::BinRange;
 use crate::window::{Logical, Status, Window};
@@ -62,8 +63,20 @@ impl FilterBins {
             }
 
             // Shift
-            let offset = self.bins.middle() - self.fft_size / 2;
-            window.bins_mut().rotate_left(usize::from(offset));
+            let offset = i16::try_from(self.bins.middle()).unwrap()
+                - i16::try_from(self.fft_size / 2).unwrap();
+            log::debug!(
+                "filter_window, self.bins = {}, self.fft_size = {}, window size = {}, offset = {}",
+                self.bins,
+                self.fft_size,
+                window.bins().len(),
+                offset
+            );
+            if offset >= 0 {
+                window.bins_mut().rotate_left(offset as usize);
+            } else {
+                window.bins_mut().rotate_right((-offset) as usize);
+            }
 
             // Truncate
             window.truncate_bins(usize::from(self.fft_size));
@@ -257,6 +270,54 @@ mod test {
                 // Those two nonzero values should stay at the center
                 bins[511] = Complex32::new(3.0, 4.0);
                 bins[512] = Complex32::new(5.0, 6.0);
+            }
+            expected
+        };
+        check_windows(bins, fft_size, window, Some(expected));
+    }
+
+    #[test]
+    fn test_large_fft_before_start() {
+        // 50 bins centered at 15 would run past the beginning of the FFT, but this should
+        // still work.
+        let bins = BinRange::from(10..20);
+        let fft_size = 50u16;
+        let window = {
+            let mut window = Window::new_logical(0, 512);
+            {
+                let bins = window.bins_mut();
+                bins[9] = Complex32::new(0.0, 9.0);
+                // These will show up in the output
+                bins[10] = Complex32::new(0.0, 10.0);
+                bins[11] = Complex32::new(0.0, 11.0);
+                bins[12] = Complex32::new(0.0, 12.0);
+                bins[13] = Complex32::new(0.0, 13.0);
+                bins[14] = Complex32::new(0.0, 14.0);
+                bins[15] = Complex32::new(0.0, 15.0);
+                bins[16] = Complex32::new(0.0, 16.0);
+                bins[17] = Complex32::new(0.0, 17.0);
+                bins[18] = Complex32::new(0.0, 18.0);
+                bins[19] = Complex32::new(0.0, 19.0);
+                // These will not show up in the output
+                bins[20] = Complex32::new(0.0, 20.0);
+            }
+            window
+        };
+        let expected = {
+            let mut expected = Window::new_logical(0, fft_size.into());
+            {
+                let bins = expected.bins_mut();
+                // Bins 10..20 become 20..30
+                bins[20] = Complex32::new(0.0, 10.0);
+                bins[21] = Complex32::new(0.0, 11.0);
+                bins[22] = Complex32::new(0.0, 12.0);
+                bins[23] = Complex32::new(0.0, 13.0);
+                bins[24] = Complex32::new(0.0, 14.0);
+                bins[25] = Complex32::new(0.0, 15.0);
+                bins[26] = Complex32::new(0.0, 16.0);
+                bins[27] = Complex32::new(0.0, 17.0);
+                bins[28] = Complex32::new(0.0, 18.0);
+                bins[29] = Complex32::new(0.0, 19.0);
             }
             expected
         };

@@ -71,7 +71,7 @@ mod setup;
 
 use crate::args::CompressedFormat;
 use sparsdr_reconstruct::input::SampleReader;
-use sparsdr_sample_parser::{Parser, V1Parser, V2TimeWorkaroundParser};
+use sparsdr_sample_parser::{Parser, V1Parser, V2Parser};
 use std::io::{self, Read};
 use std::process;
 use std::sync::atomic::AtomicBool;
@@ -92,7 +92,8 @@ fn run() -> io::Result<()> {
     let parser: Box<dyn Parser> = match args.sample_format {
         CompressedFormat::V1N210 => Box::new(V1Parser::new_n210(args.compression_fft_size)),
         CompressedFormat::V1Pluto => Box::new(V1Parser::new_pluto(args.compression_fft_size)),
-        CompressedFormat::V2 => Box::new(V2TimeWorkaroundParser::new(
+        CompressedFormat::V2 => Box::new(V2Parser::new(
+            // Box::new(V2TimeWorkaroundParser::new(
             args.compression_fft_size
                 .try_into()
                 .expect("FFT size too large"),
@@ -117,8 +118,12 @@ fn run() -> io::Result<()> {
     register(SIGHUP, Arc::clone(&stop_flag))?;
 
     // Configure compression
-    let mut decompress_setup =
-        DecompressSetup::new(windows_in, setup.compression_fft_size, setup.timestamp_bits);
+    let mut decompress_setup = DecompressSetup::new(
+        windows_in,
+        setup.compression_fft_size,
+        setup.timestamp_bits,
+        setup.flush_samples,
+    );
     decompress_setup
         .set_channel_capacity(setup.channel_capacity)
         .set_stop_flag(Arc::clone(&stop_flag));

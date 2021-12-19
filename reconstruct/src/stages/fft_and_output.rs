@@ -75,6 +75,7 @@ pub struct FftAndOutputSetup<'w> {
     pub fc_bins: f32,
     /// Time to wait for a compressed sample before flushing output
     pub timeout: Duration,
+    pub flush_samples: u32,
     /// The output setups
     pub outputs: Vec<OutputSetup<'w>>,
 }
@@ -142,7 +143,7 @@ pub fn run_fft_and_output_stage(
     for window in fft_chain {
         for (frequency_correct, destination, time_log) in output_chains.iter_mut() {
             let mut output_window = window.clone();
-            frequency_correct.correct_samples(output_window.samples_mut());
+            frequency_correct.correct_samples(output_window.window.samples_mut());
             // time_log borrowing
             let time_log: Option<&mut (dyn Write + Send)> = match time_log {
                 Some(time_log) => Some(&mut *time_log),
@@ -152,6 +153,7 @@ pub fn run_fft_and_output_stage(
                 destination,
                 iter::once(output_window),
                 &out_block_logger,
+                setup.flush_samples,
                 time_log,
             )?;
             total_samples = total_samples.saturating_add(samples);

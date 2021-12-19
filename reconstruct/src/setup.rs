@@ -50,6 +50,7 @@ pub struct Setup {
     pub progress_bar: bool,
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
+    pub flush_samples: u32,
 }
 
 /// The setup for decompressing a band
@@ -115,6 +116,7 @@ impl Setup {
             bands,
             progress_bar: args.progress_bar,
             channel_capacity: args.channel_capacity,
+            flush_samples: args.flush_samples,
         })
     }
 }

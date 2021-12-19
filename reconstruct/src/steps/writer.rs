@@ -24,7 +24,8 @@ use libc::{clock_gettime, timespec};
 use num_complex::Complex32;
 
 use crate::blocking::BlockLogger;
-use crate::window::{Tag, TimeWindow};
+use crate::steps::overlap::FlushWindow;
+use crate::window::Tag;
 
 /// Writes samples to a destination
 #[derive(Debug, Default)]
@@ -50,20 +51,33 @@ impl Writer {
         mut destination: W,
         windows: I,
         logger: &BlockLogger,
+        flush_samples: u32,
         mut time_log: Option<&mut (dyn Write + Send)>,
     ) -> Result<u64>
     where
         W: Write,
-        I: IntoIterator<Item = TimeWindow>,
+        I: IntoIterator<Item = FlushWindow>,
     {
         let mut samples_written = 0;
 
         for window in windows {
-            logger.log_blocking(|| self.write_samples(&mut destination, window.samples()))?;
-            samples_written += window.len() as u64;
+            logger.log_blocking(|| -> Result<()> {
+                self.write_samples(&mut destination, window.window.samples())?;
+                if window.flushed {
+                    log::debug!("Flushing with zero samples");
+                    // Add some zero samples to make the decoders actually run
+                    let sample_bytes = [0u8; 8];
+                    for _ in 0..flush_samples {
+                        destination.write_all(&sample_bytes)?;
+                    }
+                    destination.flush()?;
+                }
+                Ok(())
+            })?;
+            samples_written += window.window.len() as u64;
 
             if let Some(ref mut log) = time_log {
-                if let Some(tag) = window.tag() {
+                if let Some(tag) = window.window.tag() {
                     // Sample index is the index of the last sample in this window
                     log_window(log, tag, self.sample_index)?;
                 }
