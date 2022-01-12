@@ -55,11 +55,14 @@ public:
      * \param format_version The compressed sample format version that
      * corresponds to the FPGA image on the USRP (1 or 2)
      * \param bands A list of bands to reconstruct
+     * \param zero_gaps true to insert zero samples in the output(s) for periods
+     * when there were no active signals
      */
     static sptr make(const ::uhd::device_addr_t& device_addr,
                      int format_version,
                      const std::vector<band_spec>& bands,
-                     const std::string& reconstruct_path = "sparsdr_reconstruct");
+                     const std::string& reconstruct_path = "sparsdr_reconstruct",
+                     bool zero_gaps = false);
 
     // Compressing USRP source delegated functions
     // For documentation, see compressing_usrp_source.h

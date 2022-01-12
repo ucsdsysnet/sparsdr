@@ -51,10 +51,11 @@ std::string make_pipe_path(const std::string& temp_dir, std::size_t index)
 
 reconstruct::sptr reconstruct::make(std::vector<band_spec> bands,
                                     const std::string& reconstruct_path,
-                                    const std::string& sample_format)
+                                    const std::string& sample_format,
+                                    bool zero_gaps)
 {
     return gnuradio::get_initial_sptr(
-        new reconstruct_impl(bands, reconstruct_path, sample_format));
+        new reconstruct_impl(bands, reconstruct_path, sample_format, zero_gaps));
 }
 
 /*
@@ -62,7 +63,8 @@ reconstruct::sptr reconstruct::make(std::vector<band_spec> bands,
  */
 reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
                                    const std::string& reconstruct_path,
-                                   const std::string& sample_format)
+                                   const std::string& sample_format,
+                                   bool zero_gaps)
     : gr::hier_block2(
           "reconstruct",
           // One input for compressed samples
@@ -76,10 +78,10 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
       d_temp_dir(),
       d_child(0)
 {
-    start_subprocess(sample_format);
+    start_subprocess(sample_format, zero_gaps);
 }
 
-void reconstruct_impl::start_subprocess(const std::string& sample_format)
+void reconstruct_impl::start_subprocess(const std::string& sample_format, bool zero_gaps)
 {
     // Start assembling the command
     std::vector<std::string> arguments;
@@ -89,6 +91,9 @@ void reconstruct_impl::start_subprocess(const std::string& sample_format)
     // Debug log output
     arguments.push_back("--log-level");
     arguments.push_back("INFO");
+    if (zero_gaps) {
+        arguments.push_back("--zero-gaps");
+    }
 
     // Sample format
     if (sample_format == "N210 v1") {
@@ -143,7 +148,8 @@ void reconstruct_impl::start_subprocess(const std::string& sample_format)
         arguments.push_back("--reconstruct-band");
         std::stringstream arg_stream;
         // Selection bins and FFT bins are currently the same
-        arg_stream << iter->bins() << ":" << iter->bins() << ":" << iter->frequency() << ":" << pipe_path;
+        arg_stream << iter->bins() << ":" << iter->bins() << ":" << iter->frequency()
+                   << ":" << pipe_path;
         arguments.push_back(arg_stream.str());
     }
 

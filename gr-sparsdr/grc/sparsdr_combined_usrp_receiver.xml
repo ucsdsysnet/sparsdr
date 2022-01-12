@@ -108,7 +108,7 @@ $(id)_bands.push_back(sparsdr.band_spec($band_30_frequency, $band_30_bins))
 #if $band_count() > 31
 $(id)_bands.push_back(sparsdr.band_spec($band_31_frequency, $band_31_bins))
 #end if
-self.$(id) = $(id) = sparsdr.combined_usrp_receiver(device_addr=uhd.device_addr($device_addr), format_version=$format_version, bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path))
+self.$(id) = $(id) = sparsdr.combined_usrp_receiver(device_addr=uhd.device_addr($device_addr), format_version=$format_version, bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path), zero_gaps=$zero_gaps)
 
 self.$(id).set_antenna($antenna)
 self.$(id).set_gain($gain)
@@ -176,6 +176,14 @@ self.$(id).start_all()
     <key>band_count</key>
     <value>1</value>
     <type>int</type>
+  </param>
+  <param>
+    <name>Zero samples in gaps</name>
+    <key>zero_gaps</key>
+    <value>False</value>
+		<type>enum</type>
+		<option><name>True</name><key>True</key></option>
+		<option><name>False</name><key>False</key></option>
   </param>
 
   <!-- Band parameters -->

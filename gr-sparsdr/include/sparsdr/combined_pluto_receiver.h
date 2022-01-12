@@ -53,11 +53,14 @@ public:
      * \param buffer_size The number of samples in the buffer used to receive
      * compressed samples from the Pluto
      * \param bands a list of bands to reconstruct
+     * \param zero_gaps true to insert zero samples in the output(s) for periods
+     * when there were no active signals
      */
     static sptr make(const std::string& uri,
                      std::size_t buffer_size,
                      const std::vector<band_spec>& bands,
-                     const std::string& reconstruct_path = "sparsdr_reconstruct");
+                     const std::string& reconstruct_path = "sparsdr_reconstruct",
+                     bool zero_gaps = false);
 
     // Compressing pluto source delegate functions
     virtual void set_frequency(unsigned long long frequency) = 0;

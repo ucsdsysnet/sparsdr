@@ -106,7 +106,7 @@ $(id)_bands.push_back(sparsdr.band_spec($band_30_frequency, $band_30_bins))
 #if $band_count() > 31
 $(id)_bands.push_back(sparsdr.band_spec($band_31_frequency, $band_31_bins))
 #end if
-self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path), sample_format=$compressed_format)
+self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path), sample_format=$compressed_format, zero_gaps=$zero_gaps)
 
   </var_make>
   <!-- Use var_make instead -->
@@ -146,6 +146,14 @@ self.$(id) = $(id) = sparsdr.reconstruct(bands=$(id)_bands, reconstruct_path=dis
       <name>Pluto v2</name>
       <key>Pluto v2</key>
     </option>
+  </param>
+  <param>
+    <name>Zero samples in gaps</name>
+    <key>zero_gaps</key>
+    <value>False</value>
+		<type>enum</type>
+		<option><name>True</name><key>True</key></option>
+		<option><name>False</name><key>False</key></option>
   </param>
 
 
