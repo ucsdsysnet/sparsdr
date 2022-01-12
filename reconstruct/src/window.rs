@@ -426,6 +426,11 @@ impl TimeWindow {
     pub fn tag(&self) -> Option<&Tag> {
         self.tag.as_ref()
     }
+
+    /// Consumes this window and returns its samples
+    pub fn into_samples(self) -> Vec<Complex32> {
+        self.samples
+    }
 }
 
 /// Converts a time-domain window into an iterator over its samples
@@ -448,6 +453,21 @@ pub enum Status<T> {
     /// This indicates that later steps should flush any buffered data instead of waiting
     /// for more compressed samples
     Timeout,
+    /// Every FFT and output stage gets this, which contains the timestamp of the first window
+    /// of samples read from the file. The overlap step uses this to insert zeros before the
+    /// first reconstructed time window.
+    ///
+    /// The timestamp is in half-windows (1024 samples at 100 MHz sample rate for the USRP N210)
+    FirstWindowTime(u64),
+}
+
+/// A window, or the timestamp of the first window
+#[derive(Debug)]
+pub enum WindowOrTimestamp {
+    /// A window
+    Window(Window<Logical>),
+    /// The timestamp of the first window
+    FirstWindowTimestamp(u64),
 }
 
 #[cfg(test)]

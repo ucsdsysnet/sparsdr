@@ -18,9 +18,12 @@
 use std::fs::{self, File};
 use std::io::{self, BufReader, BufWriter, Read, Result, Write};
 
-use crate::args::CompressedFormat;
 use log::debug;
 use simplelog::LevelFilter;
+
+use sparsdr_reconstruct::steps::overlap::OverlapMode;
+
+use crate::args::CompressedFormat;
 
 use super::args::Args;
 use super::args::BandArgs;
@@ -50,7 +53,7 @@ pub struct Setup {
     pub progress_bar: bool,
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
-    pub flush_samples: u32,
+    pub overlap_mode: OverlapMode,
 }
 
 /// The setup for decompressing a band
@@ -116,7 +119,7 @@ impl Setup {
             bands,
             progress_bar: args.progress_bar,
             channel_capacity: args.channel_capacity,
-            flush_samples: args.flush_samples,
+            overlap_mode: args.overlap,
         })
     }
 }

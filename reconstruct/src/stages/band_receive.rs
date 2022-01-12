@@ -20,7 +20,7 @@ use std::time::Duration;
 use crossbeam::channel::RecvTimeoutError;
 
 use crate::channel_ext::LoggingReceiver;
-use crate::window::{Logical, Status, Window};
+use crate::window::{Logical, Status, Window, WindowOrTimestamp};
 
 /// Receives windows over a channel from the reading/filtering subsystem
 /// and detects timeouts
@@ -29,7 +29,7 @@ use crate::window::{Logical, Status, Window};
 /// Status::Timeout if no window is received in time.
 pub struct BandReceiver<'r> {
     /// Compressed window receiver
-    window_rx: &'r LoggingReceiver<Window<Logical>>,
+    window_rx: &'r LoggingReceiver<WindowOrTimestamp>,
     /// Timeout duration
     timeout: Duration,
 }
@@ -40,7 +40,7 @@ impl<'r> BandReceiver<'r> {
     /// window_rx: A receiver that will receive matching windows
     ///
     /// timeout: The approximate time to wait before sending a Timeout state
-    pub fn new(window_rx: &'r LoggingReceiver<Window<Logical>>, timeout: Duration) -> Self {
+    pub fn new(window_rx: &'r LoggingReceiver<WindowOrTimestamp>, timeout: Duration) -> Self {
         BandReceiver { window_rx, timeout }
     }
 }
@@ -50,9 +50,12 @@ impl<'r> Iterator for BandReceiver<'r> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.window_rx.recv_timeout(self.timeout) {
-            Ok(window) => {
+            Ok(WindowOrTimestamp::Window(window)) => {
                 // Send the window
                 Some(Status::Ok(window))
+            }
+            Ok(WindowOrTimestamp::FirstWindowTimestamp(timestamp)) => {
+                Some(Status::FirstWindowTime(timestamp))
             }
             Err(RecvTimeoutError::Timeout) => {
                 // Send a timeout

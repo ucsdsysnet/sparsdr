@@ -77,11 +77,18 @@ pub trait IterExt {
     }
 
     /// Overlaps windows with consecutive time values
-    fn overlap(self, window_size: usize) -> Overlap<Self>
+    fn overlap_gaps(self, window_size: usize) -> Overlap<Self>
     where
         Self: Iterator<Item = Status<TimeWindow>> + Sized,
     {
-        Overlap::new(self, window_size)
+        Overlap::new_gaps(self, window_size)
+    }
+    /// Overlaps windows with consecutive time values
+    fn overlap_flush(self, window_size: usize) -> Overlap<Self>
+    where
+        Self: Iterator<Item = Status<TimeWindow>> + Sized,
+    {
+        Overlap::new_flush(self, window_size)
     }
 
     /// Applies frequency correction to time-domain samples

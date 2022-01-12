@@ -83,6 +83,9 @@ macro_rules! try_status {
         match $e {
             Some(crate::window::Status::Ok(item)) => item,
             Some(crate::window::Status::Timeout) => return Some(crate::window::Status::Timeout),
+            Some(crate::window::Status::FirstWindowTime(time)) => {
+                return Some(crate::window::Status::FirstWindowTime(time))
+            }
             None => return None,
         }
     };

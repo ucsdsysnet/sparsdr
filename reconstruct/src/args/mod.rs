@@ -25,6 +25,7 @@ use std::str::FromStr;
 
 use clap::{App, Arg};
 use simplelog::LevelFilter;
+use sparsdr_reconstruct::steps::overlap::OverlapMode;
 
 pub use self::band_args::BandArgs;
 
@@ -51,8 +52,8 @@ pub struct Args {
     pub progress_bar: bool,
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
-    /// The number of zero samples written to each reconstructed sample file in time gaps
-    pub flush_samples: u32,
+    /// The overlap mode
+    pub overlap: OverlapMode,
 }
 
 /// General help text
@@ -322,6 +323,10 @@ impl Args {
                     .value_name("samples")
                     .help("The number of output zero samples written in time gaps"),
             )
+            .arg(Arg::with_name("zero_gaps")
+                .long("zero-gaps")
+                .conflicts_with("flush_samples")
+                .help("Produces zero samples in the output file(s) representing periods with no active signals"))
             .get_matches();
 
         let buffer = !matches.is_present("unbuffered");
@@ -410,6 +415,16 @@ impl Args {
             vec![band]
         };
 
+        let overlap = if matches.is_present("zero_gaps") {
+            OverlapMode::Gaps
+        } else {
+            let flush_samples = matches
+                .value_of("flush_samples")
+                .map(|samples| samples.parse().unwrap())
+                .unwrap_or(0);
+            OverlapMode::Flush(flush_samples)
+        };
+
         Args {
             source_path: matches.value_of_os("source").map(PathBuf::from),
             buffer,
@@ -425,7 +440,7 @@ impl Args {
                 .unwrap()
                 .parse()
                 .unwrap(),
-            flush_samples: matches.value_of("flush_samples").unwrap().parse().unwrap(),
+            overlap,
         }
     }
 }

@@ -18,18 +18,19 @@
 //! The input stage of the decompression, which reads samples from a source, groups them
 //! into windows, and shifts them into logical order
 
-use crate::blocking::BlockLogs;
-use num_traits::Zero;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::io::{Error, ErrorKind, Result};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+use num_traits::Zero;
+
 use crate::bins::BinRange;
+use crate::blocking::BlockLogs;
 use crate::channel_ext::LoggingSender;
 use crate::iter_ext::IterExt;
-use crate::window::{Logical, Tag, Window};
+use crate::window::{Logical, Tag, Window, WindowOrTimestamp};
 
 /// The setup for the input stage
 pub struct InputSetup<I> {
@@ -48,7 +49,7 @@ pub struct ToFft {
     /// The range of bins the FFT stage is interested in
     pub bins: BinRange,
     /// A sender on the channel to the FFT stage
-    pub tx: LoggingSender<Window<Logical>>,
+    pub tx: LoggingSender<WindowOrTimestamp>,
 }
 
 impl ToFft {
@@ -63,7 +64,7 @@ impl ToFft {
             .as_usize_range()
             .any(|index| !window.bins()[index].is_zero());
         if interested {
-            match self.tx.send(window.clone()) {
+            match self.tx.send(WindowOrTimestamp::Window(window.clone())) {
                 Ok(()) => Ok(true),
                 Err(_) => {
                     // This can happen when using the stop flag if the other thread stops before
@@ -79,6 +80,12 @@ impl ToFft {
             // Not interested, don't send
             Ok(false)
         }
+    }
+
+    pub fn send_first_window_time(&self, time: u64) {
+        self.tx
+            .send(WindowOrTimestamp::FirstWindowTimestamp(time))
+            .expect("Can't send first window time");
     }
 }
 
@@ -103,6 +110,7 @@ where
         );
 
     let mut prev_window_time: Option<u64> = None;
+    let mut first_window = true;
 
     // Process windows
     for window in shift {
@@ -122,6 +130,15 @@ where
         let window_tag = next_tag;
         window.set_tag(window_tag);
         next_tag = next_tag.next();
+
+        if first_window {
+            // Send the timestamp to every FFT stage
+            log::debug!("Sending first window timestamp {}", window.time());
+            for fft_stage in &setup.destinations {
+                fft_stage.send_first_window_time(window.time());
+            }
+            first_window = false;
+        }
 
         // Send to each interested FFT stage
         for fft_stage in setup.destinations.iter() {

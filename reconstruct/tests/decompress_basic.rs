@@ -34,7 +34,7 @@ fn test_empty() {
         let band_setup = BandSetupBuilder::new(Box::new(&mut destination), 100e6, 2048, 2048, 2048)
             .bins(2048)
             .center_frequency(0.0);
-        let mut setup = DecompressSetup::new(empty_source, 2048, 20, 0);
+        let mut setup = DecompressSetup::new(empty_source, 2048, 20);
         setup.add_band(band_setup.build());
         decompress(setup).expect("Decompress failed");
     }

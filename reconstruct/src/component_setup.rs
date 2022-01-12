@@ -27,7 +27,8 @@ use crate::bins::BinRange;
 use crate::channel_ext::{LoggingReceiver, LoggingSender};
 use crate::stages::fft_and_output::{FftAndOutputSetup, OutputSetup};
 use crate::stages::input::{InputSetup, ToFft};
-use crate::window::Window;
+use crate::steps::overlap::OverlapMode;
+use crate::window::{Window, WindowOrTimestamp};
 
 /// Setups for the input stage, and the combined FFT and output stages
 pub struct StagesCombined<'w, I> {
@@ -52,7 +53,7 @@ pub fn set_up_stages_combined<'w, I, B>(
     compression_fft_size: usize,
     timestamp_bits: u32,
     channel_capacity: usize,
-    flush_samples: u32,
+    overlap_mode: OverlapMode,
 ) -> StagesCombined<'w, I::IntoIter>
 where
     I: IntoIterator<Item = Result<Window>>,
@@ -74,8 +75,8 @@ where
         let fft_setup = ffts.entry(key(&band_setup)).or_insert_with(|| {
             // Create a new channel to this FFT stage
             let (tx, rx) = channel::bounded(channel_capacity);
-            let tx = LoggingSender::new(tx);
-            let rx = LoggingReceiver::new(rx);
+            let tx: LoggingSender<WindowOrTimestamp> = LoggingSender::new(tx);
+            let rx: LoggingReceiver<WindowOrTimestamp> = LoggingReceiver::new(rx);
 
             log::debug!("Band bin range {}", band_setup.bins);
             input.destinations.push(ToFft {
@@ -89,7 +90,7 @@ where
                 fft_size: band_setup.fft_size,
                 fc_bins: band_setup.fc_bins,
                 timeout: band_setup.timeout,
-                flush_samples,
+                overlap: overlap_mode.clone(),
                 outputs: vec![],
             }
         });

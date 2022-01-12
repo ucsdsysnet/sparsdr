@@ -118,15 +118,12 @@ fn run() -> io::Result<()> {
     register(SIGHUP, Arc::clone(&stop_flag))?;
 
     // Configure compression
-    let mut decompress_setup = DecompressSetup::new(
-        windows_in,
-        setup.compression_fft_size,
-        setup.timestamp_bits,
-        setup.flush_samples,
-    );
+    let mut decompress_setup =
+        DecompressSetup::new(windows_in, setup.compression_fft_size, setup.timestamp_bits);
     decompress_setup
         .set_channel_capacity(setup.channel_capacity)
-        .set_stop_flag(Arc::clone(&stop_flag));
+        .set_stop_flag(Arc::clone(&stop_flag))
+        .set_overlap_mode(setup.overlap_mode);
     for band in setup.bands {
         let band_setup = BandSetupBuilder::new(
             band.destination,

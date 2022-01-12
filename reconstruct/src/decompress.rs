@@ -34,6 +34,7 @@ use crate::component_setup::set_up_stages_combined;
 use crate::stages::fft_and_output::{run_fft_and_output_stage, FftOutputReport};
 use crate::stages::input::run_input_stage;
 use crate::stages::input::InputReport;
+use crate::steps::overlap::OverlapMode;
 use crate::window::Window;
 
 /// Default channel capacity value
@@ -51,7 +52,7 @@ pub struct DecompressSetup<'w, I> {
     timestamp_bits: u32,
     /// Capacity of input -> FFT/output stage channels
     channel_capacity: usize,
-    flush_samples: u32,
+    overlap_mode: OverlapMode,
     /// Stop flag, used to stop compression before the end of the input file
     ///
     /// When this is set to true, all decompression threads will cleanly exit
@@ -60,18 +61,13 @@ pub struct DecompressSetup<'w, I> {
 
 impl<'w, I> DecompressSetup<'w, I> {
     /// Creates a new decompression setup with no bands and default channel capacity
-    pub fn new(
-        source: I,
-        compression_fft_size: usize,
-        timestamp_bits: u32,
-        flush_samples: u32,
-    ) -> Self {
+    pub fn new(source: I, compression_fft_size: usize, timestamp_bits: u32) -> Self {
         DecompressSetup {
             source,
             bands: Vec::new(),
             compression_fft_size,
             timestamp_bits,
-            flush_samples,
+            overlap_mode: OverlapMode::Flush(0),
             channel_capacity: DEFAULT_CHANNEL_CAPACITY,
             stop: None,
         }
@@ -95,6 +91,12 @@ impl<'w, I> DecompressSetup<'w, I> {
         self.bands.push(band);
         self
     }
+
+    /// Sets the overlap/flush mode
+    pub fn set_overlap_mode(&mut self, overlap_mode: OverlapMode) -> &mut Self {
+        self.overlap_mode = overlap_mode;
+        self
+    }
 }
 
 /// Decompresses bands using the provided setup and returns information about the decompression
@@ -109,7 +111,7 @@ where
         setup.compression_fft_size,
         setup.timestamp_bits,
         setup.channel_capacity,
-        setup.flush_samples,
+        setup.overlap_mode,
     );
 
     // Measure time
