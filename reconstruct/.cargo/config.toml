@@ -1,0 +1,5 @@
+
+# When cross-compiling for the Pluto, link cross-compiled libraries
+
+[target.armv7-unknown-linux-gnueabihf]
+rustflags = ["-L/home/samcrow/Documents/CurrentClasses/Research/Compression/pluto/pluto-sysroot/usr/lib"]
