@@ -69,6 +69,8 @@ const PLUTO_DEFAULT_COMPRESSION_FFT_SIZE: usize = 1024;
 const PLUTO_COMPRESSED_BANDWIDTH: f32 = 61.44e6;
 const N210_TIMESTAMP_BITS: u32 = 20;
 const PLUTO_TIMESTAMP_BITS: u32 = 21;
+/// Compressed format version 2, from either device, has 30 full bits of timestamp
+const V2_TIMESTAMP_BITS: u32 = 30;
 
 impl Args {
     pub fn get() -> Self {
@@ -186,7 +188,7 @@ impl Args {
                         "pluto_v2_defaults",
                     ])
                     .help(
-                        "The number of bits in the FPGA's window timestamp counter \
+                        "The number of bits in the FPGA's window timestamp counter that are sent \
                 (used to correct timestamp overflow)",
                     ),
             )
@@ -223,7 +225,7 @@ impl Args {
                     .help(
                         "Sets default values for a USRP N210 using compressed sample format \
                 version 2 (equivalent to --compressed-bandwidth 100e6 --compression-fft-size \
-                2048 --sample-format v2 --timestamp-bits 20)",
+                2048 --sample-format v2 --timestamp-bits 30)",
                     ),
             )
             .arg(
@@ -259,7 +261,7 @@ impl Args {
                     .help(
                         "Sets default values for a Pluto using compressed sample format \
                 version 2 (equivalent to --compressed-bandwidth 61.44e6 --compression-fft-size \
-                1024 --sample-format v2 --timestamp-bits 21)",
+                1024 --sample-format v2 --timestamp-bits 30)",
                     ),
             )
             .arg(
@@ -344,7 +346,7 @@ impl Args {
                     N210_DEFAULT_COMPRESSION_FFT_SIZE,
                     N210_COMPRESSED_BANDWIDTH,
                     CompressedFormat::V2,
-                    N210_TIMESTAMP_BITS,
+                    V2_TIMESTAMP_BITS,
                 )
             } else if matches.is_present("pluto_v1_defaults") {
                 (
@@ -358,7 +360,7 @@ impl Args {
                     PLUTO_DEFAULT_COMPRESSION_FFT_SIZE,
                     PLUTO_COMPRESSED_BANDWIDTH,
                     CompressedFormat::V2,
-                    PLUTO_TIMESTAMP_BITS,
+                    V2_TIMESTAMP_BITS,
                 )
             } else {
                 // Values must be specified individually
