@@ -15,7 +15,8 @@
 from sys import stdin
 from struct import unpack
 
-fft_size_log2 = 10
+fft_size_log2     = 9
+max_fft_size_log2 = 10
 
 n               = int(0)
 fft_time_offset = int(0)
@@ -23,8 +24,8 @@ avg_time_offset = int(0)
 last_fft_time   = int(0)
 last_avg_time   = int(0)
 
-index_mask = (2**fft_size_log2)-1
-time_bits  = 32-1-fft_size_log2
+index_mask = (2**max_fft_size_log2)-1
+time_bits  = 32-1-max_fft_size_log2
 time_mask  = (2**(time_bits))-1
 
 # Clock is 61.44MHz, and we cut (fft_size_log-1) bits to show start of window
