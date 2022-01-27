@@ -66,21 +66,25 @@ impl V2Parser {
         let return_value;
         self.state = match state {
             State::Idle => {
+                if sample == 0x0 {
+                    // Got zero, advance and check for the header
+                    return_value = Ok(None);
+                    State::Zero
+                } else {
+                    // No change
+                    return_value = Ok(None);
+                    State::Idle
+                }
+            }
+            State::Zero => {
                 let header = Header(sample);
                 if header.is_valid() {
                     log::debug!("Got header with time {}", header.timestamp());
                     return_value = Ok(None);
                     state_for_header(header, self.fft_size)
-                } else if sample == 0x0 {
-                    // Spurious zero samples are not errors
-                    return_value = Ok(None);
-                    State::Idle
                 } else {
-                    log::error!(
-                        "In state Initial, unexpected sample {:#x} (not a data or average header)",
-                        sample
-                    );
-                    return_value = Err(ParseError(()));
+                    // Still in some partially-cut-off window, go back to idle
+                    return_value = Ok(None);
                     State::Idle
                 }
             }
@@ -103,7 +107,7 @@ impl V2Parser {
                             timestamp,
                             kind: WindowKind::Average(bins),
                         }));
-                        State::Idle
+                        State::Zero
                     } else {
                         log::error!("In state Average, after receiving all {} averages, got a non-zero sample {:#x}", self.fft_size, sample);
                         return_value = Err(ParseError(()));
@@ -231,8 +235,10 @@ fn state_for_header(header: Header, fft_size: u32) -> State {
 
 /// Parser states
 enum State {
-    /// Waiting for the first sample
+    /// Waiting for a zero sample
     Idle,
+    /// Got a zero sample, the next sample may be a header
+    Zero,
     /// Receiving a window of averages
     Average {
         /// The timestamp of these averages, in units of overlapped FFT intervals
@@ -280,6 +286,7 @@ mod fmt_impl {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result {
             match self {
                 State::Idle => f.debug_struct("Idle").finish(),
+                State::Zero => f.debug_struct("Zero").finish(),
                 State::Average { timestamp, bins } => f
                     .debug_struct("Average")
                     .field("timestamp", timestamp)

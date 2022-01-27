@@ -52,6 +52,8 @@ fn basic_1_bin() {
     LOG_INIT.call_once(log_init);
 
     let mut parser = V2Parser::new(1);
+    // Mandatory zero at beginning
+    assert_eq!(Ok(None), parser.accept(0));
     // Begin FFT window
     assert_eq!(Ok(None), parser.accept(HEADER_BIT | 37));
     // Bin index 0
@@ -99,6 +101,8 @@ fn basic_2_bins() {
     LOG_INIT.call_once(log_init);
 
     let mut parser = V2Parser::new(2);
+    // Mandatory zero at beginning
+    assert_eq!(Ok(None), parser.accept(0));
     // Begin FFT window
     assert_eq!(Ok(None), parser.accept(HEADER_BIT | 37));
     // Bin index 0
@@ -182,6 +186,8 @@ fn basic_2_bins() {
 fn basic_8_bins() {
     LOG_INIT.call_once(log_init);
     let mut parser = V2Parser::new(8);
+    // Mandatory zero at beginning
+    assert_eq!(Ok(None), parser.accept(0));
     // Begin FFT window
     assert_eq!(Ok(None), parser.accept(HEADER_BIT | MAX_TIME));
     // Two values at indexes 2 and 3
@@ -214,6 +220,51 @@ fn basic_8_bins() {
     );
 }
 
+/// There's a cut-off end of a window at the beginning of the file, and the real header is not until
+/// later. The parser should ignore all samples before the first [zero, header] sequence.
+#[test]
+fn header_not_at_beginning() {
+    LOG_INIT.call_once(log_init);
+    let mut parser = V2Parser::new(1024);
+    // The last zero is required to make the real header recognized as a header
+    let cutoff_window_samples: [u32; 19] = [
+        0x00000000, 0x00000194, 0x000e0031, 0xffc8ffb3, 0x0058001c, 0xff420079, 0x0126ffaf,
+        0x007b00d8, 0xfefcfca0, 0x005601d4, 0xfb1501f9, 0x08f7fc66, 0xfae601e6, 0x017b031e,
+        0xfe62fc29, 0x00b80146, 0x002bffb4, 0xffe60007, 0x00000000,
+    ];
+    for sample in cutoff_window_samples {
+        assert_eq!(Ok(None), parser.accept(sample));
+    }
+    // The real samples, including the zero at the end
+    let real_window_samples: [u32; 7] = [
+        0xb1472ba5, 0x0000005c, 0x00300037, 0x0015ffd1, 0x000b0033, 0xffe00040, 0x00000000,
+    ];
+    for sample in real_window_samples {
+        assert_eq!(Ok(None), parser.accept(sample));
+    }
+    let expected_window = Window {
+        timestamp: 826747813,
+        kind: WindowKind::Data({
+            let mut bins = vec![Complex::default(); 1024];
+            bins[92] = Complex::new(0x0030, 0x0037);
+            bins[93] = Complex::new(0x0015, 0xffd1_u16 as i16);
+            bins[94] = Complex::new(0x000b, 0x0033);
+            bins[95] = Complex::new(0xffe0_u16 as i16, 0x0040);
+            bins
+        }),
+    };
+
+    // Parse the header of the next window to produce the current window
+    let actual_window = parser.accept(0xb1472ba6).unwrap().unwrap();
+    assert_eq!(expected_window.timestamp, actual_window.timestamp);
+    match (expected_window.kind, actual_window.kind) {
+        (WindowKind::Data(expected_bins), WindowKind::Data(actual_bins)) => {
+            assert_bins_equal(&expected_bins, &actual_bins);
+        }
+        _ => panic!("Non-matching window kinds"),
+    }
+}
+
 trait TestParserExt {
     fn accept(&mut self, sample: u32) -> Result<Option<Window>, ParseError>;
 }
@@ -221,4 +272,17 @@ impl TestParserExt for V2Parser {
     fn accept(&mut self, sample: u32) -> Result<Option<Window>, ParseError> {
         self.parse(&sample.to_le_bytes())
     }
+}
+
+fn assert_bins_equal(bins1: &[Complex<i16>], bins2: &[Complex<i16>]) {
+    assert_eq!(bins1.len(), bins2.len());
+
+    let mut any_mismatch = false;
+    for (i, (bin1, bin2)) in bins1.iter().zip(bins2.iter()).enumerate() {
+        if bin1 != bin2 {
+            println!("Mismatch at index {}: {} != {}", i, bin1, bin2);
+            any_mismatch = true;
+        }
+    }
+    assert!(!any_mismatch);
 }
