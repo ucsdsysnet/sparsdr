@@ -57,6 +57,7 @@ tempfile = "3.0.6"
 image = "0.23.14"
 statrs = "0.15.0"
 regex = "1.5.4"
+matfile = "0.3.1"
 
 [[bench]]
 name = "micro"

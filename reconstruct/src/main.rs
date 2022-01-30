@@ -123,7 +123,8 @@ fn run() -> io::Result<()> {
     decompress_setup
         .set_channel_capacity(setup.channel_capacity)
         .set_stop_flag(Arc::clone(&stop_flag))
-        .set_overlap_mode(setup.overlap_mode);
+        .set_overlap_mode(setup.overlap_mode)
+        .set_downsample_output(setup.downsample_output);
     for band in setup.bands {
         let band_setup = BandSetupBuilder::new(
             band.destination,

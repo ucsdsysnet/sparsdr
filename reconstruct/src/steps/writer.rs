@@ -52,6 +52,7 @@ impl Writer {
         windows: I,
         logger: &BlockLogger,
         flush_samples: u32,
+        downsample: bool,
         mut time_log: Option<&mut (dyn Write + Send)>,
     ) -> Result<u64>
     where
@@ -62,7 +63,7 @@ impl Writer {
 
         for window in windows {
             logger.log_blocking(|| -> Result<()> {
-                self.write_samples(&mut destination, window.window.samples())?;
+                self.write_samples(&mut destination, window.window.samples(), downsample)?;
                 if window.flushed {
                     log::debug!("Flushing with zero samples");
                     // Add some zero samples to make the decoders actually run
@@ -90,11 +91,17 @@ impl Writer {
     ///
     /// Each sample is written as two little-endian 32-bit floating-point values, first the real
     /// part and then the imaginary part.
-    fn write_samples<W>(&mut self, mut destination: W, samples: &[Complex32]) -> Result<()>
+    fn write_samples<W>(
+        &mut self,
+        mut destination: W,
+        samples: &[Complex32],
+        downsample: bool,
+    ) -> Result<()>
     where
         W: Write,
     {
-        for sample in samples {
+        let step = if downsample { 2 } else { 1 };
+        for sample in samples.iter().step_by(step) {
             destination.write_f32::<LE>(sample.re)?;
             destination.write_f32::<LE>(sample.im)?;
 

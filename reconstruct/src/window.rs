@@ -160,6 +160,7 @@ where
     }
 
     /// Returns the timestamp of this window
+    #[inline]
     pub fn time(&self) -> u64 {
         self.time
     }
@@ -169,11 +170,13 @@ where
     }
 
     /// Returns a reference to the bins
+    #[inline]
     pub fn bins(&self) -> &[Complex32] {
         &self.bins
     }
 
     /// Returns a mutable reference to the bins
+    #[inline]
     pub fn bins_mut(&mut self) -> &mut [Complex32] {
         &mut self.bins
     }

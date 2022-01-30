@@ -99,6 +99,7 @@ pub mod bins;
 pub mod iter_ext;
 pub mod steps;
 pub mod window;
+pub mod window_filter;
 
 // Private modules
 mod band_decompress;

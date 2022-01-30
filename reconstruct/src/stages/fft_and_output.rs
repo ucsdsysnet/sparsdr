@@ -78,6 +78,7 @@ pub struct FftAndOutputSetup<'w> {
     pub timeout: Duration,
     /// Overlap mode (gaps or flush samples)
     pub overlap: OverlapMode,
+    pub downsample_output: bool,
     /// The output setups
     pub outputs: Vec<OutputSetup<'w>>,
 }
@@ -165,6 +166,7 @@ pub fn run_fft_and_output_stage(
                 iter::once(output_window),
                 &out_block_logger,
                 flush_samples,
+                setup.downsample_output,
                 time_log,
             )?;
             total_samples = total_samples.saturating_add(samples);

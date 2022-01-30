@@ -54,6 +54,7 @@ pub fn set_up_stages_combined<'w, I, B>(
     timestamp_bits: u32,
     channel_capacity: usize,
     overlap_mode: OverlapMode,
+    downsample_output: bool,
 ) -> StagesCombined<'w, I::IntoIter>
 where
     I: IntoIterator<Item = Result<Window>>,
@@ -91,6 +92,7 @@ where
                 fc_bins: band_setup.fc_bins,
                 timeout: band_setup.timeout,
                 overlap: overlap_mode.clone(),
+                downsample_output,
                 outputs: vec![],
             }
         });
