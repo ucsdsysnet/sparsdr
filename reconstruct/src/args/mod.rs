@@ -54,9 +54,6 @@ pub struct Args {
     pub channel_capacity: usize,
     /// The overlap mode
     pub overlap: OverlapMode,
-    /// If the output should be downsampled (by dropping half the time-domain samples) just before
-    /// being written to the destination
-    pub output_downsample: bool,
 }
 
 /// General help text
@@ -334,11 +331,6 @@ impl Args {
                 .conflicts_with("flush_samples")
                 .help("Produces zero samples in the output file(s) representing periods with no active signals")
             )
-            .arg(
-                Arg::with_name("output_downsample")
-                .long("output-downsample")
-                .help("Downsamples the output by dropping half the samples just before writing to the destination")
-            )
             .get_matches();
 
         let buffer = !matches.is_present("unbuffered");
@@ -453,7 +445,6 @@ impl Args {
                 .parse()
                 .unwrap(),
             overlap,
-            output_downsample: matches.is_present("output_downsample"),
         }
     }
 }

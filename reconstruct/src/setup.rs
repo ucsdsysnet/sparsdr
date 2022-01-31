@@ -54,7 +54,6 @@ pub struct Setup {
     /// Capacity of input -> FFT/output stage channels
     pub channel_capacity: usize,
     pub overlap_mode: OverlapMode,
-    pub downsample_output: bool,
 }
 
 /// The setup for decompressing a band
@@ -121,7 +120,6 @@ impl Setup {
             progress_bar: args.progress_bar,
             channel_capacity: args.channel_capacity,
             overlap_mode: args.overlap,
-            downsample_output: args.output_downsample,
         })
     }
 }

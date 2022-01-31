@@ -57,9 +57,6 @@ pub struct DecompressSetup<'w, I> {
     ///
     /// When this is set to true, all decompression threads will cleanly exit
     stop: Option<Arc<AtomicBool>>,
-    /// If the output should be downsampled by dropping half the samples just before writing the
-    /// output
-    downsample_output: bool,
 }
 
 impl<'w, I> DecompressSetup<'w, I> {
@@ -73,7 +70,6 @@ impl<'w, I> DecompressSetup<'w, I> {
             overlap_mode: OverlapMode::Flush(0),
             channel_capacity: DEFAULT_CHANNEL_CAPACITY,
             stop: None,
-            downsample_output: false,
         }
     }
 
@@ -101,11 +97,6 @@ impl<'w, I> DecompressSetup<'w, I> {
         self.overlap_mode = overlap_mode;
         self
     }
-    /// Sets whether the final output should be downsampled by dropping half the samples
-    pub fn set_downsample_output(&mut self, downsample: bool) -> &mut Self {
-        self.downsample_output = downsample;
-        self
-    }
 }
 
 /// Decompresses bands using the provided setup and returns information about the decompression
@@ -121,7 +112,6 @@ where
         setup.timestamp_bits,
         setup.channel_capacity,
         setup.overlap_mode,
-        setup.downsample_output,
     );
 
     // Measure time
