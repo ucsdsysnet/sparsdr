@@ -109,6 +109,7 @@ $(id)_bands.push_back(sparsdr.band_spec($band_31_frequency, $band_31_bins))
 #end if
 self.$(id) = $(id) = sparsdr.combined_pluto_receiver(uri=$uri, buffer_size=$buffer_size, bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path), zero_gaps=$zero_gaps)
 
+self.$(id).set_frequency($frequency)
 self.$(id).set_gain($gain)
 
 self.$(id).stop_all()
@@ -139,6 +140,12 @@ self.$(id).start_all()
     <key>bin_spec</key>
     <value>0..8:1</value>
     <type>string</type>
+  </param>
+  <param>
+    <name>Center frequency</name>
+    <key>frequency</key>
+    <value>2412000000</value>
+    <type>int</type>
   </param>
   <param>
     <name>Gain</name>

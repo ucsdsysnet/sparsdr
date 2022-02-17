@@ -111,6 +111,7 @@ $(id)_bands.push_back(sparsdr.band_spec($band_31_frequency, $band_31_bins))
 self.$(id) = $(id) = sparsdr.combined_usrp_receiver(device_addr=uhd.device_addr($device_addr), format_version=$format_version, bands=$(id)_bands, reconstruct_path=distutils.spawn.find_executable($reconstruct_path), zero_gaps=$zero_gaps)
 
 self.$(id).set_antenna($antenna)
+self.$(id).set_center_freq(uhd.tune_request($frequency))
 self.$(id).set_gain($gain)
 # Configure compression
 self.$(id).set_compression_enabled(True)
@@ -153,6 +154,12 @@ self.$(id).start_all()
     <key>reconstruct_path</key>
     <value>sparsdr_reconstruct</value>
     <type>string</type>
+  </param>
+  <param>
+    <name>Center frequency</name>
+    <key>frequency</key>
+    <value>2412000000</value>
+    <type>int</type>
   </param>
   <param>
     <name>Gain</name>
