@@ -89,8 +89,11 @@ combined_pluto_receiver_impl::combined_pluto_receiver_impl(
     default:
         throw std::runtime_error("Invalid format version, expected 1 or 2");
     }
-    d_reconstruct = reconstruct::make(
-        relative_bands, reconstruct_path, format_version_string, zero_gaps);
+    d_reconstruct = reconstruct::make(relative_bands,
+                                      reconstruct_path,
+                                      format_version_string,
+                                      zero_gaps,
+                                      /* compression FFT size */ 1024);
     // Connect
     connect(d_pluto, 0, d_reconstruct, 0);
     for (std::size_t i = 0; i < bands.size(); i++) {

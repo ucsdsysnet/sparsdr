@@ -54,11 +54,14 @@ public:
      * (this should be "N210 v1", "N210 v2", "Pluto v1", or "Pluto v2")
      * \param zero_gaps true to insert zero samples in the output(s) for periods
      * when there were no active signals
+     * \param compression_fft_size the number of bins in the FFT used to
+     * compress the received signals
      */
     static sptr make(std::vector<::gr::sparsdr::band_spec> bands,
                      const std::string& reconstruct_path = "sparsdr_reconstruct",
                      const std::string& sample_format = "N210 v1",
-                     bool zero_gaps = false);
+                     bool zero_gaps = false,
+                     unsigned int compression_fft_size = 1024);
 };
 
 } // namespace sparsdr

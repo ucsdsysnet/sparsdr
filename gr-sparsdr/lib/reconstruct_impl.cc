@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <boost/lexical_cast.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
@@ -52,10 +53,11 @@ std::string make_pipe_path(const std::string& temp_dir, std::size_t index)
 reconstruct::sptr reconstruct::make(std::vector<band_spec> bands,
                                     const std::string& reconstruct_path,
                                     const std::string& sample_format,
-                                    bool zero_gaps)
+                                    bool zero_gaps,
+                                    unsigned int compression_fft_size)
 {
-    return gnuradio::get_initial_sptr(
-        new reconstruct_impl(bands, reconstruct_path, sample_format, zero_gaps));
+    return gnuradio::get_initial_sptr(new reconstruct_impl(
+        bands, reconstruct_path, sample_format, zero_gaps, compression_fft_size));
 }
 
 /*
@@ -64,7 +66,8 @@ reconstruct::sptr reconstruct::make(std::vector<band_spec> bands,
 reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
                                    const std::string& reconstruct_path,
                                    const std::string& sample_format,
-                                   bool zero_gaps)
+                                   bool zero_gaps,
+                                   unsigned int compression_fft_size)
     : gr::hier_block2(
           "reconstruct",
           // One input for compressed samples
@@ -78,10 +81,12 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
       d_temp_dir(),
       d_child(0)
 {
-    start_subprocess(sample_format, zero_gaps);
+    start_subprocess(sample_format, zero_gaps, compression_fft_size);
 }
 
-void reconstruct_impl::start_subprocess(const std::string& sample_format, bool zero_gaps)
+void reconstruct_impl::start_subprocess(const std::string& sample_format,
+                                        bool zero_gaps,
+                                        unsigned int compression_fft_size)
 {
     // Start assembling the command
     std::vector<std::string> arguments;
@@ -95,15 +100,37 @@ void reconstruct_impl::start_subprocess(const std::string& sample_format, bool z
         arguments.push_back("--zero-gaps");
     }
 
-    // Sample format
+    // Sample format and compression FFT size
+    arguments.push_back("--compression-fft-size");
+    arguments.push_back(boost::lexical_cast<std::string>(compression_fft_size));
     if (sample_format == "N210 v1") {
-        arguments.push_back("--n210-v1-defaults");
+        arguments.push_back("--compressed-bandwidth");
+        arguments.push_back("100e6");
+        arguments.push_back("--sample-format");
+        arguments.push_back("v1-n210");
+        arguments.push_back("--timestamp-bits");
+        arguments.push_back("20");
     } else if (sample_format == "N210 v2") {
-        arguments.push_back("--n210-v2-defaults");
+        arguments.push_back("--compressed-bandwidth");
+        arguments.push_back("100e6");
+        arguments.push_back("--sample-format");
+        arguments.push_back("v2");
+        arguments.push_back("--timestamp-bits");
+        arguments.push_back("30");
     } else if (sample_format == "Pluto v1") {
-        arguments.push_back("--pluto-v1-defaults");
+        arguments.push_back("--compressed-bandwidth");
+        arguments.push_back("61.44e6");
+        arguments.push_back("--sample-format");
+        arguments.push_back("v1-pluto");
+        arguments.push_back("--timestamp-bits");
+        arguments.push_back("21");
     } else if (sample_format == "Pluto v2") {
-        arguments.push_back("--pluto-v2-defaults");
+        arguments.push_back("--compressed-bandwidth");
+        arguments.push_back("61.44e6");
+        arguments.push_back("--sample-format");
+        arguments.push_back("v2");
+        arguments.push_back("--timestamp-bits");
+        arguments.push_back("30");
     } else {
         throw std::runtime_error("Unsupported sample format");
     }

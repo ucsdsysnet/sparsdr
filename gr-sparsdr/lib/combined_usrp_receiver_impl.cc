@@ -92,8 +92,11 @@ combined_usrp_receiver_impl::combined_usrp_receiver_impl(
     }
     // Create blocks
     d_usrp = compressing_usrp_source::make(device_addr);
-    d_reconstruct = reconstruct::make(
-        relative_bands, reconstruct_path, format_version_string, zero_gaps);
+    d_reconstruct = reconstruct::make(relative_bands,
+                                      reconstruct_path,
+                                      format_version_string,
+                                      zero_gaps,
+                                      /* compression FFT size */ 2048);
     // Connect
     connect(d_usrp, 0, d_reconstruct, 0);
     for (std::size_t i = 0; i < bands.size(); i++) {

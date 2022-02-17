@@ -46,13 +46,16 @@ private:
     /*! \brief The sparsdr_reconstruct child process, or 0 if none exists */
     pid_t d_child;
 
-    void start_subprocess(const std::string& sample_format, bool zero_gaps);
+    void start_subprocess(const std::string& sample_format,
+                          bool zero_gaps,
+                          unsigned int compression_fft_size);
 
 public:
     reconstruct_impl(const std::vector<band_spec>& bands,
                      const std::string& reconstruct_path,
                      const std::string& sample_format,
-                     bool zero_gaps);
+                     bool zero_gaps,
+                     unsigned int compression_fft_size);
     ~reconstruct_impl();
 };
 
