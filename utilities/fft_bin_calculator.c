@@ -2,22 +2,29 @@
 #include <stdio.h>
 #include <math.h>
 
-// For Pluto fft_size is 1024, capture_bw is 61.44, filter_bw is 56
-int   fft_size   = 2048;
-float capture_bw = 100;
-float filter_bw  = 100; // set to 40 for WBX
+const int rnd_digits = 4;
 
-int   rnd_digits = 4;
+struct exact_ranges {
+		float        l_freq;
+		float        r_freq;
+		unsigned int l_bin1;
+		unsigned int r_bin1;
+		unsigned int l_bin2;
+		unsigned int r_bin2;
+};
 
 float round_float (float val, int rnd_digits){
     return (round(val * pow(10, rnd_digits)) / pow(10, rnd_digits));
 }
 
-void bins_calc (float capture_center_freq, float band_center_freq, float band_bandwidth){
+int bins_calc (float capture_center_freq, float capture_bw,
+								float band_center_freq, float band_bandwidth,
+								float filter_bw, unsigned int fft_size,
+								struct exact_ranges * final_ranges){
 
 	  int   half_fft, left_bin, right_bin;
     float bin_width, capture_left, filter_left, filter_right,
-		      band_left, band_right, left_freq, right_freq;
+		      band_left, band_right;
 
     // Compute frequency ranges
     bin_width    = capture_bw / fft_size;
@@ -29,8 +36,7 @@ void bins_calc (float capture_center_freq, float band_center_freq, float band_ba
 
     // Frequency range check
 	  if ((band_left<filter_left) || (band_right>filter_right)){
-        printf ("Band frequency out of filter range.\n");
-        return;
+        return 0;
 	  }
 
     // Compute FFT bin number, round to avoid float errors
@@ -45,9 +51,8 @@ void bins_calc (float capture_center_freq, float band_center_freq, float band_ba
         right_bin = floor(band_right);
 
     // Frequency range captured
-    left_freq  = round_float(capture_left + left_bin     *bin_width, rnd_digits);
-    right_freq = round_float(capture_left + (right_bin+1)*bin_width, rnd_digits);
-    printf ("Frequency range: %.*f to %.*f\n", rnd_digits, left_freq, rnd_digits, right_freq);
+    final_ranges->l_freq = round_float(capture_left + left_bin     *bin_width, rnd_digits);
+    final_ranges->r_freq = round_float(capture_left + (right_bin+1)*bin_width, rnd_digits);
 
     // FFT half window shift, so center frequency is at bin 0
 	  half_fft  = fft_size/2;
@@ -56,19 +61,57 @@ void bins_calc (float capture_center_freq, float band_center_freq, float band_ba
 
     // check if the range is continuous or not
     if (((left_bin < half_fft    ) && (right_bin < half_fft    )) ||
-	      ((left_bin > (half_fft-1)) && (right_bin > (half_fft-1))))
-        printf ("%d %d\n", left_bin, right_bin);
-    else if ((left_bin == half_fft) && (right_bin == (half_fft-1)))
-        printf ("0 %d\n", fft_size-1);
-    else
-        printf ("0 %d and %d %d\n", right_bin, left_bin, fft_size-1);
+	      ((left_bin > (half_fft-1)) && (right_bin > (half_fft-1)))){
+
+				final_ranges-> l_bin1 = left_bin;
+				final_ranges-> r_bin1 = right_bin;
+				final_ranges-> l_bin2 = 0;
+				final_ranges-> r_bin2 = 0;
+				return 1;
+
+    } else if ((left_bin == half_fft) && (right_bin == (half_fft-1))) {
+
+				final_ranges-> l_bin1 = 0;
+				final_ranges-> r_bin1 = fft_size-1;
+				final_ranges-> l_bin2 = 0;
+				final_ranges-> r_bin2 = 0;
+				return 1;
+
+    } else {
+
+				final_ranges-> l_bin1 = 0;
+				final_ranges-> r_bin1 = right_bin;
+				final_ranges-> l_bin2 = left_bin;
+				final_ranges-> r_bin2 = fft_size-1;
+				return 2;
+
+		}
 }
 
 int main( int argc, char *argv[] ) {
-	  if (argc!=4)
+		struct exact_ranges ranges;
+		int    range_count;
+
+	  if (argc!=4) {
         printf("Missing arguments: <capture center freq> <band center freq> <band bandwidth>\n");
-	  else
-        bins_calc(atof(argv[1]), atof(argv[2]), atof(argv[3]));
+	  } else {
+				// Pluto:
+				// range_count = bins_calc(atof(argv[1]), 61.44, atof(argv[2]), atof(argv[3]), 56.0, 1024, ranges);
+				// N210+WBX:
+				// range_count = bins_calc(atof(argv[1]), 100.0, atof(argv[2]), atof(argv[3]), 40.0, 2048, ranges);
+				// N210+SBX:
+				range_count = bins_calc(atof(argv[1]), 100.0, atof(argv[2]), atof(argv[3]), 100.0, 2048, &ranges);
+
+				if (range_count == 0){
+						printf ("Band frequency out of filter range.\n");
+				} else if (range_count == 1) {
+						printf ("Frequency range: %.*f to %.*f\n", rnd_digits, ranges.l_freq, rnd_digits, ranges.r_freq);
+						printf ("FFT range      : %d to %d\n", ranges.l_bin1, ranges.r_bin1);
+				} else {
+						printf ("Frequency range: %.*f to %.*f\n", rnd_digits, ranges.l_freq, rnd_digits, ranges.r_freq);
+						printf ("FFT ranges     : %d to %d and %d to %d\n", ranges.l_bin1, ranges.r_bin1, ranges.l_bin2, ranges.r_bin2);
+				}
+		}
 
 	  return 0;
 }
