@@ -39,6 +39,7 @@ use sparsdr_sample_parser::V1Parser;
 use std::fs::File;
 
 #[test]
+#[ignore]
 fn correlation_template() -> Result<(), Box<dyn std::error::Error>> {
     let template = load_template()?;
     let mut filter = CorrelationTemplateFilter::new(template.len(), vec![template], 0.4)?;

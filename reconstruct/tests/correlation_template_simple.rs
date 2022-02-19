@@ -57,7 +57,7 @@ fn load_template() -> Result<Vec<Complex32>, Box<dyn std::error::Error>> {
         } => {
             assert_eq!(real.len(), imag.len());
 
-            let mut values: Vec<Complex32> = real
+            let values: Vec<Complex32> = real
                 .iter()
                 .zip(imag.iter())
                 .map(|(real, imag)| Complex32::new(*real as f32, *imag as f32))
