@@ -71,6 +71,7 @@ public:
     virtual void start_all() = 0;
     virtual void stop_all() = 0;
     virtual void set_fft_size(std::uint32_t size) = 0;
+   virtual void load_rounded_hann_window(std::uint32_t bins) = 0;
     virtual void set_shift_amount(std::uint8_t scaling) = 0;
     virtual void set_bin_threshold(std::uint16_t bin_index, std::uint32_t threshold) = 0;
     virtual void set_bin_window_value(std::uint16_t bin_index, std::uint16_t value) = 0;

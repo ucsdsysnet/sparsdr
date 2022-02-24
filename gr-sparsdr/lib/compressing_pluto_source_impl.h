@@ -96,6 +96,7 @@ public:
                                    std::uint32_t threshold) override;
     virtual void set_bin_window_value(std::uint16_t bin_index,
                                       std::uint16_t value) override;
+    virtual void load_rounded_hann_window(std::uint32_t bins) override;
     virtual void set_bin_mask(std::uint16_t bin_index) override;
     virtual void clear_bin_mask(std::uint16_t bin_index) override;
     virtual void set_bin_spec(const std::string& spec) override;

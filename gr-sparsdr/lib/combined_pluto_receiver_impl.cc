@@ -143,6 +143,9 @@ void combined_pluto_receiver_impl::set_bin_window_value(std::uint16_t bin_index,
 {
     d_pluto->set_bin_window_value(bin_index, value);
 }
+void combined_pluto_receiver_impl::load_rounded_hann_window(std::uint32_t bins) {
+    d_pluto->load_rounded_hann_window(bins);
+}
 void combined_pluto_receiver_impl::set_bin_mask(std::uint16_t bin_index)
 {
     d_pluto->set_bin_mask(bin_index);

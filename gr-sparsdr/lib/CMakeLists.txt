@@ -38,6 +38,7 @@ list(APPEND sparsdr_sources
     combined_usrp_receiver_impl.cc
     combined_common.cc
     combined_pluto_receiver_impl.cc
+    window.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)

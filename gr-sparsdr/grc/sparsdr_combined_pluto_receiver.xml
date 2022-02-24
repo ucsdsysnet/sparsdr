@@ -114,7 +114,8 @@ self.$(id).set_gain($gain)
 
 self.$(id).stop_all()
 self.$(id).set_shift_amount($shift_amount)
-self.$(id).set_fft_size(1024)
+self.$(id).set_fft_size($fft_size)
+self.$(id).load_rounded_hann_window($fft_size)
 self.$(id).set_bin_spec($bin_spec)
 self.$(id).start_all()
   </var_make>
@@ -163,6 +164,12 @@ self.$(id).start_all()
     <name>Shift amount</name>
     <key>shift_amount</key>
     <value>6</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>FFT size</name>
+    <key>fft_size</key>
+    <value>1024</value>
     <type>int</type>
   </param>
   <!-- Number of bands -->

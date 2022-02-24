@@ -116,6 +116,12 @@ public:
      * (see the set_run_fft() function).
      *
      * The size must be a power of two between 8 and 1024 inclusive.
+     *
+     * Caution: Changing the FFT size does not change the window values that
+     * the time-domain samples are multiplied by. If the FFT size is set to
+     * a non-default value, the window must also be changed to something
+     * appropriate for the new FFT size. The load_rounded_hann_window function
+     * is an easy way to do this.
      */
     virtual void set_fft_size(std::uint32_t size) = 0;
 
@@ -142,6 +148,13 @@ public:
      * (see the set_run_fft() function).
      */
     virtual void set_bin_window_value(std::uint16_t bin_index, std::uint16_t value) = 0;
+
+    /**
+     * Generates a Hann window with rounded integer values for the provided
+     * number of bins, and stores the values in the FPGA
+     */
+    virtual void load_rounded_hann_window(std::uint32_t bins) = 0;
+
     /**
      * Enables the mask for a bin, preventing the device from sending samples
      * for a bin even if it is active

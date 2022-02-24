@@ -23,6 +23,7 @@
 #endif
 
 #include "compressing_pluto_source_impl.h"
+#include "window.h"
 #include <gnuradio/io_signature.h>
 
 #include <sparsdr/iio_device_source.h>
@@ -280,6 +281,16 @@ void compressing_pluto_source_impl::set_bin_window_value(std::uint16_t bin_index
     write_u32_attr("window_value",
                    (std::uint32_t(bin_index) << 16) | std::uint32_t(value));
 }
+
+void compressing_pluto_source_impl::load_rounded_hann_window(std::uint32_t bins)
+{
+    const std::vector<std::uint16_t> window = window::rounded_hann_window(bins);
+    assert(window.size() == bins);
+    for (std::uint16_t bin = 0; bin != bins; bin++) {
+        set_bin_window_value(bin, window.at(bin));
+    }
+}
+
 void compressing_pluto_source_impl::set_bin_mask(std::uint16_t bin_index)
 {
     write_u32_attr("bin_mask", (std::uint32_t(bin_index) << 1) | 0x1);
