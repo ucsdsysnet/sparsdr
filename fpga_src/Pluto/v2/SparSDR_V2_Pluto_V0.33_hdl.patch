@@ -1,4 +1,4 @@
-From d389a64796a71770f8380de6619dfc6228242476 Mon Sep 17 00:00:00 2001
+From 6fe8dab228d41e8e065512308be8e2d455d096b8 Mon Sep 17 00:00:00 2001
 From: Moein Khazraee <mkhazrae@cs.ucsd.edu>
 Date: Fri, 8 Oct 2021 18:36:51 -0700
 Subject: [PATCH] SparSDR V2
@@ -845,7 +845,7 @@ index 00000000..28817713
 +endmodule
 diff --git a/library/axi_sparSDR/FFT_encoder.v b/library/axi_sparSDR/FFT_encoder.v
 new file mode 100644
-index 00000000..9abd39d0
+index 00000000..246da4ff
 --- /dev/null
 +++ b/library/axi_sparSDR/FFT_encoder.v
 @@ -0,0 +1,159 @@
@@ -990,7 +990,7 @@ index 00000000..9abd39d0
 +      AVG_HDR:
 +        enc_data_r <= header;
 +      AVG_DATA:
-+        enc_data_r <= data;
++        enc_data_r <= data + 32'd1; // To avoid mixing with the 0 delimiter
 +      default:
 +        enc_data_r <= pause;
 +    endcase
