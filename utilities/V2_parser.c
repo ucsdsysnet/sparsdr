@@ -4,6 +4,8 @@
 
 #define COPY_AVG 1
 #define VERBOSE 0
+#define AVG_ZERO_CHK 0
+#define IDX_HDR_CHK 0
 const unsigned int fft_size = 1024;
 
 #define HDR_BIT 0x80000000
@@ -15,15 +17,16 @@ unsigned int sample_buf [3276800];
 
 // Only valid states, Error is handled separately
 // WIN_HDR: We expect a window header after average window (or initially)
-// IND_HDR: After FFT header we expect an index header
+// IDX_HDR: After FFT header we expect an index header
 // ANY_HDR: After delimiter in FFT it could be new window or index
 // FFT: FFT value or delimiter, AVG: AVG value or delimiter
-enum states {WIN_HDR, IND_HDR, ANY_HDR, FFT, AVG} state;
-unsigned int fft_index;
+enum states {WIN_HDR, IDX_HDR, ANY_HDR, FFT, AVG} state;
+unsigned short fft_index;
 
 // Returns -1 for ERROR, 1 for beginning of average values, 0 in normal mode
 int parse_word (unsigned int word) {
-  unsigned int ts;
+  unsigned int   ts;
+  unsigned short seq_num;
 
   switch (state){
     case ANY_HDR:
@@ -33,18 +36,27 @@ int parse_word (unsigned int word) {
           printf("Average header at time stamp 0x%08x \n", ts);
           state = AVG;
           fft_index = 0;
+          seq_num ++; // There is no seq num in average windows
           return 1;
         } else {
           printf("FFT header at time stamp 0x%08x \n", ts);
-          state = IND_HDR;
+          state = IDX_HDR;
         }
       } else {
-        if (VERBOSE) printf("(FFT index header)\n");
-        if ((word >= fft_size)||(word <= fft_index)) {
-          printf ("Error in FFT index %d\n", word);
+        if (VERBOSE) printf("(FFT index header, seq num: %d)\n", seq_num);
+        unsigned short idx = (unsigned short) (word & 0xFFFF);
+        seq_num            = (unsigned short) ((word>>16) & 0x3FFF);
+        if (IDX_HDR_CHK)
+          if (!(word&0x40000000)) {
+            printf ("Error in FFT index %d, missing idx header bit.\n", idx);
+            return -1;
+          }
+
+        if ((idx >= fft_size)||(idx <= fft_index)) {
+          printf ("Error in FFT index %d\n", idx);
           return -1;
         }
-        fft_index = word;
+        fft_index = idx;
         state = FFT;
       }
       break;
@@ -56,10 +68,11 @@ int parse_word (unsigned int word) {
           printf("Average header at time stamp 0x%08x \n", ts);
           state = AVG;
           fft_index = 0;
+          seq_num ++; // There is no seq num in average windows
           return 1;
         } else {
           printf("FFT header at time stamp 0x%08x \n", ts);
-          state = IND_HDR;
+          state = IDX_HDR;
         }
       } else {
         printf("ERROR: expecting new window after Average window\n");
@@ -85,22 +98,36 @@ int parse_word (unsigned int word) {
           state = WIN_HDR;
           if (VERBOSE) printf ("(End Frame)\n");
         } else {
-          printf("ERROR: Expected delimiter after Average window %d\n", fft_index);
+          printf("ERROR: Expected delimiter after Average window, index: %d\n", fft_index);
           return -1;
         }
       } else {
+        if (AVG_ZERO_CHK)
+          if (word == 0){
+            printf("ERROR: found zero in averages, index: %d\n", fft_index);
+            return -1;
+          }
+
         printf("Avg, index %d: %u\n", fft_index, word);
         fft_index ++;
       }
       break;
 
-    case IND_HDR:
-      if (VERBOSE) printf("(FFT index header)\n");
-      if (word >= fft_size) {
-        printf ("Error in FFT index %d\n", word);
+    case IDX_HDR:
+      if (VERBOSE) printf("(FFT index header, seq num: %d)\n", seq_num);
+      unsigned short idx = (unsigned short) (word & 0xFFFF);
+      seq_num            = (unsigned short) ((word>>16) & 0x3FFF);
+      if (IDX_HDR_CHK)
+        if (!(word&0x40000000)) {
+          printf ("Error in FFT index %d, missing idx header bit.\n", idx);
+          return -1;
+        }
+
+      if (idx >= fft_size) {
+        printf ("Error in FFT index %d\n", idx);
         return -1;
       }
-      fft_index = word;
+      fft_index = idx;
       state = FFT;
       break;
 
