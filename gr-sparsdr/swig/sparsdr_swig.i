@@ -29,6 +29,7 @@ namespace std {
 #include "sparsdr/swap_16.h"
 #include "sparsdr/combined_usrp_receiver.h"
 #include "sparsdr/combined_pluto_receiver.h"
+#include "sparsdr/simple_combined_pluto_receiver.h"
 using namespace gr::sparsdr;
 %}
 
@@ -46,3 +47,5 @@ GR_SWIG_BLOCK_MAGIC2(sparsdr, swap_16);
 GR_SWIG_BLOCK_MAGIC2(sparsdr, combined_usrp_receiver);
 %include "sparsdr/combined_pluto_receiver.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, combined_pluto_receiver);
+%include "sparsdr/simple_combined_pluto_receiver.h"
+GR_SWIG_BLOCK_MAGIC2(sparsdr, simple_combined_pluto_receiver);

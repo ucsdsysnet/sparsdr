@@ -16,7 +16,7 @@
  */
 
 //!
-//! Simple tests for the v2
+//! Simple tests for the v2 parser
 //!
 
 extern crate num_complex;

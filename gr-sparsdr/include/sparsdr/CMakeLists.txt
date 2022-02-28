@@ -22,11 +22,15 @@
 ########################################################################
 install(FILES
     api.h
+    band_spec.h
     compressing_pluto_source.h
     compressing_usrp_source.h
     iio_device_source.h
     reconstruct.h
     swap_16.h
     combined_usrp_receiver.h
-    combined_pluto_receiver.h DESTINATION include/sparsdr
+    combined_pluto_receiver.h
+    simple_band_spec.h
+    simple_combined_pluto_receiver.h
+    DESTINATION include/sparsdr
 )

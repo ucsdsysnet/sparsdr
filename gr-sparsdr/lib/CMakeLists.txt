@@ -29,15 +29,17 @@ include_directories(
 link_directories(${Boost_LIBRARY_DIRS})
 
 list(APPEND sparsdr_sources
-    compressing_usrp_source_impl.cc
-    compressing_pluto_source_impl.cc
-    iio_device_source_impl.cc
-    reconstruct_impl.cc
-    endian_converter.cc
-    swap_16_impl.cc
-    combined_usrp_receiver_impl.cc
     combined_common.cc
     combined_pluto_receiver_impl.cc
+    combined_usrp_receiver_impl.cc
+    compressing_usrp_source_impl.cc
+    compressing_pluto_source_impl.cc
+    endian_converter.cc
+    fft_bin_calculator.c
+    iio_device_source_impl.cc
+    reconstruct_impl.cc
+    simple_combined_pluto_receiver_impl.cc
+    swap_16_impl.cc
     window.cc
 )
 
