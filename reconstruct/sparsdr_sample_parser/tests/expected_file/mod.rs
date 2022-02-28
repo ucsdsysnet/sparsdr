@@ -33,8 +33,13 @@ pub struct ExpectedFile {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum ExpectedWindowOrError {
-    Window(ExpectedWindow),
-    Error { error: () },
+    Window {
+        #[serde(flatten)]
+        window: ExpectedWindow,
+    },
+    Error {
+        error: (),
+    },
 }
 
 #[derive(Debug, Deserialize)]

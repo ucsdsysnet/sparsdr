@@ -1,0 +1,18 @@
+{
+  "compressed_file": "basic_1_bin.iqz",
+  "fft_size": 1,
+  "expected_windows": [
+    {
+      "time": 37,
+      "bins": [[10, 20]]
+    },
+    {
+      "time": 38,
+      "bins": [[932, -9921]]
+    },
+    {
+      "time": 39,
+      "averages": [10000003]
+    }
+  ]
+}

@@ -86,9 +86,9 @@ fn run_test_with_file(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
                     .next()
                     .ok_or_else(|| "Extra window parsed at end")?;
                 match expected_parse_result {
-                    ExpectedWindowOrError::Window(expected_window) => {
-                        check_windows_equal(&actual_window, &expected_window)?
-                    }
+                    ExpectedWindowOrError::Window {
+                        window: expected_window,
+                    } => check_windows_equal(&actual_window, &expected_window)?,
                     ExpectedWindowOrError::Error { .. } => {
                         return Err("Expected error but got parsed window".into());
                     }
@@ -99,7 +99,7 @@ fn run_test_with_file(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
                     .next()
                     .ok_or_else(|| "Extra parse error at end")?;
                 match expected_parse_result {
-                    ExpectedWindowOrError::Window(_) => {
+                    ExpectedWindowOrError::Window { .. } => {
                         return Err(
                             format!("Expected window but got parse error {}", parse_error).into(),
                         )
