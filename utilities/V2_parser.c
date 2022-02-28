@@ -36,7 +36,6 @@ int parse_word (unsigned int word) {
           printf("Average header at time stamp 0x%08x \n", ts);
           state = AVG;
           fft_index = 0;
-          seq_num ++; // There is no seq num in average windows
           return 1;
         } else {
           printf("FFT header at time stamp 0x%08x \n", ts);
@@ -68,7 +67,6 @@ int parse_word (unsigned int word) {
           printf("Average header at time stamp 0x%08x \n", ts);
           state = AVG;
           fft_index = 0;
-          seq_num ++; // There is no seq num in average windows
           return 1;
         } else {
           printf("FFT header at time stamp 0x%08x \n", ts);
