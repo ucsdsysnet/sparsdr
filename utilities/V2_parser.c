@@ -120,6 +120,7 @@ unsigned int find_hdr(unsigned int* samples, unsigned int samples_len, unsigned 
     word = samples[idx];
     if (after_zero) {
       if (word & HDR_BIT) return idx;
+      else after_zero  = 0;
     } else {
       after_zero = (word == 0);
     }
