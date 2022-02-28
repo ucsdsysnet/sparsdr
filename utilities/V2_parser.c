@@ -118,12 +118,10 @@ unsigned int find_hdr(unsigned int* samples, unsigned int samples_len, unsigned 
 
   while (1){
     word = samples[idx];
-    if (after_zero) {
-      if (word & HDR_BIT) return idx;
-      else after_zero  = 0;
-    } else {
+    if ((after_zero) && (word & HDR_BIT))
+      return idx;
+    else
       after_zero = (word == 0);
-    }
 
     if (VERBOSE) printf("Trying to find a proper header\n");
     idx ++;
@@ -152,6 +150,10 @@ int main( int argc, char *argv[] ) {
   }
 
   cur_buf_size = fread(sample_buf, 4, buf_size, fp);
+  if (cur_buf_size == 0){
+    printf("Empty file\n");
+    return 0;
+  }
   // TODO: read in chunks until the end
 
   // Find first header
