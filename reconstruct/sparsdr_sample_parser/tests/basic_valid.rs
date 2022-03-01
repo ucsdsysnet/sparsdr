@@ -126,6 +126,7 @@ fn basic_2_bins() {
     // Value at index 0
     assert_eq!(Ok(None), parser.accept(make_complex(50, 60)));
     // End this group and start a new group at index 1
+    // This is not allowed by the specification, but the parser accepts it anyway.
     assert_eq!(Ok(None), parser.accept(0));
     assert_eq!(Ok(None), parser.accept(1));
     // Value at index 1
