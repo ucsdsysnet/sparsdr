@@ -6,6 +6,7 @@
 #define VERBOSE 0
 #define AVG_ZERO_CHK 0
 #define IDX_HDR_CHK 0
+#define FFT_SEQ_CHK 0
 const unsigned int fft_size = 1024;
 
 #define HDR_BIT 0x80000000
@@ -26,6 +27,8 @@ unsigned short fft_index;
 unsigned int   ts;
 unsigned short seq_num;
 
+unsigned int   first_fft_seen;
+
 // Returns -1 for ERROR, 1 for beginning of average values, 0 in normal mode
 int parse_word (unsigned int word) {
   unsigned short idx;
@@ -35,6 +38,7 @@ int parse_word (unsigned int word) {
       if (word & HDR_BIT){
         ts = word & TS_MASK;
         if (word & AVG_BIT){
+          // TODO: add average window time stamp check for jumps (?)
           printf("Average header at time stamp 0x%08x \n", ts);
           state = AVG;
           fft_index = 0;
@@ -45,7 +49,17 @@ int parse_word (unsigned int word) {
         }
       } else {
         idx     = (unsigned short) (word & 0xFFFF);
-        seq_num = (unsigned short) ((word>>16) & 0x3FFF);
+
+        if (FFT_SEQ_CHK) {
+          if (seq_num != (unsigned short) ((word>>16) & 0x3FFF)){
+            seq_num = (unsigned short) ((word>>16) & 0x3FFF);
+            printf ("ERROR in FFT seq number index %d, seq_num: %d\n", idx, seq_num);
+            return -1;
+          }
+        } else {
+          seq_num = (unsigned short) ((word>>16) & 0x3FFF);
+        }
+
         if (VERBOSE) printf("(FFT index header, seq num: %d)\n", seq_num);
 
         if (IDX_HDR_CHK)
@@ -67,6 +81,7 @@ int parse_word (unsigned int word) {
       if (word & HDR_BIT){
         ts = word & TS_MASK;
         if (word & AVG_BIT){
+          // TODO: add average window time stamp check for jumps (?)
           printf("Average header at time stamp 0x%08x \n", ts);
           state = AVG;
           fft_index = 0;
@@ -116,7 +131,25 @@ int parse_word (unsigned int word) {
 
     case IDX_HDR:
       idx     = (unsigned short) (word & 0xFFFF);
-      seq_num = (unsigned short) ((word>>16) & 0x3FFF);
+
+      if (FFT_SEQ_CHK && first_fft_seen){
+        unsigned short exp_seq_num;
+        if (seq_num == (1<<14)-1)
+          exp_seq_num = 0;
+        else
+          exp_seq_num = seq_num + 1;
+        seq_num = (unsigned short) ((word>>16) & 0x3FFF);
+
+        if (seq_num != exp_seq_num){
+          printf ("ERROR in FFT seq number index %d, seq_num: %d\n", idx, seq_num);
+          // No need to return -1, as the current FFT window has started properly
+          // but there was a jump
+        }
+      } else {
+        seq_num = (unsigned short) ((word>>16) & 0x3FFF);
+        first_fft_seen = 1;
+      }
+
       if (VERBOSE) printf("(FFT index header, seq num: %d)\n", seq_num);
 
       if (IDX_HDR_CHK)
@@ -193,6 +226,7 @@ int main( int argc, char *argv[] ) {
   }
 
   state = WIN_HDR; // Going across files/buffers state can be carried over
+  first_fft_seen = 0;
   while (cur_sample < cur_buf_size){
     parse_state = parse_word(sample_buf[cur_sample]);
 
