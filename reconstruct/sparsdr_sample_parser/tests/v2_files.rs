@@ -19,13 +19,15 @@ extern crate num_complex;
 extern crate serde;
 extern crate serde_json;
 
-use crate::expected_file::{ExpectedBins, ExpectedFile, ExpectedWindow, ExpectedWindowOrError};
-use sparsdr_sample_parser::{Parser, V2Parser, Window, WindowKind};
 use std::ffi::OsString;
 use std::fs;
 use std::fs::File;
 use std::io::{BufReader, ErrorKind, Read};
 use std::path::Path;
+
+use sparsdr_sample_parser::{Parser, V2Parser, Window, WindowKind};
+
+use crate::expected_file::{ExpectedBins, ExpectedFile, ExpectedWindow, ExpectedWindowOrError};
 
 mod expected_file;
 
@@ -148,6 +150,8 @@ fn check_windows_equal(
                 actual_bins.iter().zip(expected_bins.iter()).enumerate()
             {
                 if actual_bin != expected_bin {
+                    println!("Actual {:?}", actual_bin);
+                    println!("Expected {:?}", expected_bin);
                     return Err(format!(
                         "FFT bin mismatch at index {}: expected {}, actual {}",
                         i, expected_bin, actual_bin

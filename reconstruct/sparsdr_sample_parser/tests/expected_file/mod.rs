@@ -38,7 +38,7 @@ pub enum ExpectedWindowOrError {
         window: ExpectedWindow,
     },
     Error {
-        error: (),
+        error: EmptyError,
     },
 }
 
@@ -55,3 +55,6 @@ pub enum ExpectedBins {
     Fft { bins: Vec<Complex<i16>> },
     Average { averages: Vec<u32> },
 }
+
+#[derive(Debug, Deserialize)]
+pub struct EmptyError {}
