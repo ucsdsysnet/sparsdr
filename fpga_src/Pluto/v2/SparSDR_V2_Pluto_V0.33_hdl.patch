@@ -1,11 +1,11 @@
-From 6fe8dab228d41e8e065512308be8e2d455d096b8 Mon Sep 17 00:00:00 2001
+From b98ecbb5cd01f4f80583178652ce4308fd6a0bc9 Mon Sep 17 00:00:00 2001
 From: Moein Khazraee <mkhazrae@cs.ucsd.edu>
-Date: Fri, 8 Oct 2021 18:36:51 -0700
+Date: Mon, 28 Feb 2022 15:59:23 -0800
 Subject: [PATCH] SparSDR V2
 
 ---
  library/axi_sparSDR/FFT_compression.v         |  799 +++++++++++++
- library/axi_sparSDR/FFT_encoder.v             |  159 +++
+ library/axi_sparSDR/FFT_encoder.v             |  170 +++
  library/axi_sparSDR/Makefile                  |   28 +
  library/axi_sparSDR/axi_sparSDR.v             |  225 ++++
  library/axi_sparSDR/axi_sparSDR_ip.tcl        |   82 ++
@@ -21,7 +21,7 @@ Subject: [PATCH] SparSDR V2
  library/axi_sparSDR/mem_n_fifo.v              |  166 +++
  projects/pluto/Makefile                       |    6 +-
  projects/pluto/system_bd.tcl                  |  104 +-
- 17 files changed, 5957 insertions(+), 79 deletions(-)
+ 17 files changed, 5968 insertions(+), 79 deletions(-)
  create mode 100755 library/axi_sparSDR/FFT_compression.v
  create mode 100644 library/axi_sparSDR/FFT_encoder.v
  create mode 100644 library/axi_sparSDR/Makefile
@@ -845,10 +845,10 @@ index 00000000..28817713
 +endmodule
 diff --git a/library/axi_sparSDR/FFT_encoder.v b/library/axi_sparSDR/FFT_encoder.v
 new file mode 100644
-index 00000000..246da4ff
+index 00000000..30dc7b63
 --- /dev/null
 +++ b/library/axi_sparSDR/FFT_encoder.v
-@@ -0,0 +1,159 @@
+@@ -0,0 +1,170 @@
 +/*
 + * Copyright 2021 The Regents of the University of California
 + *
@@ -907,9 +907,13 @@ index 00000000..246da4ff
 +  else if (FFT_valid && FFT_ready)
 +    prev_index <= FFT_index;
 +
++// Window sequence number used for debugging
++reg [13:0] window_seq_num;
++
 +// Possible output 32 bits
 +wire [31:0] header = {1'b1, FFT_is_avg, FFT_time};
-+wire [31:0] index  = {{(32-MAX_FFT_SIZE_LOG2){1'b0}}, FFT_index};
++wire [31:0] index  = {2'b01, window_seq_num, // always non-zero
++                      {(16-MAX_FFT_SIZE_LOG2){1'b0}}, FFT_index};
 +wire [31:0] data   = FFT_data;
 +wire [31:0] pause  = 32'd0;
 +
@@ -973,6 +977,13 @@ index 00000000..246da4ff
 +    endcase
 +
 +end
++
++always @ (posedge dsp_clk)
++  if (dsp_rst)
++    window_seq_num <= 14'd0;
++  // When state changes from HDR it's a new window
++  else if (out_reg_ready && FFT_valid && (state_r == FFT_HDR))
++    window_seq_num <= window_seq_num + 14'd1;
 +
 +// Select output data based on the state and whether it's FFT_pause,
 +// and also add an output register
