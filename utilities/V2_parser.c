@@ -21,12 +21,14 @@ unsigned int sample_buf [3276800];
 // ANY_HDR: After delimiter in FFT it could be new window or index
 // FFT: FFT value or delimiter, AVG: AVG value or delimiter
 enum states {WIN_HDR, IDX_HDR, ANY_HDR, FFT, AVG} state;
+
 unsigned short fft_index;
+unsigned int   ts;
+unsigned short seq_num;
 
 // Returns -1 for ERROR, 1 for beginning of average values, 0 in normal mode
 int parse_word (unsigned int word) {
-  unsigned int   ts;
-  unsigned short seq_num;
+  unsigned short idx;
 
   switch (state){
     case ANY_HDR:
@@ -42,17 +44,18 @@ int parse_word (unsigned int word) {
           state = IDX_HDR;
         }
       } else {
+        idx     = (unsigned short) (word & 0xFFFF);
+        seq_num = (unsigned short) ((word>>16) & 0x3FFF);
         if (VERBOSE) printf("(FFT index header, seq num: %d)\n", seq_num);
-        unsigned short idx = (unsigned short) (word & 0xFFFF);
-        seq_num            = (unsigned short) ((word>>16) & 0x3FFF);
+
         if (IDX_HDR_CHK)
           if (!(word&0x40000000)) {
-            printf ("Error in FFT index %d, missing idx header bit.\n", idx);
+            printf ("ERROR in FFT index %d, missing idx header bit.\n", idx);
             return -1;
           }
 
         if ((idx >= fft_size)||(idx <= fft_index)) {
-          printf ("Error in FFT index %d\n", idx);
+          printf ("ERROR in FFT index %d\n", idx);
           return -1;
         }
         fft_index = idx;
@@ -112,17 +115,18 @@ int parse_word (unsigned int word) {
       break;
 
     case IDX_HDR:
+      idx     = (unsigned short) (word & 0xFFFF);
+      seq_num = (unsigned short) ((word>>16) & 0x3FFF);
       if (VERBOSE) printf("(FFT index header, seq num: %d)\n", seq_num);
-      unsigned short idx = (unsigned short) (word & 0xFFFF);
-      seq_num            = (unsigned short) ((word>>16) & 0x3FFF);
+
       if (IDX_HDR_CHK)
         if (!(word&0x40000000)) {
-          printf ("Error in FFT index %d, missing idx header bit.\n", idx);
+          printf ("ERROR in FFT index %d, missing idx header bit.\n", idx);
           return -1;
         }
 
       if (idx >= fft_size) {
-        printf ("Error in FFT index %d\n", idx);
+        printf ("ERROR in FFT index %d\n", idx);
         return -1;
       }
       fft_index = idx;
