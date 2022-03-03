@@ -37,12 +37,19 @@ constexpr unsigned int PLUTO_FFT_SIZE = 1024;
 combined_pluto_receiver::sptr
 combined_pluto_receiver::make(const std::string& uri,
                               std::size_t buffer_size,
+                              unsigned int fft_size,
+                              float center_frequency,
                               const std::vector<band_spec>& bands,
                               const std::string& reconstruct_path,
                               bool zero_gaps)
 {
-    return gnuradio::get_initial_sptr(new combined_pluto_receiver_impl(
-        uri, buffer_size, bands, reconstruct_path, zero_gaps));
+    return gnuradio::get_initial_sptr(new combined_pluto_receiver_impl(uri,
+                                                                       buffer_size,
+                                                                       fft_size,
+                                                                       center_frequency,
+                                                                       bands,
+                                                                       reconstruct_path,
+                                                                       zero_gaps));
 }
 
 /*
@@ -51,6 +58,8 @@ combined_pluto_receiver::make(const std::string& uri,
 combined_pluto_receiver_impl::combined_pluto_receiver_impl(
     const std::string& uri,
     std::size_t buffer_size,
+    unsigned int fft_size,
+    float center_frequency,
     const std::vector<band_spec>& bands,
     const std::string& reconstruct_path,
     bool zero_gaps)
@@ -61,13 +70,6 @@ combined_pluto_receiver_impl::combined_pluto_receiver_impl(
       d_pluto(nullptr),
       d_reconstruct(nullptr)
 {
-    float center_frequency;
-    if (!choose_center_frequency(
-            bands, PLUTO_BANDWIDTH, PLUTO_FFT_SIZE, &center_frequency)) {
-        throw std::runtime_error("Can't find an appropriate center frequency");
-    }
-    std::cout << "Center frequency " << center_frequency << " Hz\n";
-
     // Convert the bands into bands relative to the center frequency
     std::vector<band_spec> relative_bands;
     relative_bands.reserve(bands.size());
@@ -89,11 +91,8 @@ combined_pluto_receiver_impl::combined_pluto_receiver_impl(
     default:
         throw std::runtime_error("Invalid format version, expected 1 or 2");
     }
-    d_reconstruct = reconstruct::make(relative_bands,
-                                      reconstruct_path,
-                                      format_version_string,
-                                      zero_gaps,
-                                      /* compression FFT size */ 1024);
+    d_reconstruct = reconstruct::make(
+        relative_bands, reconstruct_path, format_version_string, zero_gaps, fft_size);
     // Connect
     connect(d_pluto, 0, d_reconstruct, 0);
     for (std::size_t i = 0; i < bands.size(); i++) {

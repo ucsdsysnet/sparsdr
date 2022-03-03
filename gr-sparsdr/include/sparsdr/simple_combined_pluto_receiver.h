@@ -25,6 +25,7 @@
 #include <gnuradio/hier_block2.h>
 #include <sparsdr/api.h>
 #include <sparsdr/simple_band_spec.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -32,7 +33,8 @@ namespace gr {
 namespace sparsdr {
 
 /*!
- * \brief <+description of block+>
+ * \brief A wrapper of a combined_pluto_receive that can be configured using
+ * frequency ranges, without manually calculating bins
  * \ingroup sparsdr
  *
  */
@@ -49,12 +51,28 @@ public:
      * constructor is in a private implementation
      * class. sparsdr::simple_combined_pluto_receiver::make is the public interface for
      * creating new instances.
+     *
+     * \param uri The IIO context URI to use when connecting to the Pluto
+     * \param buffer_size The size of the IIO buffers, in 16-bit samples
+     * \param center_frequency The center frequency to tune to, in hertz
+     * \param bands The bands to receive and reconstruct (all these frequencies
+     *   are absolute)
+     * \param threshold The threshold to apply to all unmasked bins
+     * \param reconstruct_path The path to the sparsdr_reconstruct executable
+     * \param zero_gaps True if zero samples should be included in time gaps
+     *   in the outputs
      */
     static sptr make(const std::string& uri,
                      std::size_t buffer_size,
+                     float center_frequency,
                      const std::vector<simple_band_spec>& bands,
+                     std::uint32_t threshold,
                      const std::string& reconstruct_path = "sparsdr_reconstruct",
                      bool zero_gaps = false);
+
+    // Functions that delegate to combined_pluto_receiver functions
+    virtual void set_gain(double gain) = 0;
+    virtual void set_shift_amount(std::uint8_t scaling) = 0;
 };
 
 } // namespace sparsdr

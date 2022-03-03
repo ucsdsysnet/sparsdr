@@ -38,6 +38,8 @@ private:
 public:
     combined_pluto_receiver_impl(const std::string& uri,
                                  std::size_t buffer_size,
+                                 unsigned int fft_size,
+                                 float center_frequency,
                                  const std::vector<band_spec>& bands,
                                  const std::string& reconstruct_path,
                                  bool zero_gaps);

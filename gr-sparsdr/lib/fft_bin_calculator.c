@@ -101,3 +101,28 @@ int bins_calc(float capture_center_freq,
         return 2;
     }
 }
+
+static const float HERTZ_PER_MEGAHERTZ = 1e6f;
+
+int bins_calc_hertz(float capture_center_freq,
+                    float capture_bw,
+                    float band_center_freq,
+                    float band_bandwidth,
+                    float filter_bw,
+                    unsigned int fft_size,
+                    struct exact_ranges* final_ranges)
+{
+    const int status = bins_calc(capture_center_freq / HERTZ_PER_MEGAHERTZ,
+                                 capture_bw / HERTZ_PER_MEGAHERTZ,
+                                 band_center_freq / HERTZ_PER_MEGAHERTZ,
+                                 band_bandwidth / HERTZ_PER_MEGAHERTZ,
+                                 filter_bw / HERTZ_PER_MEGAHERTZ,
+                                 fft_size,
+                                 final_ranges);
+    if (status != 0) {
+        // Convert the actual frequencies back to hertz
+        final_ranges->l_freq *= HERTZ_PER_MEGAHERTZ;
+        final_ranges->r_freq *= HERTZ_PER_MEGAHERTZ;
+    }
+    return status;
+}

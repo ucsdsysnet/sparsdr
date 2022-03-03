@@ -21,6 +21,7 @@
 #ifndef INCLUDED_SPARSDR_SIMPLE_COMBINED_PLUTO_RECEIVER_IMPL_H
 #define INCLUDED_SPARSDR_SIMPLE_COMBINED_PLUTO_RECEIVER_IMPL_H
 
+#include <sparsdr/combined_pluto_receiver.h>
 #include <sparsdr/simple_combined_pluto_receiver.h>
 
 namespace gr {
@@ -29,17 +30,24 @@ namespace sparsdr {
 class simple_combined_pluto_receiver_impl : public simple_combined_pluto_receiver
 {
 private:
-    // Nothing to declare in this block.
+    /**
+     * Pointer to the enclosed receive and reconstruct block
+     */
+    combined_pluto_receiver::sptr d_inner_block;
 
 public:
     simple_combined_pluto_receiver_impl(const std::string& uri,
                                         std::size_t buffer_size,
+                                        float center_frequency,
                                         const std::vector<simple_band_spec>& bands,
+                                        std::uint32_t threshold,
                                         const std::string& reconstruct_path,
                                         bool zero_gaps);
-    ~simple_combined_pluto_receiver_impl();
 
-    // Where all the action really happens
+    void set_gain(double gain) override;
+    void set_shift_amount(std::uint8_t scaling) override;
+
+    ~simple_combined_pluto_receiver_impl();
 };
 
 } // namespace sparsdr

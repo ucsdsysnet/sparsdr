@@ -8,12 +8,15 @@
 %include "std_vector.i"
 %{
 #include "sparsdr/band_spec.h"
+#include "sparsdr/simple_band_spec.h"
 %}
 %include "sparsdr/band_spec.h"
+%include "sparsdr/simple_band_spec.h"
 
 // Required to support the bands argument in the reconstruct block make function
 namespace std {
     %template(band_spec_vector) vector<::gr::sparsdr::band_spec>;
+    %template(simple_band_spec_vector) vector<::gr::sparsdr::simple_band_spec>;
 }
 
 %include "gnuradio.i"			// the common stuff

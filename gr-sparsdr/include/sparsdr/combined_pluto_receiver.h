@@ -58,6 +58,8 @@ public:
      */
     static sptr make(const std::string& uri,
                      std::size_t buffer_size,
+                     unsigned int fft_size,
+                     float center_frequency,
                      const std::vector<band_spec>& bands,
                      const std::string& reconstruct_path = "sparsdr_reconstruct",
                      bool zero_gaps = false);
