@@ -52,3 +52,4 @@ GR_SWIG_BLOCK_MAGIC2(sparsdr, combined_usrp_receiver);
 GR_SWIG_BLOCK_MAGIC2(sparsdr, combined_pluto_receiver);
 %include "sparsdr/simple_combined_pluto_receiver.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, simple_combined_pluto_receiver);
+

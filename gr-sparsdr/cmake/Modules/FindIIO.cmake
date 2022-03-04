@@ -3,15 +3,16 @@
 # Find the IIO includes and library
 # https://github.com/analogdevicesinc/gr-iio
 #
-# This module defines
-# IIO_INCLUDE_DIRS
-# IIO_LIBRARIES
-# IIO_FOUND
+# This module exports the target IIO::IIO and the following variables:
+# * IIO_FOUND
+# * IIO_INCLUDE_DIR
+# * IIO_VERSION
+# * IIO_LIBRARIES
 
-INCLUDE(FindPkgConfig)
-PKG_CHECK_MODULES(PC_IIO "libiio")
+find_package(PkgConfig)
+pkg_check_modules(PC_IIO QUIET libiio)
 
-FIND_PATH(IIO_INCLUDE_DIRS
+find_path(IIO_INCLUDE_DIR
     NAMES iio.h
     HINTS ${PC_IIO_INCLUDE_DIR}
     ${CMAKE_INSTALL_PREFIX}/include
@@ -19,6 +20,7 @@ FIND_PATH(IIO_INCLUDE_DIRS
     /usr/local/include
     /usr/include
 )
+
 
 FIND_LIBRARY(IIO_LIBRARIES
     NAMES iio
@@ -30,6 +32,22 @@ FIND_LIBRARY(IIO_LIBRARIES
     /usr/lib
 )
 
-INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(IIO DEFAULT_MSG IIO_LIBRARIES IIO_INCLUDE_DIRS)
-MARK_AS_ADVANCED(IIO_LIBRARIES IIO_INCLUDE_DIRS)
+set(IIO_VERSION ${PC_IIO_VERSION})
+mark_as_advanced(IIO_FOUND IIO_INCLUDE_DIR IIO_LIBRARIES IIO_VERSION)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(
+    IIO
+    REQUIRED_VARS IIO_INCLUDE_DIR IIO_LIBRARIES
+    VERSION_VAR IIO_VERSION
+)
+
+# Create exported target
+if (NOT TARGET IIO::IIO)
+    add_library(IIO::IIO UNKNOWN IMPORTED)
+    set_target_properties(IIO::IIO PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${IIO_INCLUDE_DIR}")
+    set_target_properties(IIO::IIO PROPERTIES
+        IMPORTED_LOCATION "${IIO_LIBRARIES}")
+endif()
+

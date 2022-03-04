@@ -22,9 +22,10 @@ FIND_LIBRARY(
           /usr/local/lib64
           /usr/lib
           /usr/lib64
-)
+          )
+
+include("${CMAKE_CURRENT_LIST_DIR}/sparsdrTarget.cmake")
 
 INCLUDE(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(SPARSDR DEFAULT_MSG SPARSDR_LIBRARIES SPARSDR_INCLUDE_DIRS)
 MARK_AS_ADVANCED(SPARSDR_LIBRARIES SPARSDR_INCLUDE_DIRS)
-

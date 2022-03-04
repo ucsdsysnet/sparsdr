@@ -22,9 +22,10 @@
 This is the GNU Radio SPARSDR module. Place your Python package
 description here (python/__init__.py).
 '''
+from __future__ import unicode_literals
 
 # import swig generated symbols into the sparsdr namespace
-from sparsdr_swig import *
+from .sparsdr_swig import *
 
 # import any pure python here
 #
