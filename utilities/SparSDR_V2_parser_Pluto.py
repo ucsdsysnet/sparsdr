@@ -25,6 +25,7 @@ FFT_index  = 0
 # Clock is 61.44MHz, and we cut (fft_size_log-1) bits to show start of window
 ts = 16.2760417 * (1 << (fft_size_log2-1))
 
+
 v1_time_bits  = 32-1-max_fft_size_log2
 v1_time_mask  = (2**(v1_time_bits))-1
 if (conv_2_V1):
@@ -40,12 +41,12 @@ while True:
 
   is_hdr = (value >> 31) & 0x1
   is_avg = (value >> 30) & 0x1
-  time   = (value & 0x3FFFFFFF);
-  index  = value
+  time   = (value & 0x3FFFFFFF)
+  index  = value & 0x3FF
   fft_no = time & 0x1 # simply odd or even time for start of window
 
   # print ("if hdr:", is_hdr, is_avg, time, "if data:", value)
-
+  # pdb.set_trace()
   if (first_zero!=2):
     if (first_zero==0):
       if (value==0):
@@ -97,18 +98,18 @@ while True:
         after_hdr = True
     else:
       print ("(FFT index)")
-      FFT_index = value
+      FFT_index = index
     after_zero = False
   else:
     if (in_avg):
       print ("Average, index", FFT_index, ":", value)
-      if (conv_2_V1):
-        v1_conv = (FFT_index << (v1_time_bits+32)) | ((last_avg_time & v1_time_mask) << 32) | value | (1<<63)
-        v1_out.write(v1_conv.to_bytes(8,'little'))
+      # if (conv_2_V1):
+      #   v1_conv = (FFT_index << (v1_time_bits+32)) | ((last_avg_time & v1_time_mask) << 32) | value | (1<<63)
+      #   v1_out.write(v1_conv.to_bytes(8,'little'))
       FFT_index += 1
     else:
       if (after_hdr):
-        FFT_index = value
+        FFT_index = index
         print ("(FFT index)")
         after_hdr = False
       else:
