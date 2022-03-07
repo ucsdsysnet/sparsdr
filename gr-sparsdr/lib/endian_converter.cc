@@ -42,7 +42,7 @@ void endian_converter::register_converter()
     uhd::convert::register_bytes_per_item("sparsdr_sample", 4);
     uhd::convert::register_converter(id,
                                      []() -> uhd::convert::converter::sptr {
-                                         return boost::make_shared<endian_converter>();
+                                         return uhd::convert::converter::sptr(new endian_converter());
                                      },
                                      0 /* Priority */);
 }
