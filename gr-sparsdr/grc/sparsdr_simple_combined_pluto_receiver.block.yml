@@ -3,6 +3,8 @@
 id: variable_sparsdr_simple_combined_pluto_receiver
 label: Simple Combined Pluto Receiver
 category: '[SparSDR]'
+# Dummy value is required so GNU Radio Companion will generate code
+value: ${0}
 
 parameters:
 -   id: uri
@@ -435,7 +437,6 @@ outputs:
 -   domain: stream
     dtype: complex
     multiplicity: ${ band_count }
-value: ''
 asserts:
 - ${ 32 >= band_count }
 - ${ band_count > 0 }
