@@ -436,100 +436,100 @@ templates:
     var_make: |-
         ${id}_bands = sparsdr.band_spec_vector()
         % if int(eval(band_count)) > 0:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_0_frequency}, ${band_0_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_0_frequency}, ${band_0_bins}))
         % endif
         % if int(eval(band_count)) > 1:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_1_frequency}, ${band_1_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_1_frequency}, ${band_1_bins}))
         % endif
         % if int(eval(band_count)) > 2:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_2_frequency}, ${band_2_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_2_frequency}, ${band_2_bins}))
         % endif
         % if int(eval(band_count)) > 3:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_3_frequency}, ${band_3_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_3_frequency}, ${band_3_bins}))
         % endif
         % if int(eval(band_count)) > 4:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_4_frequency}, ${band_4_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_4_frequency}, ${band_4_bins}))
         % endif
         % if int(eval(band_count)) > 5:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_5_frequency}, ${band_5_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_5_frequency}, ${band_5_bins}))
         % endif
         % if int(eval(band_count)) > 6:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_6_frequency}, ${band_6_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_6_frequency}, ${band_6_bins}))
         % endif
         % if int(eval(band_count)) > 7:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_7_frequency}, ${band_7_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_7_frequency}, ${band_7_bins}))
         % endif
         % if int(eval(band_count)) > 8:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_8_frequency}, ${band_8_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_8_frequency}, ${band_8_bins}))
         % endif
         % if int(eval(band_count)) > 9:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_9_frequency}, ${band_9_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_9_frequency}, ${band_9_bins}))
         % endif
         % if int(eval(band_count)) > 10:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_10_frequency}, ${band_10_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_10_frequency}, ${band_10_bins}))
         % endif
         % if int(eval(band_count)) > 11:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_11_frequency}, ${band_11_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_11_frequency}, ${band_11_bins}))
         % endif
         % if int(eval(band_count)) > 12:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_12_frequency}, ${band_12_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_12_frequency}, ${band_12_bins}))
         % endif
         % if int(eval(band_count)) > 13:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_13_frequency}, ${band_13_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_13_frequency}, ${band_13_bins}))
         % endif
         % if int(eval(band_count)) > 14:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_14_frequency}, ${band_14_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_14_frequency}, ${band_14_bins}))
         % endif
         % if int(eval(band_count)) > 15:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_15_frequency}, ${band_15_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_15_frequency}, ${band_15_bins}))
         % endif
         % if int(eval(band_count)) > 16:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_16_frequency}, ${band_16_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_16_frequency}, ${band_16_bins}))
         % endif
         % if int(eval(band_count)) > 17:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_17_frequency}, ${band_17_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_17_frequency}, ${band_17_bins}))
         % endif
         % if int(eval(band_count)) > 18:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_18_frequency}, ${band_18_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_18_frequency}, ${band_18_bins}))
         % endif
         % if int(eval(band_count)) > 19:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_19_frequency}, ${band_19_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_19_frequency}, ${band_19_bins}))
         % endif
         % if int(eval(band_count)) > 20:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_20_frequency}, ${band_20_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_20_frequency}, ${band_20_bins}))
         % endif
         % if int(eval(band_count)) > 21:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_21_frequency}, ${band_21_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_21_frequency}, ${band_21_bins}))
         % endif
         % if int(eval(band_count)) > 22:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_22_frequency}, ${band_22_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_22_frequency}, ${band_22_bins}))
         % endif
         % if int(eval(band_count)) > 23:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_23_frequency}, ${band_23_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_23_frequency}, ${band_23_bins}))
         % endif
         % if int(eval(band_count)) > 24:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_24_frequency}, ${band_24_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_24_frequency}, ${band_24_bins}))
         % endif
         % if int(eval(band_count)) > 25:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_25_frequency}, ${band_25_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_25_frequency}, ${band_25_bins}))
         % endif
         % if int(eval(band_count)) > 26:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_26_frequency}, ${band_26_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_26_frequency}, ${band_26_bins}))
         % endif
         % if int(eval(band_count)) > 27:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_27_frequency}, ${band_27_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_27_frequency}, ${band_27_bins}))
         % endif
         % if int(eval(band_count)) > 28:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_28_frequency}, ${band_28_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_28_frequency}, ${band_28_bins}))
         % endif
         % if int(eval(band_count)) > 29:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_29_frequency}, ${band_29_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_29_frequency}, ${band_29_bins}))
         % endif
         % if int(eval(band_count)) > 30:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_30_frequency}, ${band_30_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_30_frequency}, ${band_30_bins}))
         % endif
         % if int(eval(band_count)) > 31:
-        ${id}_bands.push_back(sparsdr.band_spec(${band_31_frequency}, ${band_31_bins})
+        ${id}_bands.push_back(sparsdr.band_spec(${band_31_frequency}, ${band_31_bins}))
         % endif
         self.${id} = ${id} = sparsdr.reconstruct(bands=${id}_bands, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), sample_format=${compressed_format}, zero_gaps=${zero_gaps}, compression_fft_size=${compression_fft_size})
 
