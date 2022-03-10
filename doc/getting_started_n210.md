@@ -4,8 +4,8 @@
 
 * A C/C++ compiler
 * [CMake](https://cmake.org/) (tested with version 3.7.2)
-* [GNU Radio](https://www.gnuradio.org/) (tested with version 3.7.10.1)
-* [UHD](https://github.com/EttusResearch/uhd/) library and headers (tested with version 3.9.5)
+* [GNU Radio](https://www.gnuradio.org/) (tested with version 3.8.2.0)
+* [UHD](https://github.com/EttusResearch/uhd/) library and headers
 * The [Rust compiler](https://www.rust-lang.org/learn/get-started) (latest stable version)
 * [FFTW](http://www.fftw.org/) (tested with version 3.3.5)
 * [SWIG](http://www.swig.org/) for generating Python bindings (tested with version 3.0.10)

@@ -22,11 +22,9 @@ When SparSDR does not work correctly, [the debugging guide](doc/debugging.md) ma
 
 ## Compatibility
 
-We have tested SparSDR with GNU Radio 3.7.13.4, 3.7.13.5, and 3.7.14.1.
+We have tested SparSDR with GNU Radio 3.8.2.0.
 
-SparSDR should work with any GNU Radio version in the 3.7 series. GNU Radio 3.8 has some small changes that prevent the
-SparSDR module from compiling.
-
+SparSDR should work with any GNU Radio version in the 3.8 series.
 
 ### Pluto SDR
 
