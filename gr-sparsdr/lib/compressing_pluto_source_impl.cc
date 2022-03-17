@@ -23,7 +23,6 @@
 #endif
 
 #include "compressing_pluto_source_impl.h"
-#include "window.h"
 #include <gnuradio/io_signature.h>
 
 #include <sparsdr/iio_device_source.h>
@@ -37,6 +36,9 @@ namespace gr {
 namespace sparsdr {
 
 namespace {
+
+constexpr std::uint32_t DEFAULT_FFT_SIZE = 1024;
+
 bool is_power_of_two(std::uint32_t value) { return (value & (value - 1)) == 0; }
 /**
  * Calculates the base-2 logarithm of an integer, assuming that the
@@ -65,51 +67,6 @@ std::uint32_t ceiling_log2(std::uint32_t value)
         return 1 + int_log2(value);
     }
 }
-
-
-struct bin_range {
-public:
-    std::uint16_t start_bin;
-    std::uint16_t end_bin;
-    std::uint32_t threshold;
-
-    static bin_range parse(const std::string& range_spec)
-    {
-
-        const auto colon_index = range_spec.find(":");
-        if (colon_index == std::string::npos) {
-            throw std::invalid_argument("No : character in range specification");
-        }
-        const auto before_colon = range_spec.substr(0, colon_index);
-        const auto after_colon =
-            range_spec.substr(colon_index + 1, range_spec.length() - colon_index - 1);
-
-        // Parse the single number or range before the colon
-        std::uint16_t start_bin = 0;
-        std::uint16_t end_bin = 0;
-        const auto dots_index = before_colon.find("..");
-        if (dots_index == std::string::npos) {
-            // Just one number
-            const std::uint16_t bin = boost::lexical_cast<std::uint16_t>(before_colon);
-            start_bin = bin;
-            end_bin = bin + 1;
-        } else {
-            const auto before_dots = before_colon.substr(0, dots_index);
-            const auto after_dots = before_colon.substr(
-                dots_index + 2, before_colon.length() - dots_index - 2);
-            start_bin = boost::lexical_cast<std::uint16_t>(before_dots);
-            end_bin = boost::lexical_cast<std::uint16_t>(after_dots);
-        }
-
-        if (start_bin >= 1024 || end_bin > 1024) {
-            throw std::invalid_argument("Bin number too large");
-        }
-
-        const std::uint32_t threshold = boost::lexical_cast<std::uint32_t>(after_colon);
-        return bin_range{ start_bin, end_bin, threshold };
-    }
-};
-
 } // namespace
 
 compressing_pluto_source::sptr compressing_pluto_source::make(const std::string& uri,
@@ -133,7 +90,8 @@ compressing_pluto_source_impl::compressing_pluto_source_impl(const std::string& 
       d_ad9361_voltage0_in(nullptr),
       d_ad9361_voltage0_out(nullptr),
       d_ad9361_altvoltage0_out(nullptr),
-      d_format_version(0)
+      d_format_version(0),
+      d_fft_size(DEFAULT_FFT_SIZE)
 {
     d_iio_context = iio_create_context_from_uri(uri.c_str());
     if (!d_iio_context) {
@@ -227,6 +185,11 @@ void compressing_pluto_source_impl::set_gain(double gain)
     }
 }
 
+void compressing_pluto_source_impl::set_compression_enabled(bool enabled)
+{
+    write_bool_attr("enable_compression", enabled);
+}
+
 void compressing_pluto_source_impl::set_run_fft(bool enable)
 {
     write_bool_attr("run_fft", enable);
@@ -239,18 +202,6 @@ void compressing_pluto_source_impl::set_send_fft_samples(bool enable)
 {
     write_bool_attr("send_fft_samples", enable);
 }
-void compressing_pluto_source_impl::start_all()
-{
-    set_send_average_samples(true);
-    set_send_fft_samples(true);
-    set_run_fft(true);
-}
-void compressing_pluto_source_impl::stop_all()
-{
-    set_run_fft(false);
-    set_send_fft_samples(false);
-    set_send_average_samples(false);
-}
 void compressing_pluto_source_impl::set_fft_size(std::uint32_t size)
 {
     if (!is_power_of_two(size) || size < 8 || size > 1024) {
@@ -260,7 +211,9 @@ void compressing_pluto_source_impl::set_fft_size(std::uint32_t size)
     // Register value is the base-2 logarithm of the FFT size
     const unsigned int log_size = int_log2(size);
     write_u32_attr("fft_size", log_size);
+    d_fft_size = size;
 }
+std::uint32_t compressing_pluto_source_impl::fft_size() const { return d_fft_size; }
 void compressing_pluto_source_impl::set_shift_amount(std::uint8_t amount)
 {
     if (amount > 8) {
@@ -282,15 +235,6 @@ void compressing_pluto_source_impl::set_bin_window_value(std::uint16_t bin_index
                    (std::uint32_t(bin_index) << 16) | std::uint32_t(value));
 }
 
-void compressing_pluto_source_impl::load_rounded_hann_window(std::uint32_t bins)
-{
-    const std::vector<std::uint16_t> window = window::rounded_hann_window(bins);
-    assert(window.size() == bins);
-    for (std::uint16_t bin = 0; bin != bins; bin++) {
-        set_bin_window_value(bin, window.at(bin));
-    }
-}
-
 void compressing_pluto_source_impl::set_bin_mask(std::uint16_t bin_index)
 {
     write_u32_attr("bin_mask", (std::uint32_t(bin_index) << 1) | 0x1);
@@ -298,37 +242,6 @@ void compressing_pluto_source_impl::set_bin_mask(std::uint16_t bin_index)
 void compressing_pluto_source_impl::clear_bin_mask(std::uint16_t bin_index)
 {
     write_u32_attr("bin_mask", std::uint32_t(bin_index) << 1 | 0x0);
-}
-
-void compressing_pluto_source_impl::set_bin_spec(const std::string& spec)
-{
-    // Mask all bins
-    for (std::uint16_t bin = 0; bin < 1024; bin++) {
-        set_bin_mask(bin);
-    }
-    // Parse specification
-    if (spec.empty()) {
-        // Leave all bins masked
-        return;
-    }
-    std::string::size_type start_index = 0;
-    while (true) {
-        const auto next_comma_index = spec.find(",", start_index);
-        if (next_comma_index == std::string::npos) {
-            // No more commas. Try to parse the rest of the string, then stop
-            const auto last_part = spec.substr(start_index, spec.length() - start_index);
-            const auto last_bin_range = bin_range::parse(last_part);
-            apply_bin_range(last_bin_range);
-            break;
-        } else {
-            const auto current_part =
-                spec.substr(start_index, next_comma_index - start_index);
-            const auto bin_range = bin_range::parse(current_part);
-            apply_bin_range(bin_range);
-            // Start searching for the next comma after this one
-            start_index = next_comma_index + 1;
-        }
-    }
 }
 
 void compressing_pluto_source_impl::set_average_weight(float weight)
@@ -368,14 +281,6 @@ void compressing_pluto_source_impl::write_u32_attr(const char* name, std::uint32
         iio_device_attr_write(d_sparsdr_device, name, string_value.c_str());
     if (status < 0) {
         throw std::runtime_error("Failed to write u32 attribute");
-    }
-}
-
-void compressing_pluto_source_impl::apply_bin_range(const bin_range& range)
-{
-    for (std::uint16_t bin = range.start_bin; bin < range.end_bin; bin++) {
-        set_bin_threshold(bin, range.threshold);
-        clear_bin_mask(bin);
     }
 }
 

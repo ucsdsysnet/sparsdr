@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2019 The Regents of the University of California.
+ * Copyright 2019-2022 The Regents of the University of California.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,9 @@ namespace gr {
 namespace sparsdr {
 
 namespace {
+
+const std::uint32_t DEFAULT_FFT_SIZE = 2048;
+
 /**
  * Returns the number of leading zeros in the binary representation of
  * a number
@@ -64,7 +67,8 @@ compressing_usrp_source_impl::compressing_usrp_source_impl(
     : gr::hier_block2("compressing_usrp_source",
                       gr::io_signature::make(0, 0, 0),
                       gr::io_signature::make(1, 1, sizeof(std::uint32_t))),
-      d_usrp(nullptr)
+      d_usrp(nullptr),
+      d_fft_size(DEFAULT_FFT_SIZE)
 {
     endian_converter::register_converter();
 
@@ -102,46 +106,35 @@ void compressing_usrp_source_impl::set_compression_enabled(bool enabled)
     d_usrp->set_user_register(registers::ENABLE_COMPRESSION, enabled);
 }
 
-void compressing_usrp_source_impl::set_fft_enabled(bool enabled)
+void compressing_usrp_source_impl::set_run_fft(bool enable)
 {
-    d_usrp->set_user_register(registers::RUN_FFT, enabled);
+    d_usrp->set_user_register(registers::RUN_FFT, enable);
 }
 
-void compressing_usrp_source_impl::set_fft_send_enabled(bool enabled)
+void compressing_usrp_source_impl::set_send_average_samples(bool enable)
 {
-    d_usrp->set_user_register(registers::FFT_SEND, enabled);
+    d_usrp->set_user_register(registers::AVG_SEND, enable);
 }
 
-void compressing_usrp_source_impl::set_average_send_enabled(bool enabled)
+void compressing_usrp_source_impl::set_send_fft_samples(bool enable)
 {
-    d_usrp->set_user_register(registers::AVG_SEND, enabled);
-}
-
-void compressing_usrp_source_impl::start_all()
-{
-    set_fft_send_enabled(true);
-    set_average_send_enabled(true);
-    set_fft_enabled(true);
-}
-
-void compressing_usrp_source_impl::stop_all()
-{
-    set_fft_enabled(false);
-    set_average_send_enabled(false);
-    set_fft_send_enabled(false);
+    d_usrp->set_user_register(registers::FFT_SEND, enable);
 }
 
 void compressing_usrp_source_impl::set_fft_size(uint32_t size)
 {
     d_usrp->set_user_register(registers::FFT_SIZE, size);
+    d_fft_size = size;
 }
 
-void compressing_usrp_source_impl::set_fft_scaling(uint32_t scaling)
+std::uint32_t compressing_usrp_source_impl::fft_size() const { return d_fft_size; }
+
+void compressing_usrp_source_impl::set_shift_amount(uint32_t scaling)
 {
     d_usrp->set_user_register(registers::SCALING, scaling);
 }
 
-void compressing_usrp_source_impl::set_threshold(uint16_t index, uint32_t threshold)
+void compressing_usrp_source_impl::set_bin_threshold(uint16_t index, uint32_t threshold)
 {
     // First write the threshold value, then write the bin number to apply
     // the change
@@ -149,13 +142,27 @@ void compressing_usrp_source_impl::set_threshold(uint16_t index, uint32_t thresh
     d_usrp->set_user_register(registers::THRESHOLD_BIN_NUMBER, index);
 }
 
-void compressing_usrp_source_impl::set_mask_enabled(uint16_t index, bool enabled)
+void compressing_usrp_source_impl::set_bin_window_value(std::uint16_t bin_index,
+                                                        std::uint16_t value)
+{
+    d_usrp->set_user_register(registers::WINDOW_VALUE,
+                              (std::uint32_t(bin_index) << 16) | std::uint32_t(value));
+}
+
+void compressing_usrp_source_impl::set_bin_mask(uint16_t index)
 {
     // Register format:
     // Bits 31:1 : index (31 bits)
     // Bit 0 : set mask (1) / clear mask (0)
-
-    const uint32_t command = (index << 1) | enabled;
+    const uint32_t command = (index << 1) | 0x1;
+    d_usrp->set_user_register(registers::MASK, command);
+}
+void compressing_usrp_source_impl::clear_bin_mask(uint16_t index)
+{
+    // Register format:
+    // Bits 31:1 : index (31 bits)
+    // Bit 0 : set mask (1) / clear mask (0)
+    const uint32_t command = (index << 1) | 0x0;
     d_usrp->set_user_register(registers::MASK, command);
 }
 
@@ -169,7 +176,7 @@ void compressing_usrp_source_impl::set_average_weight(float weight)
     d_usrp->set_user_register(registers::AVG_WEIGHT, mapped);
 }
 
-void compressing_usrp_source_impl::set_average_packet_interval(uint32_t interval)
+void compressing_usrp_source_impl::set_average_interval(uint32_t interval)
 {
     if (interval == 0) {
         throw std::out_of_range("interval must not be 0");

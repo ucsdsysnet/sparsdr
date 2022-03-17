@@ -26,6 +26,7 @@ install(FILES
     band_spec.h
     compressing_pluto_source.h
     compressing_usrp_source.h
+    compressing_source.h
     iio_device_source.h
     reconstruct.h
     swap_16.h
@@ -35,4 +36,3 @@ install(FILES
     simple_combined_pluto_receiver.h
     DESTINATION include/sparsdr
 )
-

@@ -37,6 +37,7 @@ list(APPEND sparsdr_sources
     combined_usrp_receiver_impl.cc
     compressing_usrp_source_impl.cc
     compressing_pluto_source_impl.cc
+    compressing_source.cc
     endian_converter.cc
     fft_bin_calculator.c
     iio_device_source_impl.cc
