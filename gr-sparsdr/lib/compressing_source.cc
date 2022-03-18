@@ -1,5 +1,7 @@
 #include "window.h"
 #include <sparsdr/compressing_source.h>
+#include <boost/lexical_cast.hpp>
+#include <stdexcept>
 
 namespace gr {
 namespace sparsdr {
@@ -48,14 +50,14 @@ public:
 };
 } // namespace
 
-void compressing_souce::start_all()
+void compressing_source::start_all()
 {
     set_send_average_samples(true);
     set_send_fft_samples(true);
     set_run_fft(true);
 }
 
-void compressing_souce::stop_all()
+void compressing_source::stop_all()
 {
     set_run_fft(false);
     set_send_fft_samples(false);

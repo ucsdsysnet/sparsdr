@@ -18,10 +18,12 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDED_SPARSDR_COMPRESSING_SOURCE_IMPL_H
-#define INCLUDED_SPARSDR_COMPRESSING_SOURCE_IMPL_H
+#ifndef INCLUDED_SPARSDR_COMPRESSING_SOURCE_H
+#define INCLUDED_SPARSDR_COMPRESSING_SOURCE_H
 
+#include <sparsdr/api.h>
 #include <cstdint>
+#include <string>
 
 namespace gr {
 namespace sparsdr {
@@ -35,7 +37,7 @@ struct bin_range;
  * This is a base class for a device that runs SparSDR compression and allows
  * the compression settings to be configured.
  */
-class compressing_souce
+class SPARSDR_API compressing_source
 {
 public:
     /*!
@@ -186,7 +188,7 @@ public:
      */
     virtual void set_average_interval(std::uint32_t interval) = 0;
 
-    virtual ~compressing_souce() = default;
+    virtual ~compressing_source() = default;
 
 private:
     /**

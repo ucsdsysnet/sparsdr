@@ -48,18 +48,22 @@ public:
     virtual ::uhd::tune_result_t
     set_center_freq(const ::uhd::tune_request_t& tune_request) override;
     virtual void set_antenna(const std::string& ant) override;
-    virtual void set_compression_enabled(bool enabled) override;
-    virtual void set_fft_enabled(bool enabled) override;
-    virtual void set_fft_send_enabled(bool enabled) override;
-    virtual void set_average_send_enabled(bool enabled) override;
-    virtual void start_all() override;
-    virtual void stop_all() override;
-    virtual void set_fft_size(uint32_t size) override;
-    virtual void set_fft_scaling(uint32_t scaling) override;
-    virtual void set_threshold(uint16_t index, uint32_t threshold) override;
-    virtual void set_mask_enabled(uint16_t index, bool enabled) override;
+
+    // compressing_source function implementations
+    virtual void set_compression_enabled(bool enable) override;
+    virtual void set_run_fft(bool enable) override;
+    virtual void set_send_fft_samples(bool enable) override;
+    virtual void set_send_average_samples(bool enable) override;
+    virtual void set_fft_size(std::uint32_t size) override;
+    virtual std::uint32_t fft_size() const override;
+    virtual void set_shift_amount(std::uint8_t scaling) override;
+    virtual void set_bin_threshold(std::uint16_t index, std::uint32_t threshold) override;
+    virtual void set_bin_window_value(std::uint16_t bin_index,
+                                      std::uint16_t value) override;
+    virtual void set_bin_mask(std::uint16_t bin_index) override;
+    virtual void clear_bin_mask(std::uint16_t bin_index) override;
     virtual void set_average_weight(float weight) override;
-    virtual void set_average_packet_interval(uint32_t interval) override;
+    virtual void set_average_interval(std::uint32_t interval) override;
 
     ~combined_usrp_receiver_impl();
 };

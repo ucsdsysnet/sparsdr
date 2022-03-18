@@ -15,8 +15,9 @@ void endian_converter::set_scalar(const double)
     // Nothing (scaling is not used)
 }
 
-void endian_converter::
-operator()(const input_type& in, const output_type& out, const size_t num)
+void endian_converter::operator()(const input_type& in,
+                                  const output_type& out,
+                                  const size_t num)
 {
     // This works correctly only on little-endian targets.
     const std::uint32_t* samples_in = reinterpret_cast<const std::uint32_t*>(in[0]);
@@ -40,12 +41,12 @@ void endian_converter::register_converter()
     id.num_outputs = 1;
 
     uhd::convert::register_bytes_per_item("sparsdr_sample", 4);
-    uhd::convert::register_converter(id,
-                                     []() -> uhd::convert::converter::sptr {
-                                         return uhd::convert::converter::sptr(
-                                             new endian_converter());
-                                     },
-                                     0 /* Priority */);
+    uhd::convert::register_converter(
+        id,
+        []() -> uhd::convert::converter::sptr {
+            return uhd::convert::converter::sptr(new endian_converter());
+        },
+        0 /* Priority */);
 }
 
 } // namespace sparsdr

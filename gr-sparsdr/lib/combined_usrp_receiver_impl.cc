@@ -119,43 +119,52 @@ void combined_usrp_receiver_impl::set_compression_enabled(bool enabled)
 {
     d_usrp->set_compression_enabled(enabled);
 }
-void combined_usrp_receiver_impl::set_fft_enabled(bool enabled)
+void combined_usrp_receiver_impl::set_run_fft(bool enable)
 {
-    d_usrp->set_fft_enabled(enabled);
+    d_usrp->set_run_fft(enable);
 }
-void combined_usrp_receiver_impl::set_fft_send_enabled(bool enabled)
+void combined_usrp_receiver_impl::set_send_fft_samples(bool enable)
 {
-    d_usrp->set_fft_send_enabled(enabled);
+    d_usrp->set_send_fft_samples(enable);
 }
-void combined_usrp_receiver_impl::set_average_send_enabled(bool enabled)
+void combined_usrp_receiver_impl::set_send_average_samples(bool enable)
 {
-    d_usrp->set_average_send_enabled(enabled);
+    d_usrp->set_send_average_samples(enable);
 }
-void combined_usrp_receiver_impl::start_all() { d_usrp->start_all(); }
-void combined_usrp_receiver_impl::stop_all() { d_usrp->stop_all(); }
-void combined_usrp_receiver_impl::set_fft_size(uint32_t size)
+void combined_usrp_receiver_impl::set_fft_size(std::uint32_t size)
 {
     d_usrp->set_fft_size(size);
 }
-void combined_usrp_receiver_impl::set_fft_scaling(uint32_t scaling)
+std::uint32_t combined_usrp_receiver_impl::fft_size() const { return d_usrp->fft_size(); }
+void combined_usrp_receiver_impl::set_shift_amount(std::uint8_t scaling)
 {
-    d_usrp->set_fft_scaling(scaling);
+    d_usrp->set_shift_amount(scaling);
 }
-void combined_usrp_receiver_impl::set_threshold(uint16_t index, uint32_t threshold)
+void combined_usrp_receiver_impl::set_bin_threshold(std::uint16_t index,
+                                                    std::uint32_t threshold)
 {
-    d_usrp->set_threshold(index, threshold);
+    d_usrp->set_bin_threshold(index, threshold);
 }
-void combined_usrp_receiver_impl::set_mask_enabled(uint16_t index, bool enabled)
+void combined_usrp_receiver_impl::set_bin_window_value(std::uint16_t bin_index,
+                                                       std::uint16_t value)
 {
-    d_usrp->set_mask_enabled(index, enabled);
+    d_usrp->set_bin_window_value(bin_index, value);
+}
+void combined_usrp_receiver_impl::set_bin_mask(std::uint16_t bin_index)
+{
+    d_usrp->set_bin_mask(bin_index);
+}
+void combined_usrp_receiver_impl::clear_bin_mask(std::uint16_t bin_index)
+{
+    d_usrp->clear_bin_mask(bin_index);
 }
 void combined_usrp_receiver_impl::set_average_weight(float weight)
 {
     d_usrp->set_average_weight(weight);
 }
-void combined_usrp_receiver_impl::set_average_packet_interval(uint32_t interval)
+void combined_usrp_receiver_impl::set_average_interval(std::uint32_t interval)
 {
-    d_usrp->set_average_packet_interval(interval);
+    d_usrp->set_average_interval(interval);
 }
 
 /*

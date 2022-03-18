@@ -25,6 +25,7 @@
 #include <gnuradio/hier_block2.h>
 #include <sparsdr/api.h>
 #include <sparsdr/band_spec.h>
+#include <sparsdr/compressing_source.h>
 
 namespace gr {
 namespace sparsdr {
@@ -35,7 +36,8 @@ namespace sparsdr {
  * \ingroup sparsdr
  *
  */
-class SPARSDR_API combined_pluto_receiver : virtual public gr::hier_block2
+class SPARSDR_API combined_pluto_receiver : virtual public gr::hier_block2,
+                                            public compressing_source
 {
 public:
     typedef boost::shared_ptr<combined_pluto_receiver> sptr;
@@ -67,19 +69,6 @@ public:
     // Compressing pluto source delegate functions
     virtual void set_frequency(unsigned long long frequency) = 0;
     virtual void set_gain(double gain) = 0;
-    virtual void set_run_fft(bool enable) = 0;
-    virtual void set_send_average_samples(bool enable) = 0;
-    virtual void set_send_fft_samples(bool enable) = 0;
-    virtual void start_all() = 0;
-    virtual void stop_all() = 0;
-    virtual void set_fft_size(std::uint32_t size) = 0;
-    virtual void load_rounded_hann_window(std::uint32_t bins) = 0;
-    virtual void set_shift_amount(std::uint8_t scaling) = 0;
-    virtual void set_bin_threshold(std::uint16_t bin_index, std::uint32_t threshold) = 0;
-    virtual void set_bin_window_value(std::uint16_t bin_index, std::uint16_t value) = 0;
-    virtual void set_bin_mask(std::uint16_t bin_index) = 0;
-    virtual void clear_bin_mask(std::uint16_t bin_index) = 0;
-    virtual void set_bin_spec(const std::string& spec) = 0;
 };
 
 } // namespace sparsdr

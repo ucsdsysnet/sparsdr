@@ -40,9 +40,9 @@ const std::uint32_t DEFAULT_FFT_SIZE = 2048;
  * Returns the number of leading zeros in the binary representation of
  * a number
  */
-uint32_t leading_zeros(uint32_t value)
+std::uint32_t leading_zeros(std::uint32_t value)
 {
-    uint32_t zeros = 0;
+    std::uint32_t zeros = 0;
     while ((value >> 31) == 0 && zeros < 32) {
         value <<= 1;
         zeros += 1;
@@ -121,7 +121,7 @@ void compressing_usrp_source_impl::set_send_fft_samples(bool enable)
     d_usrp->set_user_register(registers::FFT_SEND, enable);
 }
 
-void compressing_usrp_source_impl::set_fft_size(uint32_t size)
+void compressing_usrp_source_impl::set_fft_size(std::uint32_t size)
 {
     d_usrp->set_user_register(registers::FFT_SIZE, size);
     d_fft_size = size;
@@ -129,12 +129,13 @@ void compressing_usrp_source_impl::set_fft_size(uint32_t size)
 
 std::uint32_t compressing_usrp_source_impl::fft_size() const { return d_fft_size; }
 
-void compressing_usrp_source_impl::set_shift_amount(uint32_t scaling)
+void compressing_usrp_source_impl::set_shift_amount(std::uint8_t scaling)
 {
-    d_usrp->set_user_register(registers::SCALING, scaling);
+    d_usrp->set_user_register(registers::SHIFT_AMOUNT, scaling);
 }
 
-void compressing_usrp_source_impl::set_bin_threshold(uint16_t index, uint32_t threshold)
+void compressing_usrp_source_impl::set_bin_threshold(std::uint16_t index,
+                                                     std::uint32_t threshold)
 {
     // First write the threshold value, then write the bin number to apply
     // the change
@@ -145,24 +146,24 @@ void compressing_usrp_source_impl::set_bin_threshold(uint16_t index, uint32_t th
 void compressing_usrp_source_impl::set_bin_window_value(std::uint16_t bin_index,
                                                         std::uint16_t value)
 {
-    d_usrp->set_user_register(registers::WINDOW_VALUE,
+    d_usrp->set_user_register(registers::WINDOW_VAL,
                               (std::uint32_t(bin_index) << 16) | std::uint32_t(value));
 }
 
-void compressing_usrp_source_impl::set_bin_mask(uint16_t index)
+void compressing_usrp_source_impl::set_bin_mask(std::uint16_t index)
 {
     // Register format:
     // Bits 31:1 : index (31 bits)
     // Bit 0 : set mask (1) / clear mask (0)
-    const uint32_t command = (index << 1) | 0x1;
+    const std::uint32_t command = (index << 1) | 0x1;
     d_usrp->set_user_register(registers::MASK, command);
 }
-void compressing_usrp_source_impl::clear_bin_mask(uint16_t index)
+void compressing_usrp_source_impl::clear_bin_mask(std::uint16_t index)
 {
     // Register format:
     // Bits 31:1 : index (31 bits)
     // Bit 0 : set mask (1) / clear mask (0)
-    const uint32_t command = (index << 1) | 0x0;
+    const std::uint32_t command = (index << 1) | 0x0;
     d_usrp->set_user_register(registers::MASK, command);
 }
 
@@ -176,7 +177,7 @@ void compressing_usrp_source_impl::set_average_weight(float weight)
     d_usrp->set_user_register(registers::AVG_WEIGHT, mapped);
 }
 
-void compressing_usrp_source_impl::set_average_interval(uint32_t interval)
+void compressing_usrp_source_impl::set_average_interval(std::uint32_t interval)
 {
     if (interval == 0) {
         throw std::out_of_range("interval must not be 0");

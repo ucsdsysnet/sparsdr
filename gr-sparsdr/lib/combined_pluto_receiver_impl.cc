@@ -110,6 +110,11 @@ void combined_pluto_receiver_impl::set_frequency(unsigned long long frequency)
     d_pluto->set_frequency(frequency);
 }
 void combined_pluto_receiver_impl::set_gain(double gain) { d_pluto->set_gain(gain); }
+
+void combined_pluto_receiver_impl::set_compression_enabled(bool enabled)
+{
+    d_pluto->set_compression_enabled(enabled);
+}
 void combined_pluto_receiver_impl::set_run_fft(bool enable)
 {
     d_pluto->set_run_fft(enable);
@@ -122,8 +127,6 @@ void combined_pluto_receiver_impl::set_send_fft_samples(bool enable)
 {
     d_pluto->set_send_fft_samples(enable);
 }
-void combined_pluto_receiver_impl::start_all() { d_pluto->start_all(); }
-void combined_pluto_receiver_impl::stop_all() { d_pluto->stop_all(); }
 void combined_pluto_receiver_impl::set_fft_size(std::uint32_t size)
 {
     d_pluto->set_fft_size(size);
@@ -142,10 +145,6 @@ void combined_pluto_receiver_impl::set_bin_window_value(std::uint16_t bin_index,
 {
     d_pluto->set_bin_window_value(bin_index, value);
 }
-void combined_pluto_receiver_impl::load_rounded_hann_window(std::uint32_t bins)
-{
-    d_pluto->load_rounded_hann_window(bins);
-}
 void combined_pluto_receiver_impl::set_bin_mask(std::uint16_t bin_index)
 {
     d_pluto->set_bin_mask(bin_index);
@@ -154,9 +153,13 @@ void combined_pluto_receiver_impl::clear_bin_mask(std::uint16_t bin_index)
 {
     d_pluto->clear_bin_mask(bin_index);
 }
-void combined_pluto_receiver_impl::set_bin_spec(const std::string& spec)
+void combined_pluto_receiver_impl::set_average_weight(float weight)
 {
-    d_pluto->set_bin_spec(spec);
+    d_pluto->set_average_weight(weight);
+}
+void combined_pluto_receiver_impl::set_average_interval(std::uint32_t interval)
+{
+    d_pluto->set_average_interval(interval);
 }
 
 

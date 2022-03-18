@@ -48,16 +48,17 @@ public:
     virtual void set_run_fft(bool enable) override;
     virtual void set_send_average_samples(bool enable) override;
     virtual void set_send_fft_samples(bool enable) override;
-    virtual void set_fft_size(uint32_t size) override;
+    virtual void set_fft_size(std::uint32_t size) override;
     virtual std::uint32_t fft_size() const override;
     virtual void set_shift_amount(std::uint8_t scaling) override;
-    virtual void set_bin_threshold(uint16_t bin_index, uint32_t threshold) override;
+    virtual void set_bin_threshold(std::uint16_t bin_index,
+                                   std::uint32_t threshold) override;
     virtual void set_bin_window_value(std::uint16_t bin_index,
                                       std::uint16_t value) override;
     virtual void set_bin_mask(std::uint16_t bin_index) override;
     virtual void clear_bin_mask(std::uint16_t bin_index) override;
     virtual void set_average_weight(float weight) override;
-    virtual void set_average_interval(uint32_t interval) override;
+    virtual void set_average_interval(std::uint32_t interval) override;
 };
 
 } // namespace sparsdr

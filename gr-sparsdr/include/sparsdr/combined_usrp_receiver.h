@@ -25,6 +25,7 @@
 #include <gnuradio/hier_block2.h>
 #include <sparsdr/api.h>
 #include <sparsdr/band_spec.h>
+#include <sparsdr/compressing_source.h>
 #include <uhd/types/device_addr.hpp>
 #include <uhd/types/tune_request.hpp>
 #include <uhd/types/tune_result.hpp>
@@ -38,7 +39,8 @@ namespace sparsdr {
  * \ingroup sparsdr
  *
  */
-class SPARSDR_API combined_usrp_receiver : virtual public gr::hier_block2
+class SPARSDR_API combined_usrp_receiver : virtual public gr::hier_block2,
+                                           public compressing_source
 {
 public:
     typedef boost::shared_ptr<combined_usrp_receiver> sptr;
@@ -70,18 +72,6 @@ public:
     virtual ::uhd::tune_result_t
     set_center_freq(const ::uhd::tune_request_t& tune_request) = 0;
     virtual void set_antenna(const std::string& ant) = 0;
-    virtual void set_compression_enabled(bool enabled) = 0;
-    virtual void set_fft_enabled(bool enabled) = 0;
-    virtual void set_fft_send_enabled(bool enabled) = 0;
-    virtual void set_average_send_enabled(bool enabled) = 0;
-    virtual void start_all() = 0;
-    virtual void stop_all() = 0;
-    virtual void set_fft_size(uint32_t size) = 0;
-    virtual void set_fft_scaling(uint32_t scaling) = 0;
-    virtual void set_threshold(uint16_t index, uint32_t threshold) = 0;
-    virtual void set_mask_enabled(uint16_t index, bool enabled) = 0;
-    virtual void set_average_weight(float weight) = 0;
-    virtual void set_average_packet_interval(uint32_t interval) = 0;
 };
 
 } // namespace sparsdr
