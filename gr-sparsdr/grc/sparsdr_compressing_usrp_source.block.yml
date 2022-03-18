@@ -16,9 +16,23 @@ parameters:
 -   id: gain
     label: Gain
     dtype: real
+-   id: use_bin_spec
+    label: Use bin specification
+    dtype: bool
+    default: 'False'
+    options: ['False', 'True']
+    option_labels: ['False', 'True']
+    hide: 'part'
 -   id: threshold
     label: Threshold
     dtype: real
+    default: 1000
+    hide: ${ ('all' if use_bin_spec else 'none') }
+-   id: bin_spec
+    label: Bin specification
+    dtype: string
+    default: 0..8:1
+    hide: ${ ('none' if use_bin_spec else 'all') }
 -   id: antenna
     label: Antenna
     dtype: string
@@ -31,11 +45,23 @@ templates:
     imports: |-
         import sparsdr
         from gnuradio import uhd
-    make: "sparsdr.compressing_usrp_source(uhd.device_addr(${device_addr}))\nself.${id}.set_center_freq(uhd.tune_request(${center_freq}))\n\
-        self.${id}.set_antenna(${antenna})\nself.${id}.set_gain(${gain})\n# Configure\
-        \ compression\nself.${id}.set_compression_enabled(True)\nself.${id}.stop_all();\n\
-        \n# Clear masks and set threshold\nfor i in range(2048):\n    self.${id}.set_mask_enabled(i,\
-        \ False);\n    self.${id}.set_threshold(i, ${threshold})\n\n# Start compression\n\
-        self.${id}.start_all()\n  "
+    make: |-
+        sparsdr.compressing_usrp_source(uhd.device_addr(${device_addr}))
+        self.${id}.set_center_freq(uhd.tune_request(${center_freq}))
+        self.${id}.set_antenna(${antenna})
+        self.${id}.set_gain(${gain})
+        # Configure compression
+        self.${id}.set_compression_enabled(True)
+        self.${id}.stop_all()
+        % if eval(use_bin_spec):
+        self.${id}.set_bin_spec(${bin_spec})
+        % else:
+        # Clear masks and set threshold
+        for i in range(2048):
+            self.${id}.clear_bin_mask(i)
+            self.${id}.set_bin_threshold(i, ${threshold})
+        % endif
+        # Start compression
+        self.${id}.start_all()
 
 file_format: 1
