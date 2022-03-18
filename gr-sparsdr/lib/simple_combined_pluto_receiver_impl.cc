@@ -22,12 +22,10 @@
 #include "config.h"
 #endif
 
-#include "fft_bin_calculator.h"
+#include "combined_common.h"
 #include "simple_combined_pluto_receiver_impl.h"
 #include <gnuradio/io_signature.h>
 #include <sparsdr/combined_pluto_receiver.h>
-#include <iostream>
-#include <sstream>
 
 namespace gr {
 namespace sparsdr {
@@ -36,6 +34,11 @@ namespace {
 constexpr float PLUTO_SAMPLE_RATE = 61.44e6;
 constexpr float PLUTO_RECEIVE_BANDWIDTH = 56e6;
 constexpr unsigned int PLUTO_DEFAULT_FFT_SIZE = 1024;
+
+constexpr device_properties PLUTO_PROPERTIES = { PLUTO_DEFAULT_FFT_SIZE,
+                                                 PLUTO_SAMPLE_RATE,
+                                                 PLUTO_RECEIVE_BANDWIDTH };
+
 } // namespace
 
 simple_combined_pluto_receiver::sptr
@@ -74,71 +77,15 @@ simple_combined_pluto_receiver_impl::simple_combined_pluto_receiver_impl(
           gr::io_signature::make(bands.size(), bands.size(), sizeof(gr_complex))),
       d_inner_block(nullptr)
 {
-    // Determine the bins for each requested band
-    std::vector<band_spec> reconstruct_bands;
-    std::stringstream generated_bin_spec;
-    for (std::size_t i = 0; i != bands.size(); i++) {
-        const simple_band_spec& requested_band = bands.at(i);
-        exact_ranges band_calculated_ranges;
-        const int calc_status = bins_calc_hertz(center_frequency,
-                                                PLUTO_SAMPLE_RATE,
-                                                requested_band.frequency(),
-                                                requested_band.bandwidth(),
-                                                PLUTO_RECEIVE_BANDWIDTH,
-                                                PLUTO_DEFAULT_FFT_SIZE,
-                                                &band_calculated_ranges);
-
-        unsigned int total_bins;
-
-        std::cout << "Band " << i << " (center " << requested_band.frequency()
-                  << " Hz, bandwidth " << requested_band.bandwidth() << " Hz): ";
-        if (calc_status == 0) {
-            std::cout << "Can't determine bins to unmask\n";
-            throw std::runtime_error("Can't determine bins to unmask");
-        } else if (calc_status == 1) {
-            std::cout << "Unmasking bins " << band_calculated_ranges.l_bin1
-                      << " (inclusive) to " << band_calculated_ranges.r_bin1
-                      << " (exclusive)\n";
-            // Append bins to the band specification, with a trailing comma
-            generated_bin_spec << band_calculated_ranges.l_bin1 << ".."
-                               << band_calculated_ranges.r_bin1 << ":" << threshold
-                               << ",";
-            total_bins = band_calculated_ranges.r_bin1 - band_calculated_ranges.l_bin1;
-        } else {
-            std::cout << "Unmasking bins " << band_calculated_ranges.l_bin1
-                      << " (inclusive) to " << band_calculated_ranges.r_bin1
-                      << " (exclusive) and bins " << band_calculated_ranges.l_bin2
-                      << " (inclusive) to " << band_calculated_ranges.r_bin2
-                      << " (exclusive)\n";
-
-            // Append two ranges of bins to the band specification, with a trailing comma
-            generated_bin_spec << band_calculated_ranges.l_bin1 << ".."
-                               << band_calculated_ranges.r_bin1 << ":" << threshold << ","
-                               << band_calculated_ranges.l_bin2 << ".."
-                               << band_calculated_ranges.r_bin2 << ":" << threshold
-                               << ",";
-
-            total_bins = (band_calculated_ranges.r_bin1 - band_calculated_ranges.l_bin1) +
-                         (band_calculated_ranges.r_bin2 - band_calculated_ranges.l_bin2);
-        }
-
-        // Assemble a bin specification for the inner block
-        // This uses absolute frequencies.
-        reconstruct_bands.push_back(band_spec(requested_band.frequency(), total_bins));
-    }
-    // If the bin specification is not empty, remove the trailing comman
-    std::string generated_bin_spec_string = generated_bin_spec.str();
-    if (!generated_bin_spec_string.empty()) {
-        generated_bin_spec_string.pop_back();
-    }
-    std::cerr << "Generated bin specification: " << generated_bin_spec_string << '\n';
+    // Calculate bins and things
+    combined_receiver_setup setup(center_frequency, bands, threshold, PLUTO_PROPERTIES);
 
     // Create and configure inner block
     auto inner_block = combined_pluto_receiver::make(uri,
                                                      buffer_size,
                                                      PLUTO_DEFAULT_FFT_SIZE,
                                                      center_frequency,
-                                                     reconstruct_bands,
+                                                     setup.reconstruct_bands,
                                                      reconstruct_path,
                                                      zero_gaps);
     // This configuration doesn't need to be done from the Python code
@@ -146,7 +93,7 @@ simple_combined_pluto_receiver_impl::simple_combined_pluto_receiver_impl(
     inner_block->stop_all();
     inner_block->set_fft_size(PLUTO_DEFAULT_FFT_SIZE);
     inner_block->load_rounded_hann_window(PLUTO_DEFAULT_FFT_SIZE);
-    inner_block->set_bin_spec(generated_bin_spec_string);
+    inner_block->set_bin_spec(setup.generated_bin_spec);
     inner_block->start_all();
     // The gain and shift amount do need to be configured from the Python
     // code (or whatever the client code is)

@@ -131,6 +131,10 @@ void combined_pluto_receiver_impl::set_fft_size(std::uint32_t size)
 {
     d_pluto->set_fft_size(size);
 }
+std::uint32_t combined_pluto_receiver_impl::fft_size() const
+{
+    return d_pluto->fft_size();
+}
 void combined_pluto_receiver_impl::set_shift_amount(std::uint8_t scaling)
 {
     d_pluto->set_shift_amount(scaling);

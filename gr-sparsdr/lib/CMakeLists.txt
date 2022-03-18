@@ -43,6 +43,7 @@ list(APPEND sparsdr_sources
     iio_device_source_impl.cc
     reconstruct_impl.cc
     simple_combined_pluto_receiver_impl.cc
+    simple_combined_usrp_receiver_impl.cc
     swap_16_impl.cc
     window.cc
 )

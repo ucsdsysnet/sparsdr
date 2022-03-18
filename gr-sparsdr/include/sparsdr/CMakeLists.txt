@@ -34,5 +34,6 @@ install(FILES
     combined_pluto_receiver.h
     simple_band_spec.h
     simple_combined_pluto_receiver.h
+    simple_combined_usrp_receiver.h
     DESTINATION include/sparsdr
 )

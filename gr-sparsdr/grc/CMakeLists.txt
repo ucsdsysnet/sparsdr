@@ -25,5 +25,6 @@ install(FILES
     sparsdr_compressing_usrp_source.block.yml
     sparsdr_reconstruct.block.yml
     sparsdr_simple_combined_pluto_receiver.block.yml
+    sparsdr_simple_combined_usrp_receiver.block.yml
     DESTINATION share/gnuradio/grc/blocks
 )
