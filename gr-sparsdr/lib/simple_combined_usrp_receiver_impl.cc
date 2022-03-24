@@ -48,7 +48,8 @@ simple_combined_usrp_receiver::make(const ::uhd::device_addr_t& device_addr,
                                     const std::vector<simple_band_spec>& bands,
                                     std::uint32_t threshold,
                                     const std::string& reconstruct_path,
-                                    bool zero_gaps)
+                                    bool zero_gaps,
+                                    bool skip_bin_config)
 {
     return gnuradio::get_initial_sptr(
         new simple_combined_usrp_receiver_impl(device_addr,
@@ -57,7 +58,8 @@ simple_combined_usrp_receiver::make(const ::uhd::device_addr_t& device_addr,
                                                bands,
                                                threshold,
                                                reconstruct_path,
-                                               zero_gaps));
+                                               zero_gaps,
+                                               skip_bin_config));
 }
 
 /*
@@ -70,7 +72,8 @@ simple_combined_usrp_receiver_impl::simple_combined_usrp_receiver_impl(
     const std::vector<simple_band_spec>& bands,
     std::uint32_t threshold,
     const std::string& reconstruct_path,
-    bool zero_gaps)
+    bool zero_gaps,
+    bool skip_bin_config)
     : gr::hier_block2(
           "simple_combined_usrp_receiver",
           gr::io_signature::make(0, 0, 0),
@@ -83,15 +86,18 @@ simple_combined_usrp_receiver_impl::simple_combined_usrp_receiver_impl(
     // Create and configure inner block
     auto inner_block = combined_usrp_receiver::make(device_addr,
                                                     format_version,
+                                                    center_frequency,
                                                     setup.reconstruct_bands,
                                                     reconstruct_path,
                                                     zero_gaps);
     // This configuration doesn't need to be done from the Python code
     inner_block->set_center_freq(center_frequency);
     inner_block->stop_all();
-    inner_block->set_fft_size(USRP_DEFAULT_FFT_SIZE);
-    inner_block->load_rounded_hann_window(USRP_DEFAULT_FFT_SIZE);
-    inner_block->set_bin_spec(setup.generated_bin_spec);
+    if (!skip_bin_config) {
+        inner_block->set_fft_size(USRP_DEFAULT_FFT_SIZE);
+        inner_block->load_rounded_hann_window(USRP_DEFAULT_FFT_SIZE);
+        inner_block->set_bin_spec(setup.generated_bin_spec);
+    }
     inner_block->start_all();
     // The gain and shift amount do need to be configured from the Python
     // code (or whatever the client code is)

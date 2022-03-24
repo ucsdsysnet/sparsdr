@@ -38,6 +38,7 @@ private:
 public:
     combined_usrp_receiver_impl(const ::uhd::device_addr_t& device_addr,
                                 int format_version,
+                                float center_frequency,
                                 const std::vector<band_spec>& bands,
                                 const std::string& reconstruct_path,
                                 bool zero_gaps);

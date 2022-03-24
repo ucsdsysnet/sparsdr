@@ -426,6 +426,14 @@ parameters:
     default: '1024'
     hide: ${ ('none' if int(band_count) > 31 else 'all') }
 
+-   id: skip_config
+    label: Skip bin configuration
+    hide: part
+    dtype: bool
+    default: 'False'
+    options: ['False', 'True']
+    option_labels: ['False', 'True']
+
 outputs:
 -   domain: stream
     dtype: complex
@@ -539,18 +547,22 @@ templates:
         ${id}_bands.push_back(sparsdr.band_spec(${band_31_frequency}, ${band_31_bins})
         % endif
         
-        self.${id} = ${id} = sparsdr.combined_usrp_receiver(device_addr=uhd.device_addr(${device_addr}), format_version=${format_version}, bands=${id}_bands, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps})
+        self.${id} = ${id} = sparsdr.combined_usrp_receiver(device_addr=uhd.device_addr(${device_addr}), format_version=${format_version}, center_frequency=${frequency}, bands=${id}_bands, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps})
         self.${id}.set_antenna(${antenna})
         self.${id}.set_center_freq(uhd.tune_request(${frequency}))
         self.${id}.set_gain(${gain})
         # Configure compression
         self.${id}.set_compression_enabled(True)
         self.${id}.stop_all()
+        % if not(eval(skip_config)):
         self.${id}.set_fft_size(2048)
         # Clear masks and set threshold
         for i in range(2048):
             self.${id}.set_mask_enabled(i, False)
             self.${id}.set_threshold(i, ${threshold})
+        % else:
+        print('Skipping bin configuration')
+        % endif
         # Start compression
         self.${id}.start_all()
 

@@ -72,7 +72,8 @@ public:
                      const std::vector<simple_band_spec>& bands,
                      std::uint32_t threshold,
                      const std::string& reconstruct_path = "sparsdr_reconstruct",
-                     bool zero_gaps = false);
+                     bool zero_gaps = false,
+                     bool skip_bin_config = false);
 
     // Functions that delegate to combined_usrp_receiver functions
     virtual void set_gain(double gain) = 0;

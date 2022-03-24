@@ -39,6 +39,13 @@ parameters:
     label: FFT size
     dtype: int
     default: '1024'
+-   id: skip_config
+    label: Skip bin configuration
+    hide: part
+    dtype: bool
+    default: 'False'
+    options: ['False', 'True']
+    option_labels: ['False', 'True']
 
 outputs:
 -   domain: stream
@@ -50,10 +57,20 @@ asserts:
 
 templates:
     imports: import sparsdr
-    make: "sparsdr.compressing_pluto_source(${uri}, ${buffer_size})\nself.${id}.set_frequency(${frequency})\n\
-        self.${id}.set_gain(${gain})\n\nself.${id}.stop_all()\nself.${id}.set_shift_amount(${shift_amount})\n\
-        self.${id}.set_fft_size(${fft_size})\nself.${id}.load_rounded_hann_window(${fft_size})\n\
-        self.${id}.set_bin_spec(${bin_spec})\nself.${id}.set_average_interval(${average_interval})\n\
-        self.${id}.start_all()\n  "
+    make: |-
+        sparsdr.compressing_pluto_source(${uri}, ${buffer_size})
+        self.${id}.set_frequency(${frequency})
+        self.${id}.set_gain(${gain})
+        self.${id}.stop_all()
+        self.${id}.set_shift_amount(${shift_amount})
+        % if not(eval(skip_config)):
+        self.${id}.set_fft_size(${fft_size})
+        self.${id}.load_rounded_hann_window(${fft_size})
+        self.${id}.set_bin_spec(${bin_spec})
+        % else:
+        print('Skipping bin configuration')
+        % endif
+        self.${id}.set_average_interval(${average_interval})
+        self.${id}.start_all()
 
 file_format: 1

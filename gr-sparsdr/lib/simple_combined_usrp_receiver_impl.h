@@ -42,7 +42,8 @@ public:
                                        const std::vector<simple_band_spec>& bands,
                                        std::uint32_t threshold,
                                        const std::string& reconstruct_path,
-                                       bool zero_gaps);
+                                       bool zero_gaps,
+                                       bool skip_bin_config);
 
     virtual void set_gain(double gain) override;
     virtual void set_antenna(const std::string& antenna) override;

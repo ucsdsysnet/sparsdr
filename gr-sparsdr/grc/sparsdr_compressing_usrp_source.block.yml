@@ -36,6 +36,14 @@ parameters:
 -   id: antenna
     label: Antenna
     dtype: string
+    
+-   id: skip_config
+    label: Skip bin configuration
+    hide: part
+    dtype: bool
+    default: 'False'
+    options: ['False', 'True']
+    option_labels: ['False', 'True']
 
 outputs:
 -   domain: stream
@@ -53,6 +61,7 @@ templates:
         # Configure compression
         self.${id}.set_compression_enabled(True)
         self.${id}.stop_all()
+        % if not(eval(skip_config)):
         % if eval(use_bin_spec):
         self.${id}.set_bin_spec(${bin_spec})
         % else:
@@ -60,6 +69,9 @@ templates:
         for i in range(2048):
             self.${id}.clear_bin_mask(i)
             self.${id}.set_bin_threshold(i, ${threshold})
+        % endif
+        % else:
+        print('Skipping bin configuration')
         % endif
         # Start compression
         self.${id}.start_all()

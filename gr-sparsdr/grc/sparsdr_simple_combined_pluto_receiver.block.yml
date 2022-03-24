@@ -433,6 +433,14 @@ parameters:
     default: 2e6
     hide: ${ ('none' if int(band_count) > 31 else 'all') }
 
+-   id: skip_config
+    label: Skip bin configuration
+    hide: part
+    dtype: bool
+    default: 'False'
+    options: ['False', 'True']
+    option_labels: ['False', 'True']
+
 outputs:
 -   domain: stream
     dtype: complex
@@ -543,7 +551,7 @@ templates:
         % if int(eval(band_count)) > 31:
         ${id}_bands.push_back(sparsdr.simple_band_spec(${band_31_frequency}, ${band_31_bandwidth})
         % endif
-        self.${id} = ${id} = sparsdr.simple_combined_pluto_receiver(uri=${uri}, buffer_size=${buffer_size}, center_frequency=${frequency}, bands=${id}_bands, threshold=${threshold}, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps})
+        self.${id} = ${id} = sparsdr.simple_combined_pluto_receiver(uri=${uri}, buffer_size=${buffer_size}, center_frequency=${frequency}, bands=${id}_bands, threshold=${threshold}, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps}, skip_bin_config=${skip_config})
         self.${id}.set_gain(${gain})
         self.${id}.set_shift_amount(${shift_amount})
 

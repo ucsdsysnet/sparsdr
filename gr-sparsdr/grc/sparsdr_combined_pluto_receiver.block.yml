@@ -434,6 +434,14 @@ parameters:
     default: '1024'
     hide: ${ ('none' if int(band_count) > 31 else 'all') }
 
+-   id: skip_config
+    label: Skip bin configuration
+    hide: part
+    dtype: bool
+    default: 'False'
+    options: ['False', 'True']
+    option_labels: ['False', 'True']
+
 outputs:
 -   domain: stream
     dtype: complex
@@ -549,10 +557,14 @@ templates:
         self.${id}.set_frequency(${frequency})
         self.${id}.set_gain(${gain})
         self.${id}.stop_all()
+        % if not(eval(skip_config)):
         self.${id}.set_shift_amount(${shift_amount})
         self.${id}.set_fft_size(${fft_size})
         self.${id}.load_rounded_hann_window(${fft_size})
         self.${id}.set_bin_spec(${bin_spec})
+        % else:
+        print('Skipping bin configuration')
+        % endif
         self.${id}.start_all()
 
 file_format: 1
