@@ -110,6 +110,10 @@ void combined_pluto_receiver_impl::set_frequency(unsigned long long frequency)
     d_pluto->set_frequency(frequency);
 }
 void combined_pluto_receiver_impl::set_gain(double gain) { d_pluto->set_gain(gain); }
+void combined_pluto_receiver_impl::set_gain_control_mode(const std::string& mode)
+{
+    d_pluto->set_gain_control_mode(mode);
+}
 
 void combined_pluto_receiver_impl::set_compression_enabled(bool enabled)
 {

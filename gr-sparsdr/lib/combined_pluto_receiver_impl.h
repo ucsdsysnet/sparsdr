@@ -48,6 +48,7 @@ public:
     // Compressing pluto source delegate functions
     virtual void set_frequency(unsigned long long frequency) override;
     virtual void set_gain(double gain) override;
+    virtual void set_gain_control_mode(const std::string& mode) override;
 
     // compressing_source implementations
     virtual void set_compression_enabled(bool enabled) override;

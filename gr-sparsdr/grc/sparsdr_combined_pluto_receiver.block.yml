@@ -27,6 +27,12 @@ parameters:
     label: Gain
     dtype: float
     default: '60'
+-   id: gain_control_mode
+    label: Gain control mode
+    dtype: string
+    default: manual
+    options: [manual, fast_attack, slow_attack, hybrid]
+    option_labels: [manual, fast_attack, slow_attack, hybrid]
 -   id: buffer_size
     label: Buffer size (samples)
     dtype: int
@@ -555,6 +561,7 @@ templates:
         % endif
         self.${id} = ${id} = sparsdr.combined_pluto_receiver(uri=${uri}, buffer_size=${buffer_size}, fft_size=${fft_size}, center_frequency=${frequency}, bands=${id}_bands, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps})
         self.${id}.set_frequency(${frequency})
+        self.${id}.set_gain_control_mode(${gain_control_mode})
         self.${id}.set_gain(${gain})
         self.${id}.stop_all()
         % if not(eval(skip_config)):

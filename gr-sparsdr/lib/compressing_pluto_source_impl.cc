@@ -185,6 +185,21 @@ void compressing_pluto_source_impl::set_gain(double gain)
     }
 }
 
+
+void compressing_pluto_source_impl::set_gain_control_mode(const std::string& mode)
+{
+    iio_channel* const in_voltage0 =
+        iio_device_find_channel(d_ad9361_phy, "voltage0", false);
+    if (in_voltage0 == nullptr) {
+        throw std::runtime_error("Can't find voltage0 input channel on ad9361-phy");
+    }
+    const ssize_t status =
+        iio_channel_attr_write(in_voltage0, "gain_control_mode", mode.c_str());
+    if (status < 0) {
+        throw std::runtime_error("Failed to write gain_control_mode attribute");
+    }
+}
+
 void compressing_pluto_source_impl::set_compression_enabled(bool enabled)
 {
     write_bool_attr("enable_compression", enabled);

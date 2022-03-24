@@ -45,8 +45,9 @@ public:
                                         bool zero_gaps,
                                         bool skip_bin_config);
 
-    void set_gain(double gain) override;
-    void set_shift_amount(std::uint8_t scaling) override;
+    virtual void set_gain(double gain) override;
+    virtual void set_gain_control_mode(const std::string& mode) override;
+    virtual void set_shift_amount(std::uint8_t scaling) override;
 
     ~simple_combined_pluto_receiver_impl();
 };

@@ -27,6 +27,12 @@ parameters:
     label: Gain
     dtype: float
     default: '60'
+-   id: gain_control_mode
+    label: Gain control mode
+    dtype: string
+    default: manual
+    options: [manual, fast_attack, slow_attack, hybrid]
+    option_labels: [manual, fast_attack, slow_attack, hybrid]
 -   id: buffer_size
     label: Buffer size (samples)
     dtype: int
@@ -60,6 +66,7 @@ templates:
     make: |-
         sparsdr.compressing_pluto_source(${uri}, ${buffer_size})
         self.${id}.set_frequency(${frequency})
+        self.${id}.set_gain_control_mode(${gain_control_mode})
         self.${id}.set_gain(${gain})
         self.${id}.stop_all()
         self.${id}.set_shift_amount(${shift_amount})

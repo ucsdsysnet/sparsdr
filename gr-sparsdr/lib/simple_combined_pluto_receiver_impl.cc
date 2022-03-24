@@ -115,6 +115,10 @@ void simple_combined_pluto_receiver_impl::set_gain(double gain)
 {
     d_inner_block->set_gain(gain);
 }
+void simple_combined_pluto_receiver_impl::set_gain_control_mode(const std::string& mode)
+{
+    d_inner_block->set_gain_control_mode(mode);
+}
 void simple_combined_pluto_receiver_impl::set_shift_amount(std::uint8_t scaling)
 {
     d_inner_block->set_shift_amount(scaling);

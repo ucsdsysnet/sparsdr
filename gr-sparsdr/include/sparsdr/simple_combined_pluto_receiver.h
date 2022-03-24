@@ -73,6 +73,11 @@ public:
 
     // Functions that delegate to combined_pluto_receiver functions
     virtual void set_gain(double gain) = 0;
+    /**
+     * Sets the gain control mode, which can be "manual" or
+     * an automatic gain control mode
+     */
+    virtual void set_gain_control_mode(const std::string& mode) = 0;
     virtual void set_shift_amount(std::uint8_t scaling) = 0;
 };
 

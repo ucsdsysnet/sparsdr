@@ -75,11 +75,17 @@ public:
     virtual void set_frequency(unsigned long long frequency) = 0;
 
     /**
-     * Sets the receive gain
+     * Sets the receive gain (for manual gain control mode)
      *
      * \param gain the gain in decibels
      */
     virtual void set_gain(double gain) = 0;
+
+    /**
+     * Sets the gain control mode, which can be "manual" or
+     * an automatic gain control mode
+     */
+    virtual void set_gain_control_mode(const std::string& mode) = 0;
 };
 
 } // namespace sparsdr
