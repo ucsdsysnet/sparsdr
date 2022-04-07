@@ -111,6 +111,14 @@ public:
      */
     virtual void set_bin_threshold(std::uint16_t bin_index, std::uint32_t threshold) = 0;
     /**
+     * Reads a shift amount and bin thresholds from a file at the specified path
+     * and applies those settings
+     *
+     * Caution: This does not set the gain.
+     */
+    virtual void configure_from_file(const std::string& path);
+
+    /**
      * Sets the window value for a bin
      *
      * By default, the FPGA applies a Hann window to the time-domain samples.

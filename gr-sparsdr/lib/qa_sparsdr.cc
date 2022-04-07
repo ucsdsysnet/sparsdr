@@ -20,7 +20,7 @@
  */
 
 /*
- * This class gathers together all the test cases for the gr-filter
+ * This class gathers together all the test cases for the gr-sparsdr
  * directory into a single test suite.  As you create new test cases,
  * add them here.
  */

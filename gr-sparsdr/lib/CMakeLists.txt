@@ -45,6 +45,7 @@ list(APPEND sparsdr_sources
     simple_combined_pluto_receiver_impl.cc
     simple_combined_usrp_receiver_impl.cc
     swap_16_impl.cc
+    threshold_file.cc
     window.cc
 )
 
@@ -101,6 +102,9 @@ include(GrTest)
 #include_directories()
 # List all files that contain Boost.UTF unit tests here
 list(APPEND test_sparsdr_sources
+    qa_sparsdr.cc
+    qa_swap_16.cc
+    qa_threshold_file.cc
 )
 # Anything we need to link to for the unit tests go here
 list(APPEND GR_TEST_TARGET_DEPS gnuradio-sparsdr)
