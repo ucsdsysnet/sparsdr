@@ -38,8 +38,8 @@ int bins_calc(float capture_center_freq,
     }
 
     // Compute FFT bin number, round to avoid float errors
-    left_bin_float = round_float((band_left - capture_left) / bin_width, rnd_digits);
-    right_bin_float = round_float((band_right - capture_left) / bin_width, rnd_digits);
+    left_bin_float = round_float((band_left - capture_left) / bin_width, rnd_digits) - 2.0;
+    right_bin_float = round_float((band_right - capture_left) / bin_width, rnd_digits) + 2.0;
 
     // find the integer values for bin number
     left_bin = floor(left_bin_float);
