@@ -117,7 +117,11 @@ void compressing_source::apply_bin_range(const bin_range& range)
 void compressing_source::configure_from_file(const std::string& path)
 {
     threshold_file file = threshold_file::from_file(path, fft_size());
-    // TODO
+    set_shift_amount(file.shift_amount);
+    for (std::size_t i = 0; i < file.thresholds.size(); i++) {
+        set_bin_threshold(i, file.thresholds.at(i));
+        clear_bin_mask(i);
+    }
 }
 
 } // namespace sparsdr
