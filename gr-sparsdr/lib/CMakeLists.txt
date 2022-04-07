@@ -102,8 +102,6 @@ include(GrTest)
 #include_directories()
 # List all files that contain Boost.UTF unit tests here
 list(APPEND test_sparsdr_sources
-    qa_sparsdr.cc
-    qa_swap_16.cc
     qa_threshold_file.cc
 )
 # Anything we need to link to for the unit tests go here
@@ -119,3 +117,8 @@ foreach(qa_file ${test_sparsdr_sources})
         ${CMAKE_CURRENT_SOURCE_DIR}/${qa_file}
     )
 endforeach(qa_file)
+
+# Copy files with test data
+file(COPY ../test-data/thresholds_newline_at_end.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ../test-data/thresholds_no_newline_at_end.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+

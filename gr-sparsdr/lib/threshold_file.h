@@ -20,7 +20,10 @@
 #ifndef SPARSDR_THRESHOLD_FILE_H
 #define SPARSDR_THRESHOLD_FILE_H
 
+#include <sparsdr/api.h>
 #include <cstdint>
+#include <istream>
+#include <string>
 #include <vector>
 
 namespace gr {
@@ -29,7 +32,9 @@ namespace sparsdr {
 /**
  * Thresholds and other information read from a file
  */
-struct threshold_file {
+// Although this is not part of the public API,
+// it is annoted with SPARSDR_API so the testing code can link to it.
+struct SPARSDR_API threshold_file {
 public:
     /** Gain, from the RxGaindB line */
     std::int32_t gain;
@@ -48,6 +53,16 @@ public:
      *        (this determines the number of threshold values returned)
      */
     static threshold_file from_file(const std::string& path, std::size_t fft_size);
+    /**
+     * Reads information from the provided stream
+     *
+     * This function throws an unspecified exception if an error occurs.
+     *
+     * @param path the path to the file
+     * @param fft_size the number of bins in the compression FFT
+     *        (this determines the number of threshold values returned)
+     */
+    static threshold_file from_stream(std::istream& stream, std::size_t fft_size);
 };
 
 } // namespace sparsdr

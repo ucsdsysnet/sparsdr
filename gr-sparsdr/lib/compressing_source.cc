@@ -1,8 +1,8 @@
+#include "threshold_file.h"
 #include "window.h"
 #include <sparsdr/compressing_source.h>
 #include <boost/lexical_cast.hpp>
 #include <stdexcept>
-#include "threshold_file.h"
 
 namespace gr {
 namespace sparsdr {
@@ -116,7 +116,7 @@ void compressing_source::apply_bin_range(const bin_range& range)
 
 void compressing_source::configure_from_file(const std::string& path)
 {
-    threshold_file file(path, fft_size());
+    threshold_file file = threshold_file::from_file(path, fft_size());
     // TODO
 }
 

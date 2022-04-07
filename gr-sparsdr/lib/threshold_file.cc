@@ -28,6 +28,16 @@ namespace gr {
 namespace sparsdr {
 threshold_file threshold_file::from_file(const std::string& path, std::size_t fft_size)
 {
+    std::ifstream file;
+    // Throw exception if open fails
+    file.exceptions(std::ios::badbit | std::ios::failbit);
+    file.open(path);
+
+    return threshold_file::from_stream(file, fft_size);
+}
+
+threshold_file threshold_file::from_stream(std::istream& stream, std::size_t fft_size)
+{
 
     threshold_file result;
     result.thresholds.resize(fft_size, 0);
@@ -35,14 +45,17 @@ threshold_file threshold_file::from_file(const std::string& path, std::size_t ff
     bool have_shift_amount = false;
     std::vector<bool> have_threshold(fft_size, false);
 
-    std::ifstream file;
-    // Throw exception if open fails
-    file.exceptions(std::ios::badbit | std::ios::failbit);
-    file.open(path);
+    // Throw exceptions when some things go wrong
+    stream.exceptions(std::ios::badbit);
 
     std::string line;
-    while (file && !file.eof()) {
-        std::getline(file, line);
+    while (stream && !stream.eof()) {
+        std::getline(stream, line);
+
+        if (line.empty()) {
+            break;
+        }
+
         std::istringstream line_stream(line);
         line_stream.exceptions(std::ios::badbit | std::ios::failbit);
 
@@ -60,7 +73,8 @@ threshold_file threshold_file::from_file(const std::string& path, std::size_t ff
             if (bin_number >= fft_size) {
                 throw std::runtime_error("Bin number too large");
             }
-            bool& have_this_threshold = have_threshold.at(bin_number);
+            std::vector<bool>::reference have_this_threshold =
+                have_threshold.at(bin_number);
             if (!have_this_threshold) {
                 have_this_threshold = true;
                 result.thresholds.at(bin_number) = static_cast<std::uint32_t>(line_value);
@@ -84,12 +98,13 @@ threshold_file threshold_file::from_file(const std::string& path, std::size_t ff
     const bool complete = have_gain && have_shift_amount &&
                           std::all_of(have_threshold.cbegin(),
                                       have_threshold.cend(),
-                                      [](have) { return have; });
+                                      [](bool have) { return have; });
     if (complete) {
         return result;
     } else {
         throw std::runtime_error("Incomplete file");
     }
 }
+
 } // namespace sparsdr
 } // namespace gr
