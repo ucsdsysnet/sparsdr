@@ -42,33 +42,40 @@ else()
     message(FATAL_ERROR "Can't find cargo. Check that the Rust compiler and Cargo are installed.")
 endif()
 
-set(RECONSTRUCT_TARGET_FOLDER ${CMAKE_SOURCE_DIR}/../reconstruct/target/release)
-# Make the target directory to avoid CMake errors
-# cargo will generate the actual files later
-file(MAKE_DIRECTORY ${RECONSTRUCT_TARGET_FOLDER})
+set(RECONSTRUCT_DIR ${CMAKE_SOURCE_DIR}/../reconstruct)
+# Map from CMAKE_BUILD_TYPE to Cargo flags and directories
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CARGO_FLAGS "--release")
+    set(RECONSTRUCT_TARGET_DIR ${RECONSTRUCT_DIR}/target/release)
+else()
+    set(CARGO_FLAGS "")
+    set(RECONSTRUCT_TARGET_DIR ${RECONSTRUCT_DIR}/target/debug)
+endif()
 
-set(RECONSTRUCT_LIBRARY_PATH ${RECONSTRUCT_TARGET_FOLDER}/libsparsdr_reconstruct.a)
+set(RECONSTRUCT_LIBRARY ${RECONSTRUCT_TARGET_DIR}/libsparsdr_reconstruct.a)
+set(RECONSTRUCT_HEADER ${RECONSTRUCT_TARGET_DIR}/sparsdr_reconstruct.hpp)
 
+# Information about how this works: https://samthursfield.wordpress.com/2015/11/21/cmake-dependencies-between-targets-and-files-and-custom-commands/
+
+set(RECONSTRUCT_CARGO_COMMAND ${CARGO_BINARY} build ${CARGO_FLAGS})
+# Join the string-list-type-thing (required for add_custom_command) into a
+# more human-friendly form for the comment"
+string(JOIN " " RECONSTRUCT_CARGO_JOINED_COMMAND ${RECONSTRUCT_CARGO_COMMAND})
+add_custom_command(
+    OUTPUT ${RECONSTRUCT_LIBRARY} ${RECONSTRUCT_HEADER}
+    COMMAND ${RECONSTRUCT_CARGO_COMMAND}
+    DEPENDS ${RECONSTRUCT_DIR}
+    WORKING_DIRECTORY ${RECONSTRUCT_DIR}/sparsdr_reconstruct_c
+    COMMENT "Compiling Rust code for reconstruct library: ${RECONSTRUCT_CARGO_JOINED_COMMAND}"
+)
+# Create a target that represents the above command
 add_custom_target(
-    sparsdr_reconstruct_cargo
-    COMMAND ${CARGO_BINARY} +stable build --release
-    BYPRODUCTS ${RECONSTRUCT_LIBRARY_PATH}
-        ${RECONSTRUCT_TARGET_FOLDER}/sparsdr_reconstruct.hpp
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/../reconstruct/sparsdr_reconstruct_c
-    COMMENT "Compiling Rust code for reconstruct library"
-)
-add_library(
-    sparsdr_reconstruct::sparsdr_reconstruct STATIC IMPORTED
-)
-add_dependencies(sparsdr_reconstruct::sparsdr_reconstruct sparsdr_reconstruct_cargo)
-set_target_properties(
-    sparsdr_reconstruct::sparsdr_reconstruct PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES ${RECONSTRUCT_TARGET_FOLDER}
-    IMPORTED_LOCATION ${RECONSTRUCT_LIBRARY_PATH}
+    sparsdr_reconstruct_rust_compile
+    DEPENDS ${RECONSTRUCT_LIBRARY} ${RECONSTRUCT_HEADER}
 )
 
 # When cleaning, also delete the cargo target folder
-set_property(DIRECTORY PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_SOURCE_DIR}/../reconstruct/target)
+set_property(DIRECTORY PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${RECONSTRUCT_TARGET_DIR})
 
 ########################################################################
 # Setup library
@@ -105,11 +112,12 @@ target_link_libraries(gnuradio-sparsdr
     gnuradio::gnuradio-blocks
     UHD::uhd
     IIO::IIO
-    sparsdr_reconstruct::sparsdr_reconstruct
+    ${RECONSTRUCT_LIBRARY}
 )
 target_include_directories(gnuradio-sparsdr
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     PUBLIC $<INSTALL_INTERFACE:include>
+    PRIVATE ${RECONSTRUCT_TARGET_DIR}
   )
 set_target_properties(gnuradio-sparsdr PROPERTIES DEFINE_SYMBOL "gnuradio_sparsdr_EXPORTS")
 
@@ -118,6 +126,9 @@ if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
     CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
     target_compile_options(gnuradio-sparsdr PRIVATE -Wall -Wextra -pedantic)
 endif()
+
+# Generate the reconstruct library header file before compiling anything
+add_dependencies(gnuradio-sparsdr sparsdr_reconstruct_rust_compile)
 
 if(APPLE)
     set_target_properties(gnuradio-sparsdr PROPERTIES
