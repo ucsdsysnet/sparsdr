@@ -34,6 +34,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <sparsdr_reconstruct.hpp>
 
 namespace gr {
 namespace sparsdr {
@@ -82,6 +83,10 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
       d_child(0)
 {
     start_subprocess(sample_format, zero_gaps, compression_fft_size);
+    
+    // For testing only
+    sparsdr_reconstruct_config config;
+    sparsdr_reconstruct_config_init(nullptr, nullptr, &config);
 }
 
 void reconstruct_impl::start_subprocess(const std::string& sample_format,

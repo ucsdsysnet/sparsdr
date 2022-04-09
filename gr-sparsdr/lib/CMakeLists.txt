@@ -30,22 +30,45 @@ find_package(IIO REQUIRED)
 # Set up to run cargo to compile the Rust library
 ########################################################################
 
+# Look for cargo
+find_program(
+    CARGO_BINARY
+    NAMES cargo
+    HINTS $ENV{HOME}/.cargo/bin
+)
+if (CARGO_BINARY)
+    message(STATUS "Found cargo: ${CARGO_BINARY}")
+else()
+    message(FATAL_ERROR "Can't find cargo. Check that the Rust compiler and Cargo are installed.")
+endif()
+
+set(RECONSTRUCT_TARGET_FOLDER ${CMAKE_SOURCE_DIR}/../reconstruct/target/release)
+# Make the target directory to avoid CMake errors
+# cargo will generate the actual files later
+file(MAKE_DIRECTORY ${RECONSTRUCT_TARGET_FOLDER})
+
+set(RECONSTRUCT_LIBRARY_PATH ${RECONSTRUCT_TARGET_FOLDER}/libsparsdr_reconstruct.a)
+
 add_custom_target(
-    sparsdr_reconstruct_rust
-    COMMAND cargo build --release
-    BYPRODUCTS ../reconstruct/target/release/libsparsdr_reconstruct.so
-        ../reconstruct/target/release/sparsdr_reconstruct.hpp
-    WORKING_DIRECTORY ../reconstruct/sparsdr_reconstruct_c
+    sparsdr_reconstruct_cargo
+    COMMAND ${CARGO_BINARY} +stable build --release
+    BYPRODUCTS ${RECONSTRUCT_LIBRARY_PATH}
+        ${RECONSTRUCT_TARGET_FOLDER}/sparsdr_reconstruct.hpp
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/../reconstruct/sparsdr_reconstruct_c
     COMMENT "Compiling Rust code for reconstruct library"
 )
-set_target_properties(
-    sparsdr_reconstruct_rust PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES ../reconstruct/target/release
+add_library(
+    sparsdr_reconstruct::sparsdr_reconstruct STATIC IMPORTED
 )
+add_dependencies(sparsdr_reconstruct::sparsdr_reconstruct sparsdr_reconstruct_cargo)
 set_target_properties(
-    sparsdr_reconstruct_rust PROPERTIES
-    IMPORTED_LOCATION ../reconstruct/target/release/libsparsdr_reconstruct.so
+    sparsdr_reconstruct::sparsdr_reconstruct PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES ${RECONSTRUCT_TARGET_FOLDER}
+    IMPORTED_LOCATION ${RECONSTRUCT_LIBRARY_PATH}
 )
+
+# When cleaning, also delete the cargo target folder
+set_property(DIRECTORY PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_SOURCE_DIR}/../reconstruct/target)
 
 ########################################################################
 # Setup library
@@ -82,7 +105,7 @@ target_link_libraries(gnuradio-sparsdr
     gnuradio::gnuradio-blocks
     UHD::uhd
     IIO::IIO
-    sparsdr_reconstruct_rust
+    sparsdr_reconstruct::sparsdr_reconstruct
 )
 target_include_directories(gnuradio-sparsdr
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

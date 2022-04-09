@@ -24,7 +24,7 @@ build = "build.rs"
 
 [lib]
 name = "sparsdr_reconstruct"
-crate-type = ["cdylib"]
+crate-type = ["staticlib"]
 
 [dependencies]
 
