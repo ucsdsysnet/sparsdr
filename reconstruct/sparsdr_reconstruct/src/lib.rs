@@ -93,6 +93,8 @@ macro_rules! try_status {
 
 // Public modules
 pub mod blocking;
+#[cfg(feature = "c_api")]
+pub mod c_interface;
 pub mod input;
 // These are only public to allow the benchmark code to access them
 pub mod bins;
