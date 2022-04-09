@@ -16,23 +16,31 @@ parameters:
 -   id: gain
     label: Gain
     dtype: real
--   id: use_bin_spec
-    label: Use bin specification
-    dtype: bool
-    default: 'False'
-    options: ['False', 'True']
-    option_labels: ['False', 'True']
-    hide: 'part'
--   id: threshold
-    label: Threshold
-    dtype: real
-    default: 1000
-    hide: ${ ('all' if use_bin_spec else 'none') }
+
+    # Choose if threshold, bin_spec, or threshold_file is used
+-   id: threshold_source
+    label: Threshold source
+    dtype: enum
+    default: 'Fixed threshold'
+    options: ['Fixed threshold', 'Bin specification', 'Threshold file']
+    hide: part
+    
 -   id: bin_spec
     label: Bin specification
     dtype: string
     default: 0..8:1
-    hide: ${ ('none' if use_bin_spec else 'all') }
+    hide: ${ 'none' if (threshold_source == 'Bin specification') else 'all' }
+-   id: threshold_file
+    label: Threshold file
+    dtype: file_open
+    hide: ${ 'none' if (threshold_source == 'Threshold file') else 'all' }
+-   id: threshold
+    label: Threshold
+    dtype: real
+    default: 1000
+    hide: ${ 'none' if (threshold_source == 'Fixed threshold') else 'all' }
+
+
 -   id: antenna
     label: Antenna
     dtype: string
@@ -62,14 +70,22 @@ templates:
         self.${id}.set_compression_enabled(True)
         self.${id}.stop_all()
         % if not(eval(skip_config)):
-        % if eval(use_bin_spec):
+        
+        % if threshold_source == "Bin specification":
         self.${id}.set_bin_spec(${bin_spec})
-        % else:
+        % endif
+        
+        % if threshold_source == "Threshold file":
+        self.${id}.set_thresholds_from_file(${threshold_file})
+        % endif
+        
+        % if threshold_source == "Fixed threshold":
         # Clear masks and set threshold
         for i in range(2048):
             self.${id}.clear_bin_mask(i)
             self.${id}.set_bin_threshold(i, ${threshold})
         % endif
+        
         % else:
         print('Skipping bin configuration')
         % endif

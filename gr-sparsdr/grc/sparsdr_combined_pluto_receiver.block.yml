@@ -15,10 +15,25 @@ parameters:
     label: IIO context URI
     dtype: string
     default: ip:192.168.2.1
+    
+    # Choose if bin_spec or threshold_file is used
+-   id: threshold_source
+    label: Threshold source
+    dtype: enum
+    default: 'Bin specification'
+    options: ['Bin specification', 'Threshold file']
+    hide: part
+    
 -   id: bin_spec
     label: Bin specification
     dtype: string
     default: 0..8:1
+    hide: ${ 'none' if (threshold_source == 'Bin specification') else 'all' }
+-   id: threshold_file
+    label: Threshold file
+    dtype: file_open
+    hide: ${ 'none' if (threshold_source == 'Threshold file') else 'all' }
+    
 -   id: frequency
     label: Center frequency
     dtype: int
@@ -568,7 +583,11 @@ templates:
         self.${id}.set_shift_amount(${shift_amount})
         self.${id}.set_fft_size(${fft_size})
         self.${id}.load_rounded_hann_window(${fft_size})
+        % if threshold_source == "Bin specification":
         self.${id}.set_bin_spec(${bin_spec})
+        % else:
+        self.${id}.set_thresholds_from_file(${threshold_file})
+        % endif
         % else:
         print('Skipping bin configuration')
         % endif
