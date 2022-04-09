@@ -27,6 +27,27 @@ find_package(UHD REQUIRED)
 find_package(IIO REQUIRED)
 
 ########################################################################
+# Set up to run cargo to compile the Rust library
+########################################################################
+
+add_custom_target(
+    sparsdr_reconstruct_rust
+    COMMAND cargo build --release
+    BYPRODUCTS ../reconstruct/target/release/libsparsdr_reconstruct.so
+        ../reconstruct/target/release/sparsdr_reconstruct.hpp
+    WORKING_DIRECTORY ../reconstruct/sparsdr_reconstruct_c
+    COMMENT "Compiling Rust code for reconstruct library"
+)
+set_target_properties(
+    sparsdr_reconstruct_rust PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES ../reconstruct/target/release
+)
+set_target_properties(
+    sparsdr_reconstruct_rust PROPERTIES
+    IMPORTED_LOCATION ../reconstruct/target/release/libsparsdr_reconstruct.so
+)
+
+########################################################################
 # Setup library
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
@@ -61,6 +82,7 @@ target_link_libraries(gnuradio-sparsdr
     gnuradio::gnuradio-blocks
     UHD::uhd
     IIO::IIO
+    sparsdr_reconstruct_rust
 )
 target_include_directories(gnuradio-sparsdr
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
