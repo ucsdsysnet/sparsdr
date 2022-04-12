@@ -34,8 +34,11 @@ namespace std {
 #include "sparsdr/combined_pluto_receiver.h"
 #include "sparsdr/simple_combined_pluto_receiver.h"
 #include "sparsdr/simple_combined_usrp_receiver.h"
+#include "sparsdr/compressing_source.h"
 using namespace gr::sparsdr;
 %}
+
+%include "sparsdr/compressing_source.h"
 
 %include "sparsdr/reconstruct.h"
 GR_SWIG_BLOCK_MAGIC2(sparsdr, reconstruct);
