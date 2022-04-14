@@ -23,7 +23,7 @@ use std::ffi::OsStr;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use cbindgen::{Config, ExportConfig, Language, ParseConfig, StructConfig};
+use cbindgen::{Config, ExportConfig, Language, ParseConfig};
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manifest_path = env::var_os("CARGO_MANIFEST_DIR").expect("No CARGO_MANIFEST_DIR");

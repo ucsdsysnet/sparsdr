@@ -17,7 +17,9 @@
 
 //! The shift step
 
+use iter::PushIterator;
 use std::io::Result;
+use std::ops::ControlFlow;
 
 use crate::window::{Fft, Logical, Ordering, Status, Window};
 
@@ -131,5 +133,29 @@ where
         let window = try_option_result!(self.inner.next());
         let window = self.shift.shift_window(window);
         Some(Ok(window))
+    }
+}
+
+/// A push iterator adapter that applies the shift to windows
+pub struct ShiftPushIter<I> {
+    /// Inner iterator
+    inner: I,
+    /// Shift logic
+    shift: Shift,
+}
+
+impl<I, Ord> PushIterator<Window<Ord>> for ShiftPushIter<I>
+where
+    I: PushIterator<Window<Ord::Other>>,
+{
+    type Error = I::Error;
+
+    fn push(&mut self, item: Window<Ord>) -> ControlFlow<Self::Error> {
+        let shifted: Window<Ord::Other> = self.shift.shift_window(item);
+        self.inner.push(shifted)
+    }
+
+    fn flush(&mut self) -> std::result::Result<(), Self::Error> {
+        self.inner.flush()
     }
 }

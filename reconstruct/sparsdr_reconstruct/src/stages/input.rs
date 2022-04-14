@@ -21,9 +21,11 @@
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::io::{Error, ErrorKind, Result};
+use std::ops::ControlFlow;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+use iter::PushIterator;
 use num_traits::Zero;
 
 use crate::bins::BinRange;
@@ -109,6 +111,11 @@ where
                 .expect("FFT size too large"),
         );
 
+    // Sequence:
+    // Sample parser
+    // Overflow correct
+    // Shift (FFT to logical order)
+
     let mut prev_window_time: Option<u64> = None;
     let mut first_window = true;
 
@@ -163,6 +170,56 @@ where
     Ok(InputReport {
         channel_send_blocks,
     })
+}
+
+/// A push iterator that handles windows (with logical bin order) and sends them to the appropriate
+/// reconstruction threads
+pub struct ToFfts<I> {
+    prev_window_time: Option<u64>,
+    setup: InputSetup<I>,
+}
+
+impl<I> PushIterator<Window<Logical>> for ToFfts<I> {
+    type Error = ();
+
+    fn push(&mut self, item: Window<Logical>) -> ControlFlow<Self::Error> {
+        if let Some(prev_window_time) = self.prev_window_time {
+            assert!(
+                window.time() > prev_window_time,
+                "Current window (time {}) is not after previous window (time {})",
+                window.time(),
+                prev_window_time
+            );
+        }
+        self.prev_window_time = Some(window.time());
+
+        if self.first_window {
+            // Send the timestamp to every FFT stage
+            log::debug!("Sending first window timestamp {}", window.time());
+            for fft_stage in &setup.destinations {
+                fft_stage.send_first_window_time(window.time());
+            }
+            self.first_window = false;
+        }
+
+        // Send to each interested FFT stage
+        for fft_stage in self.setup.destinations.iter() {
+            match fft_stage.send_if_interested(&window) {
+                Ok(_sent) => {}
+                Err(_) => {
+                    // Other thread could have exited normally due to the stop flag, so just
+                    // exit this thread normally
+                    return ControlFlow::Break(());
+                }
+            }
+        }
+        ControlFlow::Continue(())
+    }
+
+    fn flush(&mut self) -> std::result::Result<(), Self::Error> {
+        // Nothing to do (all samples get sent immediately)
+        Ok(())
+    }
 }
 
 /// A report on the results of the input stage

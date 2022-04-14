@@ -19,8 +19,10 @@
 //! Handles overflow of a time counter
 //!
 
+use iter::PushIterator;
 use std::convert::TryInto;
 use std::io::Result;
+use std::ops::ControlFlow;
 
 use crate::window::Window;
 
@@ -89,6 +91,31 @@ where
         );
 
         Some(Ok(window))
+    }
+}
+
+/// A push iterator that applies overflow correction to windows
+pub struct OverflowPushIter<I> {
+    inner: I,
+    overflow: Overflow,
+}
+
+impl<I> PushIterator<Window> for OverflowPushIter<I>
+where
+    I: PushIterator<Window>,
+{
+    type Error = I::Error;
+
+    fn push(&mut self, mut window: Window) -> ControlFlow<Self::Error> {
+        let expanded_time = self
+            .overflow
+            .expand(window.time().try_into().expect("Window time too large"));
+        window.set_time(expanded_time);
+        self.inner.push(window)
+    }
+
+    fn flush(&mut self) -> std::result::Result<(), Self::Error> {
+        self.inner.flush()
     }
 }
 
