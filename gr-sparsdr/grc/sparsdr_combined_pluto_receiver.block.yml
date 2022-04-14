@@ -15,7 +15,7 @@ parameters:
     label: IIO context URI
     dtype: string
     default: ip:192.168.2.1
-    
+
     # Choose if bin_spec or threshold_file is used
 -   id: threshold_source
     label: Threshold source
@@ -23,7 +23,7 @@ parameters:
     default: 'Bin specification'
     options: ['Bin specification', 'Threshold file']
     hide: part
-    
+
 -   id: bin_spec
     label: Bin specification
     dtype: string
@@ -33,7 +33,7 @@ parameters:
     label: Threshold file
     dtype: file_open
     hide: ${ 'none' if (threshold_source == 'Threshold file') else 'all' }
-    
+
 -   id: frequency
     label: Center frequency
     dtype: int
@@ -42,6 +42,7 @@ parameters:
     label: Gain
     dtype: float
     default: '60'
+    hide: ${ 'none' if (gain_control_mode == 'manual') else 'all' }
 -   id: gain_control_mode
     label: Gain control mode
     dtype: string
@@ -577,7 +578,9 @@ templates:
         self.${id} = ${id} = sparsdr.combined_pluto_receiver(uri=${uri}, buffer_size=${buffer_size}, fft_size=${fft_size}, center_frequency=${frequency}, bands=${id}_bands, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps})
         self.${id}.set_frequency(${frequency})
         self.${id}.set_gain_control_mode(${gain_control_mode})
+        % if gain_control_mode == "manual":
         self.${id}.set_gain(${gain})
+        % endif
         self.${id}.stop_all()
         % if not(eval(skip_config)):
         self.${id}.set_shift_amount(${shift_amount})

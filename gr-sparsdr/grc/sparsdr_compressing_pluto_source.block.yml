@@ -19,7 +19,7 @@ parameters:
     default: 'Bin specification'
     options: ['Bin specification', 'Threshold file']
     hide: part
-    
+
 -   id: bin_spec
     label: Bin specification
     dtype: string
@@ -42,6 +42,7 @@ parameters:
     label: Gain
     dtype: float
     default: '60'
+    hide: ${ 'none' if (gain_control_mode == 'manual') else 'all' }
 -   id: gain_control_mode
     label: Gain control mode
     dtype: string
@@ -82,7 +83,9 @@ templates:
         sparsdr.compressing_pluto_source(${uri}, ${buffer_size})
         self.${id}.set_frequency(${frequency})
         self.${id}.set_gain_control_mode(${gain_control_mode})
+        % if gain_control_mode == "manual":
         self.${id}.set_gain(${gain})
+        % endif
         self.${id}.stop_all()
         self.${id}.set_shift_amount(${shift_amount})
         % if not(eval(skip_config)):
