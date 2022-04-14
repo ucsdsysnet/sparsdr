@@ -560,7 +560,7 @@ templates:
         % endif
         self.${id} = ${id} = sparsdr.simple_combined_pluto_receiver(uri=${uri}, buffer_size=${buffer_size}, center_frequency=${frequency}, bands=${id}_bands, threshold=${threshold}, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps}, skip_bin_config=${skip_config})
         self.${id}.set_gain_control_mode(${gain_control_mode})
-        % if gain_control_mode == "manual":
+        % if eval(gain_control_mode) == "manual":
         self.${id}.set_gain(${gain})
         % endif
         self.${id}.set_shift_amount(${shift_amount})

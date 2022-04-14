@@ -578,7 +578,7 @@ templates:
         self.${id} = ${id} = sparsdr.combined_pluto_receiver(uri=${uri}, buffer_size=${buffer_size}, fft_size=${fft_size}, center_frequency=${frequency}, bands=${id}_bands, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps})
         self.${id}.set_frequency(${frequency})
         self.${id}.set_gain_control_mode(${gain_control_mode})
-        % if gain_control_mode == "manual":
+        % if eval(gain_control_mode) == "manual":
         self.${id}.set_gain(${gain})
         % endif
         self.${id}.stop_all()
