@@ -63,6 +63,7 @@ changemode:
 	iio_attr -u ip:${IP_ADDR} -d sparsdr enable_compression ${ENABLECOMPRESSION}
 
 calgainwithant:
+	if [ ! -d ${AVGFOLDERNAME} ]; then mkdir ${AVGFOLDERNAME}; fi;
 	iio_attr -u ip:${IP_ADDR} -d sparsdr enable_compression 0
 	make setgain 
 	make sample SAMPLES=6000000 BUFFSIZE=1000000 FILENAME=${AVGFOLDERNAME}/clipCheck.iq; \

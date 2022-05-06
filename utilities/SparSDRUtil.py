@@ -342,6 +342,7 @@ def computeShiftThresholdsPluto(nfft, rxGain, SparSDRVersion = 1, plutoSDRAvgFol
     avgMagnitudeList = avgMagnitudeList[:lengthAvgMagListRound]
 
     avgMagnitudeMat = avgMagnitudeList.reshape((-1,nfft))
+    avgMagnitudeMat = avgMagnitudeMat - 1
     medianVals = np.median(avgMagnitudeMat,axis=0)
     medianVals = np.fft.fftshift(medianVals)
     medianValsdB = 10*np.log10(medianVals)
