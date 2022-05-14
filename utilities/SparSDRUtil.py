@@ -381,7 +381,7 @@ def saveConfigtoFilePluto(rxGain,estPAPRdB,estBWMHz,conservativeShiftValue,shift
   :input: threshLinear :nparray:int: Linear thresholds for 
   each entry in binIdx
   :input: threshLinearOutliers :nparray:int: Linear thresh-
-  olds for the outlier bins. Non-outlier values ar nan
+  olds for the outlier bins. Non-outlier values are nan
   :input: filename :string: Filename to store the calibrat-
   ion configuration.
   '''
