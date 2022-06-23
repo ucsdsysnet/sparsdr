@@ -53,7 +53,7 @@ pub trait PushIterator<T> {
     }
 
     /// Creates an iterator adapter that calls a function with a reference to each item
-    fn inspect(self, operation: F) -> Inspect<Self, F>
+    fn inspect<F>(self, operation: F) -> Inspect<Self, F>
     where
         Self: Sized,
     {

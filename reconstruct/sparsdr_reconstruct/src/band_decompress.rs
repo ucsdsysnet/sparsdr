@@ -15,8 +15,9 @@
  *
  */
 
-use std::io::Write;
 use std::time::Duration;
+
+use crate::push_reconstruct::WriteSamples;
 
 use super::bins::choice::choose_bins;
 use super::bins::BinRange;
@@ -37,9 +38,7 @@ pub struct BandSetup<'w> {
     /// Time to wait for a compressed sample before flushing output
     pub timeout: Duration,
     /// The destination to write decompressed samples to
-    pub destination: Box<dyn Write + Send + 'w>,
-    /// Tagged window time log
-    pub time_log: Option<Box<dyn Write + Send>>,
+    pub destination: Box<dyn WriteSamples + Send + 'w>,
 }
 
 impl<'w> BandSetup<'w> {
@@ -68,16 +67,14 @@ pub struct BandSetupBuilder<'w> {
     /// Time to wait for a compressed sample before flushing output
     timeout: Duration,
     /// The destination to write decompressed samples to
-    destination: Box<dyn Write + Send + 'w>,
-    /// Tagged window time log
-    time_log: Option<Box<dyn Write + Send>>,
+    destination: Box<dyn WriteSamples + Send + 'w>,
 }
 
 impl<'w> BandSetupBuilder<'w> {
     /// Creates a default band setup that will decompress a full 100 MHz spectrum and write
     /// decompressed samples to the provided source
     pub fn new(
-        destination: Box<dyn Write + Send + 'w>,
+        destination: Box<dyn WriteSamples + Send + 'w>,
         compressed_bandwidth: f32,
         compression_fft_size: usize,
         bins: u16,
@@ -91,7 +88,6 @@ impl<'w> BandSetupBuilder<'w> {
             fft_bins,
             timeout: TIMEOUT,
             destination,
-            time_log: None,
         }
     }
     /// Sets the center frequency to decompress
@@ -113,13 +109,6 @@ impl<'w> BandSetupBuilder<'w> {
     pub fn compressed_bandwidth(self, compressed_bandwidth: f32) -> Self {
         BandSetupBuilder {
             compressed_bandwidth,
-            ..self
-        }
-    }
-    /// Sets the window output time log file
-    pub fn time_log(self, time_log: Box<dyn Write + Send>) -> Self {
-        BandSetupBuilder {
-            time_log: Some(time_log),
             ..self
         }
     }
@@ -153,7 +142,6 @@ impl<'w> BandSetupBuilder<'w> {
             fc_bins,
             timeout: self.timeout,
             destination: self.destination,
-            time_log: self.time_log,
         }
     }
 }

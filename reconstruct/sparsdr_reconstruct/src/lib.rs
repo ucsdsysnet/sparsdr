@@ -106,9 +106,8 @@ pub mod window_filter;
 // Private modules
 mod band_decompress;
 mod channel_ext;
-mod component_setup;
 mod decompress;
 mod stages;
 
 pub use crate::band_decompress::{BandSetup, BandSetupBuilder};
-pub use crate::decompress::{decompress, DecompressSetup, Report};
+pub use crate::decompress::{decompress, DecompressSetup};

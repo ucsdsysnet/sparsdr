@@ -46,49 +46,26 @@
 //! frequency correction and writes samples to the destination.
 //!
 
-use crate::steps::overlap::OverlapMode;
-use std::io::{Result, Write};
-use std::iter;
+use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
 
-use crate::bins::BinRange;
-use crate::blocking::{BlockLogger, BlockLogs};
-use crate::channel_ext::LoggingReceiver;
+use num_complex::Complex32;
+use num_traits::Zero;
+
+use crate::blocking::BlockLogs;
 use crate::iter_ext::IterExt;
+use crate::push_reconstruct::FftAndOutputSetup;
 use crate::steps::frequency_correct::FrequencyCorrect;
-use crate::steps::writer::Writer;
-use crate::window::WindowOrTimestamp;
+use crate::steps::overlap::OverlapMode;
 
 use super::band_receive::BandReceiver;
-
-pub struct FftAndOutputSetup<'w> {
-    /// Source of windows
-    pub source: LoggingReceiver<WindowOrTimestamp>,
-    /// The bins to decompress
-    pub bins: BinRange,
-    /// The FFT size used for compression
-    pub compression_fft_size: usize,
-    /// The actual FFT size to use
-    pub fft_size: u16,
-    /// Floor of the center frequency offset, in bins
-    pub fc_bins: f32,
-    /// Time to wait for a compressed sample before flushing output
-    pub timeout: Duration,
-    /// Overlap mode (gaps or flush samples)
-    pub overlap: OverlapMode,
-    /// The output setups
-    pub outputs: Vec<OutputSetup<'w>>,
-}
 
 pub struct OutputSetup<'w> {
     /// Fractional part of center frequency offset, in bins
     pub bin_offset: f32,
     /// The destination to write decompressed samples to
     pub destination: Box<dyn Write + Send + 'w>,
-    /// Tagged window time log
-    pub time_log: Option<Box<dyn Write + Send>>,
 }
 
 /// A report on the execution of the FFT and output stage
@@ -105,19 +82,7 @@ pub struct FftOutputReport {
 /// Runs the FFT and output stages using the provided setup
 ///
 /// On success, this returns the total number of samples written.
-pub fn run_fft_and_output_stage(
-    mut setup: FftAndOutputSetup<'_>,
-    stop: Arc<AtomicBool>,
-) -> Result<FftOutputReport> {
-    // Time log headers for each file
-    for log in setup
-        .outputs
-        .iter_mut()
-        .filter_map(|setup| setup.time_log.as_mut())
-    {
-        writeln!(log, "Tag,SampleIndex,Seconds,Nanoseconds")?;
-    }
-
+pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup<'_>, stop: Arc<AtomicBool>) {
     let fft_size = setup.fft_size;
     // Set up FFT chain
     let fft_chain = BandReceiver::new(&setup.source, setup.timeout)
@@ -143,37 +108,24 @@ pub fn run_fft_and_output_stage(
         .into_iter()
         .map(|output_setup| {
             let corrector = FrequencyCorrect::new(output_setup.bin_offset, fft_size);
-            (corrector, output_setup.destination, output_setup.time_log)
+            (corrector, output_setup.destination)
         })
         .collect::<Vec<_>>();
 
     // Run FFT, correct frequency and write for each output
-    let out_block_logger = BlockLogger::new();
-    let mut writer = Writer::new();
-    let mut total_samples = 0u64;
     for window in fft_chain {
-        for (frequency_correct, destination, time_log) in output_chains.iter_mut() {
+        for (frequency_correct, destination) in output_chains.iter_mut() {
             let mut output_window = window.clone();
             frequency_correct.correct_samples(output_window.window.samples_mut());
-            // time_log borrowing
-            let time_log: Option<&mut (dyn Write + Send)> = match time_log {
-                Some(time_log) => Some(&mut *time_log),
-                None => None,
-            };
-            let samples = writer.write_windows(
-                destination,
-                iter::once(output_window),
-                &out_block_logger,
-                flush_samples,
-                time_log,
-            )?;
-            total_samples = total_samples.saturating_add(samples);
+
+            destination.write_samples(output_window.window.samples());
+            if output_window.flushed {
+                // Add some zero samples to make the decoders actually run
+                let zero_sample = [Complex32::zero()];
+                for _ in 0..flush_samples {
+                    destination.write_samples(&zero_sample);
+                }
+            }
         }
     }
-
-    Ok(FftOutputReport {
-        samples: total_samples,
-        channel_blocks: setup.source.logs(),
-        output_blocks: out_block_logger.logs(),
-    })
 }

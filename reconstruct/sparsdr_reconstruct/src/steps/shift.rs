@@ -17,10 +17,10 @@
 
 //! The shift step
 
-use iter::PushIterator;
 use std::io::Result;
 use std::ops::ControlFlow;
 
+use crate::iter::PushIterator;
 use crate::window::{Fft, Logical, Ordering, Status, Window};
 
 /// Shifts data samples between FFT ordering and logical ordering
@@ -36,7 +36,7 @@ use crate::window::{Fft, Logical, Ordering, Status, Window};
 ///
 pub struct Shift {
     /// FFT size
-    size: u16,
+    size: usize,
 }
 
 impl Shift {
@@ -45,7 +45,7 @@ impl Shift {
     /// size: The size of the FFT to shift for
     ///
     /// This function will panic if size is zero or greater than one and odd.
-    pub fn new(size: u16) -> Self {
+    pub fn new(size: usize) -> Self {
         assert_ne!(size, 0, "size must not be zero");
         if size != 1 {
             assert_eq!(size % 2, 0, "size must be even if it is greater than one");
@@ -58,14 +58,10 @@ impl Shift {
     where
         Ord: Ordering,
     {
-        debug_assert_eq!(
-            window.bins().len(),
-            usize::from(self.size),
-            "Incorrect window size"
-        );
+        debug_assert_eq!(window.bins().len(), self.size, "Incorrect window size");
         {
             // Swap first half and second half
-            let half_size = usize::from(self.size / 2);
+            let half_size = self.size / 2;
             let bins = window.bins_mut();
             bins.rotate_right(half_size);
         }
@@ -83,7 +79,7 @@ pub struct ShiftIter<I> {
 
 impl<I> ShiftIter<I> {
     /// Creates a shift iterator for the provided FFT size
-    pub fn new(inner: I, size: u16) -> Self {
+    pub fn new(inner: I, size: usize) -> Self {
         ShiftIter {
             inner,
             shift: Shift::new(size),
@@ -114,7 +110,7 @@ pub struct ShiftWindowResultIter<I> {
 
 impl<I> ShiftWindowResultIter<I> {
     /// Creates a window shift iterator for the provided FFT size
-    pub fn new(inner: I, size: u16) -> Self {
+    pub fn new(inner: I, size: usize) -> Self {
         ShiftWindowResultIter {
             inner,
             shift: Shift::new(size),
@@ -144,9 +140,19 @@ pub struct ShiftPushIter<I> {
     shift: Shift,
 }
 
+impl<I> ShiftPushIter<I> {
+    pub fn new(inner: I, size: usize) -> Self {
+        ShiftPushIter {
+            inner,
+            shift: Shift::new(size),
+        }
+    }
+}
+
 impl<I, Ord> PushIterator<Window<Ord>> for ShiftPushIter<I>
 where
     I: PushIterator<Window<Ord::Other>>,
+    Ord: Ordering,
 {
     type Error = I::Error;
 

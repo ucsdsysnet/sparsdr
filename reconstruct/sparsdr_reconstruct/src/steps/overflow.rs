@@ -19,11 +19,11 @@
 //! Handles overflow of a time counter
 //!
 
-use iter::PushIterator;
 use std::convert::TryInto;
 use std::io::Result;
 use std::ops::ControlFlow;
 
+use crate::iter::PushIterator;
 use crate::window::Window;
 
 /// Keeps track of a periodically overflowing 20-bit counter and expands its values into
@@ -100,6 +100,15 @@ pub struct OverflowPushIter<I> {
     overflow: Overflow,
 }
 
+impl<I> OverflowPushIter<I> {
+    pub fn new(inner: I, timestamp_bits: u32) -> Self {
+        OverflowPushIter {
+            inner,
+            overflow: Overflow::new(timestamp_bits),
+        }
+    }
+}
+
 impl<I> PushIterator<Window> for OverflowPushIter<I>
 where
     I: PushIterator<Window>,
@@ -122,6 +131,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+
     /// 20 bits
     const COUNTER_MAX: u64 = 0xfffff;
 

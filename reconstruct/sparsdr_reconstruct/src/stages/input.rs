@@ -19,25 +19,19 @@
 //! into windows, and shifts them into logical order
 
 use std::collections::BTreeMap;
-use std::convert::TryInto;
 use std::io::{Error, ErrorKind, Result};
 use std::ops::ControlFlow;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 
-use iter::PushIterator;
+use crossbeam::Sender;
 use num_traits::Zero;
 
 use crate::bins::BinRange;
 use crate::blocking::BlockLogs;
-use crate::channel_ext::LoggingSender;
-use crate::iter_ext::IterExt;
-use crate::window::{Logical, Tag, Window, WindowOrTimestamp};
+use crate::iter::PushIterator;
+use crate::window::{Logical, Window, WindowOrTimestamp};
 
 /// The setup for the input stage
-pub struct InputSetup<I> {
-    /// An iterator yielding samples from the source
-    pub samples: I,
+pub struct InputSetup {
     /// Number of FFT bins used for compression
     pub compression_fft_size: usize,
     /// The number of bits used to store the timestamp of each window
@@ -51,7 +45,7 @@ pub struct ToFft {
     /// The range of bins the FFT stage is interested in
     pub bins: BinRange,
     /// A sender on the channel to the FFT stage
-    pub tx: LoggingSender<WindowOrTimestamp>,
+    pub tx: Sender<WindowOrTimestamp>,
 }
 
 impl ToFft {
@@ -91,98 +85,107 @@ impl ToFft {
     }
 }
 
-pub fn run_input_stage<I>(setup: InputSetup<I>, stop: Arc<AtomicBool>) -> Result<InputReport>
-where
-    I: Iterator<Item = Result<Window>>,
-{
-    // Tag windows that have newly active channels
-    let mut next_tag = Tag::default();
-
-    // Set up iterator chain
-    // Shift and send to the decompression thread
-    let shift = setup
-        .samples
-        .take_while(|_| !stop.load(Ordering::Relaxed))
-        .overflow_correct(setup.timestamp_bits)
-        .shift_result(
-            setup
-                .compression_fft_size
-                .try_into()
-                .expect("FFT size too large"),
-        );
-
-    // Sequence:
-    // Sample parser
-    // Overflow correct
-    // Shift (FFT to logical order)
-
-    let mut prev_window_time: Option<u64> = None;
-    let mut first_window = true;
-
-    // Process windows
-    for window in shift {
-        let mut window = window?;
-
-        if let Some(prev_window_time) = prev_window_time {
-            assert!(
-                window.time() > prev_window_time,
-                "Current window (time {}) is not after previous window (time {})",
-                window.time(),
-                prev_window_time
-            );
-        }
-        prev_window_time = Some(window.time());
-
-        // Give this window a tag
-        let window_tag = next_tag;
-        window.set_tag(window_tag);
-        next_tag = next_tag.next();
-
-        if first_window {
-            // Send the timestamp to every FFT stage
-            log::debug!("Sending first window timestamp {}", window.time());
-            for fft_stage in &setup.destinations {
-                fft_stage.send_first_window_time(window.time());
-            }
-            first_window = false;
-        }
-
-        // Send to each interested FFT stage
-        for fft_stage in setup.destinations.iter() {
-            match fft_stage.send_if_interested(&window) {
-                Ok(_sent) => {}
-                Err(_) => {
-                    // Other thread could have exited normally due to the stop flag, so just
-                    // exit this thread normally
-                    break;
-                }
-            }
-        }
-    }
-
-    // Collect block logs
-    let channel_send_blocks = setup
-        .destinations
-        .into_iter()
-        .map(|to_fft| (to_fft.bins, to_fft.tx.logs()))
-        .collect();
-
-    Ok(InputReport {
-        channel_send_blocks,
-    })
-}
+// pub fn run_input_stage<I>(setup: InputSetup<I>, stop: Arc<AtomicBool>) -> Result<InputReport>
+// where
+//     I: Iterator<Item = Result<Window>>,
+// {
+//     // Tag windows that have newly active channels
+//     let mut next_tag = Tag::default();
+//
+//     // Set up iterator chain
+//     // Shift and send to the decompression thread
+//     let shift = setup
+//         .samples
+//         .take_while(|_| !stop.load(Ordering::Relaxed))
+//         .overflow_correct(setup.timestamp_bits)
+//         .shift_result(
+//             setup
+//                 .compression_fft_size
+//                 .try_into()
+//                 .expect("FFT size too large"),
+//         );
+//
+//     // Sequence:
+//     // Sample parser
+//     // Overflow correct
+//     // Shift (FFT to logical order)
+//
+//     let mut prev_window_time: Option<u64> = None;
+//     let mut first_window = true;
+//
+//     // Process windows
+//     for window in shift {
+//         let mut window = window?;
+//
+//         if let Some(prev_window_time) = prev_window_time {
+//             assert!(
+//                 window.time() > prev_window_time,
+//                 "Current window (time {}) is not after previous window (time {})",
+//                 window.time(),
+//                 prev_window_time
+//             );
+//         }
+//         prev_window_time = Some(window.time());
+//
+//         // Give this window a tag
+//         let window_tag = next_tag;
+//         window.set_tag(window_tag);
+//         next_tag = next_tag.next();
+//
+//         if first_window {
+//             // Send the timestamp to every FFT stage
+//             log::debug!("Sending first window timestamp {}", window.time());
+//             for fft_stage in &setup.destinations {
+//                 fft_stage.send_first_window_time(window.time());
+//             }
+//             first_window = false;
+//         }
+//
+//         // Send to each interested FFT stage
+//         for fft_stage in setup.destinations.iter() {
+//             match fft_stage.send_if_interested(&window) {
+//                 Ok(_sent) => {}
+//                 Err(_) => {
+//                     // Other thread could have exited normally due to the stop flag, so just
+//                     // exit this thread normally
+//                     break;
+//                 }
+//             }
+//         }
+//     }
+//
+//     // Collect block logs
+//     let channel_send_blocks = setup
+//         .destinations
+//         .into_iter()
+//         .map(|to_fft| (to_fft.bins, to_fft.tx.logs()))
+//         .collect();
+//
+//     Ok(InputReport {
+//         channel_send_blocks,
+//     })
+// }
 
 /// A push iterator that handles windows (with logical bin order) and sends them to the appropriate
 /// reconstruction threads
-pub struct ToFfts<I> {
+pub struct ToFfts {
     prev_window_time: Option<u64>,
-    setup: InputSetup<I>,
+    setup: InputSetup,
 }
 
-impl<I> PushIterator<Window<Logical>> for ToFfts<I> {
+impl ToFfts {
+    pub fn new(setup: InputSetup) -> Self {
+        ToFfts {
+            prev_window_time: None,
+            setup,
+        }
+    }
+}
+
+impl PushIterator<Window<Logical>> for ToFfts {
     type Error = ();
 
-    fn push(&mut self, item: Window<Logical>) -> ControlFlow<Self::Error> {
+    fn push(&mut self, window: Window<Logical>) -> ControlFlow<Self::Error> {
         if let Some(prev_window_time) = self.prev_window_time {
             assert!(
                 window.time() > prev_window_time,
@@ -196,7 +199,7 @@ impl<I> PushIterator<Window<Logical>> for ToFfts<I> {
         if self.first_window {
             // Send the timestamp to every FFT stage
             log::debug!("Sending first window timestamp {}", window.time());
-            for fft_stage in &setup.destinations {
+            for fft_stage in &self.setup.destinations {
                 fft_stage.send_first_window_time(window.time());
             }
             self.first_window = false;

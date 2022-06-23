@@ -19,51 +19,42 @@
 //! Top-level decompression interface
 //!
 
-use std::collections::BTreeMap;
-use std::io::{Error, ErrorKind, Result};
+use std::io::Result;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
 
-use crossbeam::thread::{self, ScopedJoinHandle};
+use sparsdr_sample_parser::Parser;
 
 use crate::band_decompress::BandSetup;
-use crate::bins::BinRange;
-use crate::blocking::BlockLogs;
-use crate::component_setup::set_up_stages_combined;
-use crate::stages::fft_and_output::{run_fft_and_output_stage, FftOutputReport};
-use crate::stages::input::run_input_stage;
-use crate::stages::input::InputReport;
 use crate::steps::overlap::OverlapMode;
-use crate::window::Window;
 
 /// Default channel capacity value
 const DEFAULT_CHANNEL_CAPACITY: usize = 0;
 
 /// Setup for decompression
-pub struct DecompressSetup<'w, I> {
-    /// Compressed sample source
-    source: I,
+pub struct DecompressSetup<'w> {
+    /// Sample parser
+    pub(crate) parser: Box<dyn Parser>,
     /// Bands to decompress
-    bands: Vec<BandSetup<'w>>,
+    pub(crate) bands: Vec<BandSetup<'w>>,
     /// Number of bins in the FFT used for compression
-    compression_fft_size: usize,
+    pub(crate) compression_fft_size: usize,
     /// The number of bits in the window timestamp counter
-    timestamp_bits: u32,
+    pub(crate) timestamp_bits: u32,
     /// Capacity of input -> FFT/output stage channels
-    channel_capacity: usize,
-    overlap_mode: OverlapMode,
+    pub(crate) channel_capacity: usize,
+    pub(crate) overlap_mode: OverlapMode,
     /// Stop flag, used to stop compression before the end of the input file
     ///
     /// When this is set to true, all decompression threads will cleanly exit
-    stop: Option<Arc<AtomicBool>>,
+    pub(crate) stop: Option<Arc<AtomicBool>>,
 }
 
-impl<'w, I> DecompressSetup<'w, I> {
+impl<'w> DecompressSetup<'w> {
     /// Creates a new decompression setup with no bands and default channel capacity
-    pub fn new(source: I, compression_fft_size: usize, timestamp_bits: u32) -> Self {
+    pub fn new(parser: Box<dyn Parser>, compression_fft_size: usize, timestamp_bits: u32) -> Self {
         DecompressSetup {
-            source,
+            parser,
             bands: Vec::new(),
             compression_fft_size,
             timestamp_bits,
@@ -100,162 +91,99 @@ impl<'w, I> DecompressSetup<'w, I> {
 }
 
 /// Decompresses bands using the provided setup and returns information about the decompression
-pub fn decompress<I>(setup: DecompressSetup<'_, I>) -> Result<Report>
-where
-    I: IntoIterator<Item = Result<Window>>,
-{
-    // Figure out the stages
-    let stages = set_up_stages_combined(
-        setup.source,
-        setup.bands,
-        setup.compression_fft_size,
-        setup.timestamp_bits,
-        setup.channel_capacity,
-        setup.overlap_mode,
-    );
-
-    // Measure time
-    let start_time = Instant::now();
-    // Track number of threads created, including the main thread
-    let mut threads = 1usize;
-    // Create a stop flag that's always false if the caller did not provide one
-    let stop = setup
-        .stop
-        .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
-
-    let (input_report, fft_output_reports): (InputReport, BTreeMap<BinRange, FftOutputReport>) =
-        thread::scope(|scope| {
-            // Start a thread for each FFT and output stage
-            // The threads all need to be started here before running the input stage.
-            #[allow(clippy::needless_collect)]
-            let fft_and_output_threads: Vec<(
-                BinRange,
-                ScopedJoinHandle<'_, Result<FftOutputReport>>,
-            )> = stages
-                .fft_and_output
-                .into_iter()
-                .map(|setup| {
-                    threads += 1;
-                    let bins = setup.bins.clone();
-                    let handle = {
-                        let stop = Arc::clone(&stop);
-                        scope
-                            .builder()
-                            .name(format!("Bins {}", setup.bins))
-                            .spawn(move |_| run_fft_and_output_stage(setup, stop))
-                            .expect("Failed to spawn FFT and output thread")
-                    };
-                    (bins, handle)
-                })
-                .collect();
-
-            // Run the input right here
-            let input_report = run_input_stage(stages.input, stop)?;
-
-            // Track the last error from a thread
-            let mut last_error: Option<Error> = None;
-
-            // Join output threads
-            let fft_output_reports: BTreeMap<BinRange, FftOutputReport> = fft_and_output_threads
-                .into_iter()
-                .map(|(bins, thread)| {
-                    let report: Option<(BinRange, FftOutputReport)> = match thread.join() {
-                        Ok(Ok(report)) => Some((bins, report)),
-                        Ok(Err(e)) => {
-                            // Thread returned an error
-                            last_error = Some(e);
-                            // No report
-                            None
-                        }
-                        Err(_) => {
-                            // Thread panicked
-                            last_error = Some(Error::new(
-                                ErrorKind::Other,
-                                "An output thread has panicked",
-                            ));
-                            // No report
-                            None
-                        }
-                    };
-                    report
-                })
-                .flatten()
-                .collect();
-
-            let decompress_status: Result<(InputReport, BTreeMap<BinRange, FftOutputReport>)> =
-                match last_error {
-                    Some(e) => Err(e),
-                    None => Ok((input_report, fft_output_reports)),
-                };
-            decompress_status
-        })
-        .expect("Unjoined thread panic")?;
-
-    let end_time = Instant::now();
-    let run_time = end_time.duration_since(start_time);
-
-    let report = assemble_report(input_report, fft_output_reports, threads, run_time);
-
-    Ok(report)
-}
-
-/// Information about completed decompression
-#[derive(Debug)]
-pub struct Report {
-    /// Number of decompressed samples written
-    samples: u64,
-    /// Total decompression time
-    run_time: Duration,
-    /// FFT reports
-    ffts: BTreeMap<BinRange, FftReport>,
-    /// Total threads created
-    threads: usize,
-    /// A private field to allow adding fields without breaking anything
-    _0: (),
-}
-
-/// A report about one set of bins / FFT
-#[derive(Debug)]
-struct FftReport {
-    /// Blocks on sending over this channel
-    send_blocks: BlockLogs,
-    /// Blocks on receiving over this channel
-    receive_blocks: BlockLogs,
-    /// Logs of blocking on the outputs
-    output_blocks: BlockLogs,
-    /// Total samples written to the outputs
-    samples: u64,
-}
-
-/// Creates a decompression report
-fn assemble_report(
-    input: InputReport,
-    mut fft_outputs: BTreeMap<BinRange, FftOutputReport>,
-    threads: usize,
-    run_time: Duration,
-) -> Report {
-    let mut samples = 0;
-    let mut ffts: BTreeMap<BinRange, FftReport> = BTreeMap::new();
-
-    // Assemble FFT reports from the input report and FFT/output reports
-    for (bins, send_blocks) in input.channel_send_blocks {
-        if let Some(fft_output_report) = fft_outputs.remove(&bins) {
-            samples += fft_output_report.samples;
-            let fft_report = FftReport {
-                send_blocks,
-                receive_blocks: fft_output_report.channel_blocks,
-                output_blocks: fft_output_report.output_blocks,
-                samples: fft_output_report.samples,
-            };
-            ffts.insert(bins, fft_report);
-        }
-    }
-
-    Report {
-        samples,
-        run_time,
-        ffts,
-        threads,
-        _0: (),
-    }
+pub fn decompress(setup: DecompressSetup<'_>) -> Result<()> {
+    // // Figure out the stages
+    // let stages = set_up_stages_combined(
+    //     setup.source,
+    //     setup.bands,
+    //     setup.compression_fft_size,
+    //     setup.timestamp_bits,
+    //     setup.channel_capacity,
+    //     setup.overlap_mode,
+    // );
+    //
+    // // Measure time
+    // let start_time = Instant::now();
+    // // Track number of threads created, including the main thread
+    // let mut threads = 1usize;
+    // // Create a stop flag that's always false if the caller did not provide one
+    // let stop = setup
+    //     .stop
+    //     .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
+    //
+    // let (input_report, fft_output_reports): (InputReport, BTreeMap<BinRange, FftOutputReport>) =
+    //     thread::scope(|scope| {
+    //         // Start a thread for each FFT and output stage
+    //         // The threads all need to be started here before running the input stage.
+    //         #[allow(clippy::needless_collect)]
+    //         let fft_and_output_threads: Vec<(
+    //             BinRange,
+    //             ScopedJoinHandle<'_, Result<FftOutputReport>>,
+    //         )> = stages
+    //             .fft_and_output
+    //             .into_iter()
+    //             .map(|setup| {
+    //                 threads += 1;
+    //                 let bins = setup.bins.clone();
+    //                 let handle = {
+    //                     let stop = Arc::clone(&stop);
+    //                     scope
+    //                         .builder()
+    //                         .name(format!("Bins {}", setup.bins))
+    //                         .spawn(move |_| run_fft_and_output_stage(setup, stop))
+    //                         .expect("Failed to spawn FFT and output thread")
+    //                 };
+    //                 (bins, handle)
+    //             })
+    //             .collect();
+    //
+    //         // Run the input right here
+    //         let input_report = run_input_stage(stages.input, stop)?;
+    //
+    //         // Track the last error from a thread
+    //         let mut last_error: Option<Error> = None;
+    //
+    //         // Join output threads
+    //         let fft_output_reports: BTreeMap<BinRange, FftOutputReport> = fft_and_output_threads
+    //             .into_iter()
+    //             .map(|(bins, thread)| {
+    //                 let report: Option<(BinRange, FftOutputReport)> = match thread.join() {
+    //                     Ok(Ok(report)) => Some((bins, report)),
+    //                     Ok(Err(e)) => {
+    //                         // Thread returned an error
+    //                         last_error = Some(e);
+    //                         // No report
+    //                         None
+    //                     }
+    //                     Err(_) => {
+    //                         // Thread panicked
+    //                         last_error = Some(Error::new(
+    //                             ErrorKind::Other,
+    //                             "An output thread has panicked",
+    //                         ));
+    //                         // No report
+    //                         None
+    //                     }
+    //                 };
+    //                 report
+    //             })
+    //             .flatten()
+    //             .collect();
+    //
+    //         let decompress_status: Result<(InputReport, BTreeMap<BinRange, FftOutputReport>)> =
+    //             match last_error {
+    //                 Some(e) => Err(e),
+    //                 None => Ok((input_report, fft_output_reports)),
+    //             };
+    //         decompress_status
+    //     })
+    //     .expect("Unjoined thread panic")?;
+    //
+    // let end_time = Instant::now();
+    // let run_time = end_time.duration_since(start_time);
+    //
+    // let report = assemble_report(input_report, fft_output_reports, threads, run_time);
+    //
+    // Ok(report)
+    todo!()
 }
