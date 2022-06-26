@@ -32,11 +32,11 @@ use crate::steps::overlap::OverlapMode;
 const DEFAULT_CHANNEL_CAPACITY: usize = 0;
 
 /// Setup for decompression
-pub struct DecompressSetup<'w> {
+pub struct DecompressSetup {
     /// Sample parser
     pub(crate) parser: Box<dyn Parser>,
     /// Bands to decompress
-    pub(crate) bands: Vec<BandSetup<'w>>,
+    pub(crate) bands: Vec<BandSetup>,
     /// Number of bins in the FFT used for compression
     pub(crate) compression_fft_size: usize,
     /// The number of bits in the window timestamp counter
@@ -50,7 +50,7 @@ pub struct DecompressSetup<'w> {
     pub(crate) stop: Option<Arc<AtomicBool>>,
 }
 
-impl<'w> DecompressSetup<'w> {
+impl DecompressSetup {
     /// Creates a new decompression setup with no bands and default channel capacity
     pub fn new(parser: Box<dyn Parser>, compression_fft_size: usize, timestamp_bits: u32) -> Self {
         DecompressSetup {
@@ -78,7 +78,7 @@ impl<'w> DecompressSetup<'w> {
     }
 
     /// Adds a band to be decompressed to this setup
-    pub fn add_band(&mut self, band: BandSetup<'w>) -> &mut Self {
+    pub fn add_band(&mut self, band: BandSetup) -> &mut Self {
         self.bands.push(band);
         self
     }
@@ -91,7 +91,7 @@ impl<'w> DecompressSetup<'w> {
 }
 
 /// Decompresses bands using the provided setup and returns information about the decompression
-pub fn decompress(setup: DecompressSetup<'_>) -> Result<()> {
+pub fn decompress(setup: DecompressSetup) -> Result<()> {
     // // Figure out the stages
     // let stages = set_up_stages_combined(
     //     setup.source,

@@ -46,7 +46,7 @@ pub struct Reconstruct {
 }
 
 impl Reconstruct {
-    pub fn start(setup: DecompressSetup<'_>) -> io::Result<Self> {
+    pub fn start(setup: DecompressSetup) -> io::Result<Self> {
         let combined_setup = configure_ffts(
             setup.bands,
             setup.channel_capacity,
@@ -96,13 +96,13 @@ struct CombinedSetup {
 }
 
 fn configure_ffts(
-    bands: Vec<BandSetup<'_>>,
+    bands: Vec<BandSetup>,
     channel_capacity: usize,
     compression_fft_size: usize,
     overlap_mode: OverlapMode,
 ) -> CombinedSetup {
     // Each (bin range, fc_bins) gets one FFT and output stage
-    let mut ffts: BTreeMap<FftKey, FftAndOutputSetup<'_>> = BTreeMap::new();
+    let mut ffts: BTreeMap<FftKey, FftAndOutputSetup> = BTreeMap::new();
     let mut inputs = Vec::new();
 
     for band_setup in bands {
@@ -176,6 +176,6 @@ pub trait WriteSamples {
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct FftKey(BinRange, i64);
 /// Creates a key from a band setup
-fn key(band_setup: &BandSetup<'_>) -> FftKey {
+fn key(band_setup: &BandSetup) -> FftKey {
     FftKey(band_setup.bins.clone(), band_setup.fc_bins as i64)
 }

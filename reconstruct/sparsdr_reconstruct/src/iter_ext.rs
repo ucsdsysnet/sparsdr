@@ -44,7 +44,7 @@ pub trait IterExt {
         FilterBinsIter::new(self, bins, fft_size)
     }
     /// Shifts the bins in windows between logical and FFT order
-    fn shift<Ord>(self, fft_size: u16) -> ShiftIter<Self>
+    fn shift<Ord>(self, fft_size: usize) -> ShiftIter<Self>
     where
         Self: Iterator<Item = Status<Window<Ord>>> + Sized,
     {
@@ -53,7 +53,7 @@ pub trait IterExt {
     /// Shifts the bins in windows between logical and FFT order
     ///
     /// This version works on iterators with item type Result<Window>.
-    fn shift_result<Ord>(self, fft_size: u16) -> ShiftWindowResultIter<Self>
+    fn shift_result<Ord>(self, fft_size: usize) -> ShiftWindowResultIter<Self>
     where
         Self: Iterator<Item = Result<Window<Ord>>> + Sized,
     {

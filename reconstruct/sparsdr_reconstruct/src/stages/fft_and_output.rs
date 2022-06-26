@@ -82,13 +82,13 @@ pub struct FftOutputReport {
 /// Runs the FFT and output stages using the provided setup
 ///
 /// On success, this returns the total number of samples written.
-pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup<'_>, stop: Arc<AtomicBool>) {
+pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup, stop: Arc<AtomicBool>) {
     let fft_size = setup.fft_size;
     // Set up FFT chain
     let fft_chain = BandReceiver::new(&setup.source, setup.timeout)
         .take_while(|_| !stop.load(Ordering::Relaxed))
         .filter_bins(setup.bins, setup.fft_size)
-        .shift(setup.fft_size)
+        .shift(setup.fft_size.into())
         .phase_correct(setup.fc_bins)
         .fft(setup.compression_fft_size, setup.fft_size);
 

@@ -37,7 +37,6 @@
     unused_comparisons,
     unused_parens,
     while_true,
-    missing_docs,
     trivial_casts,
     trivial_numeric_casts,
     unused_extern_crates,
@@ -47,8 +46,7 @@
     future_incompatible,
     nonstandard_style,
     rust_2018_compatibility,
-    rust_2018_idioms,
-    missing_docs
+    rust_2018_idioms
 )]
 #![warn(clippy::all)]
 #![warn(unused)]
@@ -105,7 +103,6 @@ pub mod window_filter;
 
 // Private modules
 mod band_decompress;
-mod channel_ext;
 mod decompress;
 mod stages;
 

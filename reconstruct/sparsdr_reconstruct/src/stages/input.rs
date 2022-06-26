@@ -171,6 +171,7 @@ impl ToFft {
 pub struct ToFfts {
     prev_window_time: Option<u64>,
     setup: InputSetup,
+    first_window: bool,
 }
 
 impl ToFfts {
@@ -178,6 +179,7 @@ impl ToFfts {
         ToFfts {
             prev_window_time: None,
             setup,
+            first_window: true,
         }
     }
 }

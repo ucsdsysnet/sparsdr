@@ -26,7 +26,7 @@ use super::bins::BinRange;
 pub const TIMEOUT: Duration = Duration::from_millis(500);
 
 /// Setup for decompression of one band
-pub struct BandSetup<'w> {
+pub struct BandSetup {
     /// The bins to decompress
     pub bins: BinRange,
     /// The actual FFT size to use
@@ -38,10 +38,10 @@ pub struct BandSetup<'w> {
     /// Time to wait for a compressed sample before flushing output
     pub timeout: Duration,
     /// The destination to write decompressed samples to
-    pub destination: Box<dyn WriteSamples + Send + 'w>,
+    pub destination: Box<dyn WriteSamples + Send + 'static>,
 }
 
-impl<'w> BandSetup<'w> {
+impl BandSetup {
     /// Returns the bins to be decompressed for this band
     pub fn bins(&self) -> BinRange {
         self.bins.clone()
@@ -53,7 +53,7 @@ impl<'w> BandSetup<'w> {
 }
 
 /// Setup builder for decompression of one band
-pub struct BandSetupBuilder<'w> {
+pub struct BandSetupBuilder {
     /// Bandwidth of the compressed data
     compressed_bandwidth: f32,
     /// Center frequency to decompress, relative to the center of the compressed data
@@ -67,14 +67,14 @@ pub struct BandSetupBuilder<'w> {
     /// Time to wait for a compressed sample before flushing output
     timeout: Duration,
     /// The destination to write decompressed samples to
-    destination: Box<dyn WriteSamples + Send + 'w>,
+    destination: Box<dyn WriteSamples + Send + 'static>,
 }
 
-impl<'w> BandSetupBuilder<'w> {
+impl BandSetupBuilder {
     /// Creates a default band setup that will decompress a full 100 MHz spectrum and write
     /// decompressed samples to the provided source
     pub fn new(
-        destination: Box<dyn WriteSamples + Send + 'w>,
+        destination: Box<dyn WriteSamples + Send + 'static>,
         compressed_bandwidth: f32,
         compression_fft_size: usize,
         bins: u16,
@@ -114,7 +114,7 @@ impl<'w> BandSetupBuilder<'w> {
     }
 
     /// Builds a setup from this builder
-    pub fn build(self) -> BandSetup<'w> {
+    pub fn build(self) -> BandSetup {
         let fft_size = self.fft_bins;
 
         let exact_bin_offset =
