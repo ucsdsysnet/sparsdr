@@ -84,8 +84,6 @@ pub struct Window<Ord = Fft> {
     ///
     /// Each value is a complex amplitude (in frequency domain)
     bins: Vec<Complex32>,
-    /// An optional window tag
-    tag: Option<Tag>,
     /// Order phantom
     _order_phantom: PhantomData<Ord>,
 }
@@ -97,8 +95,6 @@ pub struct TimeWindow {
     time: u64,
     /// Time-domain samples in this window
     samples: Vec<Complex32>,
-    /// An optional window tag
-    tag: Option<Tag>,
 }
 
 impl Window<Fft> {
@@ -107,7 +103,6 @@ impl Window<Fft> {
         Window {
             time,
             bins: vec![Complex32::zero(); size],
-            tag: None,
             _order_phantom: PhantomData,
         }
     }
@@ -119,7 +114,6 @@ impl Window<Logical> {
         Window {
             time,
             bins: vec![Complex32::zero(); size],
-            tag: None,
             _order_phantom: PhantomData,
         }
     }
@@ -145,16 +139,10 @@ where
     /// # Panics
     ///
     /// This function panics if size is greater than
-    pub fn with_bins<I>(time: u64, size: usize, bins: I) -> Self
-    where
-        I: IntoIterator<Item = Complex32>,
-    {
-        let mut collected_bins: Vec<Complex32> = bins.into_iter().collect();
-        collected_bins.resize(size, Complex32::zero());
+    pub fn with_bins(time: u64, bins: Vec<Complex32>) -> Self {
         Window {
             time,
-            bins: collected_bins,
-            tag: None,
+            bins,
             _order_phantom: Default::default(),
         }
     }
@@ -190,11 +178,6 @@ where
             Some(entry) => *entry = amplitude,
             None => panic!("Bin index {} out of bounds for window size {}", bin, len),
         }
-    }
-
-    /// Sets the tag of this window
-    pub fn set_tag(&mut self, tag: Tag) {
-        self.tag = Some(tag);
     }
 
     /// Returns a displayable object that visualizes the bins in this window
@@ -235,7 +218,6 @@ where
         TimeWindow {
             time: self.time,
             samples: self.bins,
-            tag: self.tag,
         }
     }
 
@@ -246,7 +228,6 @@ where
         Window {
             time: self.time,
             bins: self.bins,
-            tag: self.tag,
             _order_phantom: PhantomData,
         }
     }
@@ -362,11 +343,7 @@ where
 impl TimeWindow {
     /// Creates a TimeWindow with the provided time and samples
     pub fn new(time: u64, samples: Vec<Complex32>) -> Self {
-        TimeWindow {
-            time,
-            samples,
-            tag: None,
-        }
+        TimeWindow { time, samples }
     }
 
     /// Returns the timestamp of this window
@@ -423,11 +400,6 @@ impl TimeWindow {
         let len = self.len();
         self.truncate_samples(len / 2);
         self
-    }
-
-    /// Returns this window's tag, if any
-    pub fn tag(&self) -> Option<&Tag> {
-        self.tag.as_ref()
     }
 
     /// Consumes this window and returns its samples

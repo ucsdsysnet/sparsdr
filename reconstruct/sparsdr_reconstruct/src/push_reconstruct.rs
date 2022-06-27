@@ -25,7 +25,8 @@ use std::{io, thread};
 use crossbeam::{channel, Receiver};
 use num_complex::Complex32;
 
-use sparsdr_sample_parser::Parser;
+use sparsdr_sample_parser::{Parser, WindowKind};
+use window::Window;
 
 use crate::bins::BinRange;
 use crate::iter::PushIterator;
@@ -87,6 +88,47 @@ impl Reconstruct {
             chain,
             threads: join_handles,
         })
+    }
+
+    pub fn process_samples(&mut self, sample_bytes: &[u8]) {
+        let sample_size_bytes = self.parser.sample_bytes();
+        assert_eq!(
+            sample_bytes.len() % sample_size_bytes,
+            0,
+            "Number of sample bytes is not a multiple of sample size"
+        );
+        for one_sample_bytes in sample_bytes.chunks_exact(sample_size_bytes) {
+            match self.parser.parse(one_sample_bytes) {
+                Ok(Some(window)) => {
+                    if let Some(converted_window) = convert_window(window) {
+                        let todo = self.chain.push(converted_window);
+                    }
+                }
+                Ok(_) => {}
+                Err(e) => todo!(),
+            }
+        }
+    }
+}
+
+/// If the provided window is a data window, this function returns its converted form.
+/// Otherwise, this function returns None.
+fn convert_window(window: sparsdr_sample_parser::Window) -> Option<Window> {
+    match window.kind {
+        WindowKind::Data(bins) => {
+            // Convert integer to float and scale to [-1, 1]
+            let scaled_bins = bins
+                .into_iter()
+                .map(|int_complex| {
+                    Complex32::new(
+                        (int_complex.re as f32) / 32767.0,
+                        (int_complex.im as f32) / 32767.0,
+                    )
+                })
+                .collect();
+            Some(Window::with_bins(window.timestamp.into(), scaled_bins))
+        }
+        WindowKind::Average(_) => None,
     }
 }
 
