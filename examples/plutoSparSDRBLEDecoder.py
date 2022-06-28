@@ -31,6 +31,7 @@ import signal
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
+from gnuradio import zeromq
 import sparsdr
 import distutils.spawn
 import argparse
@@ -120,6 +121,11 @@ class plutoSparSDR(gr.top_block, Qt.QWidget):
 
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_cc(1024)
 
+        # Rate monitoring tools
+        self.blocks_probe_rate_0 = blocks.probe_rate(gr.sizeof_gr_complex*1, 500, 0.15)
+        # self.blocks_message_debug_0 = blocks.message_debug()
+        self.zeromq_pub_msg_sink_0 = zeromq.pub_msg_sink('tcp://127.0.0.1:69001', 100, True)
+
 
         ##################################################
         # Connections
@@ -128,6 +134,10 @@ class plutoSparSDR(gr.top_block, Qt.QWidget):
         self.connect((self.variable_sparsdr_reconstruct_0, 0), (self.blocks_multiply_const_vxx_0, 0))
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.qtgui_sink_x_0, 0))
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.bluetooth_gr_bluetooth_multi_sniffer_0, 0))
+
+        # self.msg_connect((self.blocks_probe_rate_0, 'rate'), (self.blocks_message_debug_0, 'print'))
+        self.msg_connect((self.blocks_probe_rate_0, 'rate'), (self.zeromq_pub_msg_sink_0, 'in'))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_probe_rate_0, 0))
 
 
     def closeEvent(self, event):
