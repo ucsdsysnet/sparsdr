@@ -46,14 +46,12 @@
 //! frequency correction and writes samples to the destination.
 //!
 
-use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use num_complex::Complex32;
 use num_traits::Zero;
 
-use crate::blocking::BlockLogs;
 use crate::iter_ext::IterExt;
 use crate::push_reconstruct::FftAndOutputSetup;
 use crate::steps::frequency_correct::FrequencyCorrect;
@@ -61,28 +59,10 @@ use crate::steps::overlap::OverlapMode;
 
 use super::band_receive::BandReceiver;
 
-pub struct OutputSetup<'w> {
-    /// Fractional part of center frequency offset, in bins
-    pub bin_offset: f32,
-    /// The destination to write decompressed samples to
-    pub destination: Box<dyn Write + Send + 'w>,
-}
-
-/// A report on the execution of the FFT and output stage
-#[derive(Debug)]
-pub struct FftOutputReport {
-    /// The total number of decompressed samples written
-    pub samples: u64,
-    /// Logs of blocking on the input channel
-    pub channel_blocks: BlockLogs,
-    /// Logs of blocking on the output
-    pub output_blocks: BlockLogs,
-}
-
 /// Runs the FFT and output stages using the provided setup
 ///
 /// On success, this returns the total number of samples written.
-pub fn run_fft_and_output_stage(mut setup: FftAndOutputSetup, stop: Arc<AtomicBool>) {
+pub fn run_fft_and_output_stage(setup: FftAndOutputSetup, stop: Arc<AtomicBool>) {
     let fft_size = setup.fft_size;
     // Set up FFT chain
     let fft_chain = BandReceiver::new(&setup.source, setup.timeout)

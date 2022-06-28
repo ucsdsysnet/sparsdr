@@ -23,7 +23,6 @@ license = "Apache-2.0"
 
 [dependencies]
 clap = "2.32.0"
-byteorder = "1.2.6"
 num-traits = "0.2.6"
 log = "0.4.6"
 simplelog = "0.5.3"
@@ -31,7 +30,6 @@ indicatif = "0.10.3"
 crossbeam = "0.6.0"
 signal-hook = "0.1.8"
 nix = "0.13.0"
-libc = "0.2.51"
 
 [dependencies.num-complex]
 version = "0.3.0"

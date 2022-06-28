@@ -18,7 +18,6 @@
 //! The input stage of the decompression, which reads samples from a source, groups them
 //! into windows, and shifts them into logical order
 
-use std::collections::BTreeMap;
 use std::io::{Error, ErrorKind, Result};
 use std::ops::ControlFlow;
 
@@ -26,7 +25,6 @@ use crossbeam::Sender;
 use num_traits::Zero;
 
 use crate::bins::BinRange;
-use crate::blocking::BlockLogs;
 use crate::iter::PushIterator;
 use crate::window::{Logical, Window, WindowOrTimestamp};
 
@@ -225,11 +223,4 @@ impl PushIterator<Window<Logical>> for ToFfts {
         // Nothing to do (all samples get sent immediately)
         Ok(())
     }
-}
-
-/// A report on the results of the input stage
-#[derive(Debug)]
-pub struct InputReport {
-    /// Logs of blocks on channels for sending to the FFT/output stages
-    pub channel_send_blocks: BTreeMap<BinRange, BlockLogs>,
 }

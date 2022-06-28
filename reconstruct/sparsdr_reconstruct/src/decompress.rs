@@ -19,13 +19,14 @@
 //! Top-level decompression interface
 //!
 
-use std::io::Result;
+use std::io::{BufReader, Read, Result};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use sparsdr_sample_parser::Parser;
 
 use crate::band_decompress::BandSetup;
+use crate::push_reconstruct::Reconstruct;
 use crate::steps::overlap::OverlapMode;
 
 /// Default channel capacity value
@@ -91,99 +92,21 @@ impl DecompressSetup {
 }
 
 /// Decompresses bands using the provided setup and returns information about the decompression
-pub fn decompress(setup: DecompressSetup) -> Result<()> {
-    // // Figure out the stages
-    // let stages = set_up_stages_combined(
-    //     setup.source,
-    //     setup.bands,
-    //     setup.compression_fft_size,
-    //     setup.timestamp_bits,
-    //     setup.channel_capacity,
-    //     setup.overlap_mode,
-    // );
-    //
-    // // Measure time
-    // let start_time = Instant::now();
-    // // Track number of threads created, including the main thread
-    // let mut threads = 1usize;
-    // // Create a stop flag that's always false if the caller did not provide one
-    // let stop = setup
-    //     .stop
-    //     .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
-    //
-    // let (input_report, fft_output_reports): (InputReport, BTreeMap<BinRange, FftOutputReport>) =
-    //     thread::scope(|scope| {
-    //         // Start a thread for each FFT and output stage
-    //         // The threads all need to be started here before running the input stage.
-    //         #[allow(clippy::needless_collect)]
-    //         let fft_and_output_threads: Vec<(
-    //             BinRange,
-    //             ScopedJoinHandle<'_, Result<FftOutputReport>>,
-    //         )> = stages
-    //             .fft_and_output
-    //             .into_iter()
-    //             .map(|setup| {
-    //                 threads += 1;
-    //                 let bins = setup.bins.clone();
-    //                 let handle = {
-    //                     let stop = Arc::clone(&stop);
-    //                     scope
-    //                         .builder()
-    //                         .name(format!("Bins {}", setup.bins))
-    //                         .spawn(move |_| run_fft_and_output_stage(setup, stop))
-    //                         .expect("Failed to spawn FFT and output thread")
-    //                 };
-    //                 (bins, handle)
-    //             })
-    //             .collect();
-    //
-    //         // Run the input right here
-    //         let input_report = run_input_stage(stages.input, stop)?;
-    //
-    //         // Track the last error from a thread
-    //         let mut last_error: Option<Error> = None;
-    //
-    //         // Join output threads
-    //         let fft_output_reports: BTreeMap<BinRange, FftOutputReport> = fft_and_output_threads
-    //             .into_iter()
-    //             .map(|(bins, thread)| {
-    //                 let report: Option<(BinRange, FftOutputReport)> = match thread.join() {
-    //                     Ok(Ok(report)) => Some((bins, report)),
-    //                     Ok(Err(e)) => {
-    //                         // Thread returned an error
-    //                         last_error = Some(e);
-    //                         // No report
-    //                         None
-    //                     }
-    //                     Err(_) => {
-    //                         // Thread panicked
-    //                         last_error = Some(Error::new(
-    //                             ErrorKind::Other,
-    //                             "An output thread has panicked",
-    //                         ));
-    //                         // No report
-    //                         None
-    //                     }
-    //                 };
-    //                 report
-    //             })
-    //             .flatten()
-    //             .collect();
-    //
-    //         let decompress_status: Result<(InputReport, BTreeMap<BinRange, FftOutputReport>)> =
-    //             match last_error {
-    //                 Some(e) => Err(e),
-    //                 None => Ok((input_report, fft_output_reports)),
-    //             };
-    //         decompress_status
-    //     })
-    //     .expect("Unjoined thread panic")?;
-    //
-    // let end_time = Instant::now();
-    // let run_time = end_time.duration_since(start_time);
-    //
-    // let report = assemble_report(input_report, fft_output_reports, threads, run_time);
-    //
-    // Ok(report)
-    todo!()
+pub fn decompress(setup: DecompressSetup, source: Box<dyn Read + '_>) -> Result<()> {
+    // Implement this using the push reconstruct interface
+    let sample_bytes = setup.parser.sample_bytes();
+    let mut reader = BufReader::new(source);
+    let mut reconstruct = Reconstruct::start(setup)?;
+
+    let mut read_buffer = vec![0u8; sample_bytes];
+    loop {
+        reader.read_exact(&mut read_buffer)?;
+        let status = reconstruct.process_samples(&read_buffer);
+        if status.is_break() {
+            break;
+        }
+    }
+
+    reconstruct.shutdown();
+    Ok(())
 }

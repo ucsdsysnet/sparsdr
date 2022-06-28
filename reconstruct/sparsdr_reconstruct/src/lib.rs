@@ -51,14 +51,12 @@
 #![warn(clippy::all)]
 #![warn(unused)]
 
-extern crate byteorder;
 extern crate fftw;
 extern crate num_complex;
 extern crate num_traits;
 #[macro_use]
 extern crate log;
 extern crate crossbeam;
-extern crate libc;
 extern crate nix;
 extern crate sparsdr_sample_parser;
 
@@ -90,8 +88,6 @@ macro_rules! try_status {
 }
 
 // Public modules
-pub mod blocking;
-pub mod input;
 pub mod iter;
 pub mod push_reconstruct;
 // These are only public to allow the benchmark code to access them

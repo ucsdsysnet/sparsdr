@@ -16,6 +16,8 @@
  */
 
 use std::collections::BTreeMap;
+use std::io::Write;
+use std::ops::ControlFlow;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread::JoinHandle;
@@ -26,7 +28,6 @@ use crossbeam::{channel, Receiver};
 use num_complex::Complex32;
 
 use sparsdr_sample_parser::{Parser, WindowKind};
-use window::Window;
 
 use crate::bins::BinRange;
 use crate::iter::PushIterator;
@@ -35,15 +36,18 @@ use crate::stages::input::{InputSetup, ToFft, ToFfts};
 use crate::steps::overflow::OverflowPushIter;
 use crate::steps::overlap::OverlapMode;
 use crate::steps::shift::ShiftPushIter;
+use crate::window::Window;
 use crate::window::WindowOrTimestamp;
 use crate::{BandSetup, DecompressSetup};
 
 pub struct Reconstruct {
+    /// The sample parser
     parser: Box<dyn Parser>,
+    /// A push iterator chain that handles time overflow, converts to logical order, and sends
+    /// windows to FFT threads
     chain: OverflowPushIter<ShiftPushIter<ToFfts>>,
     /// Join handles for all the FFT threads
     threads: Vec<JoinHandle<()>>,
-    // TODO
 }
 
 impl Reconstruct {
@@ -90,7 +94,7 @@ impl Reconstruct {
         })
     }
 
-    pub fn process_samples(&mut self, sample_bytes: &[u8]) {
+    pub fn process_samples(&mut self, sample_bytes: &[u8]) -> ControlFlow<()> {
         let sample_size_bytes = self.parser.sample_bytes();
         assert_eq!(
             sample_bytes.len() % sample_size_bytes,
@@ -101,11 +105,33 @@ impl Reconstruct {
             match self.parser.parse(one_sample_bytes) {
                 Ok(Some(window)) => {
                     if let Some(converted_window) = convert_window(window) {
-                        let todo = self.chain.push(converted_window);
+                        let status = self.chain.push(converted_window);
+                        if matches!(status, ControlFlow::Break(())) {
+                            return ControlFlow::Break(());
+                        }
                     }
                 }
-                Ok(_) => {}
-                Err(e) => todo!(),
+                Ok(None) => {}
+                Err(_e) => log::error!("Compressed sample parse error"),
+            }
+        }
+        ControlFlow::Continue(())
+    }
+
+    pub fn shutdown(mut self) {
+        let _ = self.chain.flush();
+        // Close channels so other threads will exit
+        drop(self.chain);
+        for handle in self.threads {
+            let thread_name = handle.thread().name().unwrap_or("<unknown>").to_owned();
+            match handle.join() {
+                Ok(()) => {}
+                Err(panic_message) => {
+                    let panic_message = panic_message
+                        .downcast::<String>()
+                        .unwrap_or_else(|_| "<unknown message>".to_owned().into());
+                    log::error!("FFT thread {} panicked: {}", thread_name, panic_message);
+                }
             }
         }
     }
@@ -120,16 +146,17 @@ fn convert_window(window: sparsdr_sample_parser::Window) -> Option<Window> {
             let scaled_bins = bins
                 .into_iter()
                 .map(|int_complex| {
-                    Complex32::new(
-                        (int_complex.re as f32) / 32767.0,
-                        (int_complex.im as f32) / 32767.0,
-                    )
+                    Complex32::new(map_value(int_complex.re), map_value(int_complex.im))
                 })
                 .collect();
             Some(Window::with_bins(window.timestamp.into(), scaled_bins))
         }
         WindowKind::Average(_) => None,
     }
+}
+
+fn map_value(value: i16) -> f32 {
+    f32::from(value) / 32768.0
 }
 
 struct CombinedSetup {
@@ -210,6 +237,27 @@ pub struct OutputSetup {
 pub trait WriteSamples {
     /// Handles zero or more reconstructed samples
     fn write_samples(&mut self, samples: &[Complex32]);
+}
+
+impl<W> WriteSamples for W
+where
+    W: Write,
+{
+    fn write_samples(&mut self, samples: &[Complex32]) {
+        for sample in samples {
+            // TODO: Better error handling
+            write_f32_le(self.by_ref(), sample.re).unwrap();
+            write_f32_le(self.by_ref(), sample.im).unwrap();
+        }
+    }
+}
+
+fn write_f32_le<W>(mut destination: W, value: f32) -> io::Result<()>
+where
+    W: Write,
+{
+    let bytes = value.to_le_bytes();
+    destination.write_all(&bytes)
 }
 
 /// A key that uniquely identifies an FFT stage

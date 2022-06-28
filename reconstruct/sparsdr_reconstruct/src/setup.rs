@@ -16,11 +16,12 @@
  */
 
 use std::fs::{self, File};
-use std::io::{self, BufReader, BufWriter, Read, Result, Write};
+use std::io::{self, BufReader, BufWriter, Read, Result};
 
 use log::debug;
 use simplelog::LevelFilter;
 
+use sparsdr_reconstruct::push_reconstruct::WriteSamples;
 use sparsdr_reconstruct::steps::overlap::OverlapMode;
 
 use crate::args::CompressedFormat;
@@ -65,7 +66,7 @@ pub struct BandSetup {
     /// Center frequency to decompress
     pub center_frequency: f32,
     /// Destination to write to
-    pub destination: Box<dyn Write + Send>,
+    pub destination: Box<dyn WriteSamples + Send>,
 }
 
 impl Setup {
@@ -127,7 +128,7 @@ impl Setup {
 impl BandSetup {
     fn from_args(args: BandArgs, buffer: bool) -> Result<Self> {
         // Open destination
-        let destination: Box<dyn Write + Send> = match args.path {
+        let destination: Box<dyn WriteSamples + Send> = match args.path {
             Some(ref path) => {
                 debug!("Opening file {} for output", path.display());
                 if buffer {

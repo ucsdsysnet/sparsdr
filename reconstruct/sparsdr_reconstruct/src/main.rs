@@ -70,7 +70,6 @@ mod args;
 mod setup;
 
 use crate::args::CompressedFormat;
-use sparsdr_reconstruct::input::SampleReader;
 use sparsdr_sample_parser::{Parser, V1Parser, V2Parser};
 use std::io::{self, Read};
 use std::process;
@@ -105,12 +104,11 @@ fn run() -> io::Result<()> {
     let progress = create_progress_bar(&setup);
 
     // Set up to read windows from the source
-    let windows_in: SampleReader<Box<dyn Read>, Box<dyn Parser>> =
-        if let Some(ref progress) = progress {
-            SampleReader::new(Box::new(Box::new(progress.wrap_read(setup.source))), parser)
-        } else {
-            SampleReader::new(Box::new(setup.source), parser)
-        };
+    let sample_source: Box<dyn Read> = if let Some(ref progress) = progress {
+        Box::new(progress.wrap_read(setup.source))
+    } else {
+        Box::new(setup.source)
+    };
 
     // Set up signal handlers for clean exit
     let stop_flag = Arc::new(AtomicBool::new(false));
@@ -119,7 +117,7 @@ fn run() -> io::Result<()> {
 
     // Configure compression
     let mut decompress_setup =
-        DecompressSetup::new(windows_in, setup.compression_fft_size, setup.timestamp_bits);
+        DecompressSetup::new(parser, setup.compression_fft_size, setup.timestamp_bits);
     decompress_setup
         .set_channel_capacity(setup.channel_capacity)
         .set_stop_flag(Arc::clone(&stop_flag))
@@ -136,7 +134,7 @@ fn run() -> io::Result<()> {
         decompress_setup.add_band(band_setup.build());
     }
 
-    let _report = decompress(decompress_setup)?;
+    decompress(decompress_setup, sample_source)?;
 
     if let Some(progress) = progress {
         progress.finish();

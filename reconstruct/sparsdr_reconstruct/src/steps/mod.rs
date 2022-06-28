@@ -27,4 +27,3 @@ pub mod overflow;
 pub mod overlap;
 pub mod phase_correct;
 pub mod shift;
-pub mod writer;
