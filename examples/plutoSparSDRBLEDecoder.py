@@ -39,40 +39,40 @@ import argparse
 import gr_bluetooth
 import iio
 
-from gnuradio import qtgui
+# from gnuradio import qtgui
 
 class plutoSparSDR(gr.top_block, Qt.QWidget):
 
     def __init__(self, args):
         gr.top_block.__init__(self, "plutoSparSDR")
-        Qt.QWidget.__init__(self)
-        self.setWindowTitle("plutoSparSDR")
-        qtgui.util.check_set_qss()
-        try:
-            self.setWindowIcon(Qt.QIcon.fromTheme('gnuradio-grc'))
-        except:
-            pass
-        self.top_scroll_layout = Qt.QVBoxLayout()
-        self.setLayout(self.top_scroll_layout)
-        self.top_scroll = Qt.QScrollArea()
-        self.top_scroll.setFrameStyle(Qt.QFrame.NoFrame)
-        self.top_scroll_layout.addWidget(self.top_scroll)
-        self.top_scroll.setWidgetResizable(True)
-        self.top_widget = Qt.QWidget()
-        self.top_scroll.setWidget(self.top_widget)
-        self.top_layout = Qt.QVBoxLayout(self.top_widget)
-        self.top_grid_layout = Qt.QGridLayout()
-        self.top_layout.addLayout(self.top_grid_layout)
+        # Qt.QWidget.__init__(self)
+        # self.setWindowTitle("plutoSparSDR")
+        # qtgui.util.check_set_qss()
+        # try:
+        #     self.setWindowIcon(Qt.QIcon.fromTheme('gnuradio-grc'))
+        # except:
+        #     pass
+        # self.top_scroll_layout = Qt.QVBoxLayout()
+        # self.setLayout(self.top_scroll_layout)
+        # self.top_scroll = Qt.QScrollArea()
+        # self.top_scroll.setFrameStyle(Qt.QFrame.NoFrame)
+        # self.top_scroll_layout.addWidget(self.top_scroll)
+        # self.top_scroll.setWidgetResizable(True)
+        # self.top_widget = Qt.QWidget()
+        # self.top_scroll.setWidget(self.top_widget)
+        # self.top_layout = Qt.QVBoxLayout(self.top_widget)
+        # self.top_grid_layout = Qt.QGridLayout()
+        # self.top_layout.addLayout(self.top_grid_layout)
 
-        self.settings = Qt.QSettings("GNU Radio", "plutoSparSDR")
+        # self.settings = Qt.QSettings("GNU Radio", "plutoSparSDR")
 
-        try:
-            if StrictVersion(Qt.qVersion()) < StrictVersion("5.0.0"):
-                self.restoreGeometry(self.settings.value("geometry").toByteArray())
-            else:
-                self.restoreGeometry(self.settings.value("geometry"))
-        except:
-            pass
+        # try:
+        #     if StrictVersion(Qt.qVersion()) < StrictVersion("5.0.0"):
+        #         self.restoreGeometry(self.settings.value("geometry").toByteArray())
+        #     else:
+        #         self.restoreGeometry(self.settings.value("geometry"))
+        # except:
+        #     pass
 
         ##################################################
         # Variables
@@ -99,22 +99,22 @@ class plutoSparSDR(gr.top_block, Qt.QWidget):
         self.sparsdr_compressing_pluto_source_0.set_average_interval(2 ** 20)
         self.sparsdr_compressing_pluto_source_0.start_all()
 
-        self.qtgui_sink_x_0 = qtgui.sink_c(
-            8192, #fftsize
-            firdes.WIN_BLACKMAN_hARRIS, #wintype
-            2414e6, #fc
-            samp_rate, #bw
-            "", #name
-            True, #plotfreq
-            True, #plotwaterfall
-            True, #plottime
-            True #plotconst
-        )
-        self.qtgui_sink_x_0.set_update_time(1.0/100)
-        self._qtgui_sink_x_0_win = sip.wrapinstance(self.qtgui_sink_x_0.pyqwidget(), Qt.QWidget)
-        self.qtgui_sink_x_0.enable_rf_freq(True)
+        # self.qtgui_sink_x_0 = qtgui.sink_c(
+        #     8192, #fftsize
+        #     firdes.WIN_BLACKMAN_hARRIS, #wintype
+        #     2414e6, #fc
+        #     samp_rate, #bw
+        #     "", #name
+        #     True, #plotfreq
+        #     True, #plotwaterfall
+        #     True, #plottime
+        #     True #plotconst
+        # )
+        # self.qtgui_sink_x_0.set_update_time(1.0/100)
+        # self._qtgui_sink_x_0_win = sip.wrapinstance(self.qtgui_sink_x_0.pyqwidget(), Qt.QWidget)
+        # self.qtgui_sink_x_0.enable_rf_freq(True)
 
-        self.top_layout.addWidget(self._qtgui_sink_x_0_win)
+        # self.top_layout.addWidget(self._qtgui_sink_x_0_win)
 
         # BLE Decoder
         self.bluetooth_gr_bluetooth_multi_sniffer_0 = gr_bluetooth.multi_sniffer(samp_rate, 2414000000, squelch_threshold = 0.0, tun = True)
@@ -132,7 +132,7 @@ class plutoSparSDR(gr.top_block, Qt.QWidget):
         ##################################################
         self.connect((self.sparsdr_compressing_pluto_source_0, 0), (self.variable_sparsdr_reconstruct_0, 0))
         self.connect((self.variable_sparsdr_reconstruct_0, 0), (self.blocks_multiply_const_vxx_0, 0))
-        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.qtgui_sink_x_0, 0))
+        # self.connect((self.blocks_multiply_const_vxx_0, 0), (self.qtgui_sink_x_0, 0))
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.bluetooth_gr_bluetooth_multi_sniffer_0, 0))
 
         # self.msg_connect((self.blocks_probe_rate_0, 'rate'), (self.blocks_message_debug_0, 'print'))
@@ -140,10 +140,10 @@ class plutoSparSDR(gr.top_block, Qt.QWidget):
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_probe_rate_0, 0))
 
 
-    def closeEvent(self, event):
-        self.settings = Qt.QSettings("GNU Radio", "plutoSparSDR")
-        self.settings.setValue("geometry", self.saveGeometry())
-        event.accept()
+    # def closeEvent(self, event):
+    #     self.settings = Qt.QSettings("GNU Radio", "plutoSparSDR")
+    #     self.settings.setValue("geometry", self.saveGeometry())
+    #     event.accept()
 
     def get_variable_sparsdr_reconstruct_0(self):
         return self.variable_sparsdr_reconstruct_0
@@ -156,7 +156,7 @@ class plutoSparSDR(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
-        self.qtgui_sink_x_0.set_frequency_range(0, self.samp_rate)
+        # self.qtgui_sink_x_0.set_frequency_range(0, self.samp_rate)
 
 
 def init_argparse() -> argparse.ArgumentParser:
@@ -174,33 +174,35 @@ def main(top_block_cls=plutoSparSDR, options=None):
     parser = init_argparse()
     args = parser.parse_args()
 
-    if StrictVersion("4.5.0") <= StrictVersion(Qt.qVersion()) < StrictVersion("5.0.0"):
-        style = gr.prefs().get_string('qtgui', 'style', 'raster')
-        Qt.QApplication.setGraphicsSystem(style)
-    qapp = Qt.QApplication(sys.argv)
+    # if StrictVersion("4.5.0") <= StrictVersion(Qt.qVersion()) < StrictVersion("5.0.0"):
+    #     style = gr.prefs().get_string('qtgui', 'style', 'raster')
+    #     Qt.QApplication.setGraphicsSystem(style)
+    # qapp = Qt.QApplication(sys.argv)
 
     tb = top_block_cls(args)
 
     tb.start()
+    tb.wait()
 
-    tb.show()
+    # tb.show()
 
     def sig_handler(sig=None, frame=None):
-        Qt.QApplication.quit()
+        # Qt.QApplication.quit()
+        pass
 
-    signal.signal(signal.SIGINT, sig_handler)
-    signal.signal(signal.SIGTERM, sig_handler)
+    # signal.signal(signal.SIGINT, sig_handler)
+    # signal.signal(signal.SIGTERM, sig_handler)
 
-    timer = Qt.QTimer()
-    timer.start(500)
-    timer.timeout.connect(lambda: None)
+    # timer = Qt.QTimer()
+    # timer.start(500)
+    # timer.timeout.connect(lambda: None)
 
-    def quitting():
-        tb.stop()
-        tb.wait()
+    # def quitting():
+    #     tb.stop()
+    #     tb.wait()
 
-    qapp.aboutToQuit.connect(quitting)
-    qapp.exec_()
+    # qapp.aboutToQuit.connect(quitting)
+    # qapp.exec_()
 
 if __name__ == '__main__':
     main()
