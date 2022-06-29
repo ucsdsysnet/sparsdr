@@ -30,9 +30,19 @@ use num_complex::Complex;
 
 pub trait Parser {
     /// Returns the number of bytes in the compressed sample stream that represent one sample
+    ///
+    /// This function must return the same value every time it is called with a particular
+    /// parser object.
     fn sample_bytes(&self) -> usize;
 
-    /// Parses `SAMPLE_BYTES` bytes and returns a complete window if one is available
+    /// Parses a slice of bytes and returns a complete window if one is available
+    ///
+    /// The length of bytes must be equal to the value returned from sample_bytes().
+    ///
+    /// # Panics
+    ///
+    /// This function may panic if the length of bytes is incorrect
+    ///
     fn parse(&mut self, bytes: &[u8]) -> Result<Option<Window>, ParseError>;
 }
 

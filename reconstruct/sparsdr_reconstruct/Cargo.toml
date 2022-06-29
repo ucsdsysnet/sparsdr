@@ -44,7 +44,7 @@ features = ["system"]
 [dependencies.sparsdr_sample_parser]
 path = "../sparsdr_sample_parser"
 
-# Benchmarking/example section
+# Benchmarking/test/example section
 [dev-dependencies]
 criterion = "0.3.3"
 tempfile = "3.0.6"
@@ -52,6 +52,7 @@ image = "0.23.14"
 statrs = "0.15.0"
 regex = "1.5.4"
 matfile = "0.3.1"
+byteorder = "1.4.3"
 
 [[bench]]
 name = "micro"

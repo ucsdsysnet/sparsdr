@@ -41,21 +41,21 @@ fn test_initial_gap() -> Result<(), Box<dyn std::error::Error>> {
 
     let windows_in: Vec<Window> = vec![
         // Window, time 10, bins 0 and 1 active
-        Window::with_bins(10, fft_size, {
+        Window::with_bins(10, {
             let mut bins = vec![Complex::zero(); fft_size];
             bins[0] = Complex::new(0.5, 0.5);
             bins[1] = Complex::new(0.5, 0.5);
             bins
         }),
         // Two samples, time 20, bins 1999 and 2000
-        Window::with_bins(20, fft_size, {
+        Window::with_bins(20, {
             let mut bins = vec![Complex::zero(); fft_size];
             bins[1999] = Complex::new(-0.5, -0.5);
             bins[2000] = Complex::new(-0.5, -0.5);
             bins
         }),
         // Two samples, time 30, bins 3 and 4
-        Window::with_bins(30, fft_size, {
+        Window::with_bins(30, {
             let mut bins = vec![Complex::zero(); fft_size];
             bins[3] = Complex::new(0.5, 0.5);
             bins[4] = Complex::new(0.5, 0.5);

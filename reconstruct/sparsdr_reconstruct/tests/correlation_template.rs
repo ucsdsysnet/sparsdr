@@ -30,13 +30,18 @@ extern crate sparsdr_sample_parser;
 use matfile::{MatFile, NumericData};
 use num_complex::Complex32;
 use sparsdr_reconstruct::bins::BinRange;
-use sparsdr_reconstruct::input::SampleReader;
+use sparsdr_reconstruct::iter::PushIterator;
 use sparsdr_reconstruct::iter_ext::IterExt;
+use sparsdr_reconstruct::steps::overflow::OverflowPushIter;
+use sparsdr_reconstruct::steps::shift::ShiftPushIter;
 use sparsdr_reconstruct::window::{Logical, Status, Window};
 use sparsdr_reconstruct::window_filter::correlation_template::CorrelationTemplateFilter;
 use sparsdr_reconstruct::window_filter::WindowFilter;
-use sparsdr_sample_parser::V1Parser;
+use sparsdr_sample_parser::{Parser, V1Parser, WindowKind};
+use std::convert::Infallible;
 use std::fs::File;
+use std::io::{BufReader, ErrorKind, Read};
+use std::ops::ControlFlow;
 
 #[test]
 #[ignore]
@@ -45,14 +50,33 @@ fn correlation_template() -> Result<(), Box<dyn std::error::Error>> {
     let mut filter = CorrelationTemplateFilter::new(template.len(), vec![template], 0.4)?;
 
     // Load compressed samples (Pluto, v1)
-    let sample_file =
-        File::open("./test-data/correlation_template/pluto_sparsdrv1_x300_tx_ramcap.iqz")?;
-    let sample_reader = SampleReader::new(sample_file, V1Parser::new_pluto(1024));
-    let logical_samples: Vec<Status<Window<Logical>>> = sample_reader
-        .overflow_correct(21)
-        .shift_result(1024)
-        .map(|window_result| Status::Ok(window_result.unwrap()))
-        .collect();
+    let mut sample_file = BufReader::new(File::open(
+        "./test-data/correlation_template/pluto_sparsdrv1_x300_tx_ramcap.iqz",
+    )?);
+    let mut parser = V1Parser::new_pluto(1024);
+
+    let mut logical_samples: Vec<Status<Window<Logical>>> = Vec::new();
+    let mut chain = OverflowPushIter::new(
+        ShiftPushIter::new(
+            Collector::new(&mut logical_samples).map(|window| Status::Ok(window)),
+            1024,
+        ),
+        21,
+    );
+    loop {
+        let mut buffer = [0u8; 8];
+        match sample_file.read_exact(&mut buffer) {
+            Ok(()) => {}
+            Err(e) if e.kind() == ErrorKind::UnexpectedEof => break,
+            Err(e) => return Err(e.into()),
+        }
+        if let Some(window) = parser.parse(&buffer).expect("Sample parse error") {
+            if let Some(window) = convert_window(window) {
+                chain.push(window);
+            }
+        }
+    }
+    drop(sample_file);
 
     // 34 bins, 3 MHz offset out of 1024 bins over 61.44 MHz
     // => centered at 512 + 25 = 537
@@ -72,6 +96,52 @@ fn correlation_template() -> Result<(), Box<dyn std::error::Error>> {
     assert!(matching_windows_3mhz > matching_windows_6mhz);
 
     Ok(())
+}
+
+/// A push iterator that collects items into a vector
+struct Collector<'a, T> {
+    items: &'a mut Vec<T>,
+}
+
+impl<'a, T> Collector<'a, T> {
+    pub fn new(items: &'a mut Vec<T>) -> Self {
+        Collector { items }
+    }
+}
+
+impl<'a, T> PushIterator<T> for Collector<'a, T> {
+    type Error = Infallible;
+
+    fn push(&mut self, item: T) -> ControlFlow<Self::Error> {
+        self.items.push(item);
+        ControlFlow::Continue(())
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
+/// If the provided window is a data window, this function returns its converted form.
+/// Otherwise, this function returns None.
+fn convert_window(window: sparsdr_sample_parser::Window) -> Option<Window> {
+    match window.kind {
+        WindowKind::Data(bins) => {
+            // Convert integer to float and scale to [-1, 1]
+            let scaled_bins = bins
+                .into_iter()
+                .map(|int_complex| {
+                    Complex32::new(map_value(int_complex.re), map_value(int_complex.im))
+                })
+                .collect();
+            Some(Window::with_bins(window.timestamp.into(), scaled_bins))
+        }
+        WindowKind::Average(_) => None,
+    }
+}
+
+fn map_value(value: i16) -> f32 {
+    f32::from(value) / 32767.0
 }
 
 fn count_windows_over_threshold(

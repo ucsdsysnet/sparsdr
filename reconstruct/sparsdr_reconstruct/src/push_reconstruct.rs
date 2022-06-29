@@ -156,7 +156,7 @@ fn convert_window(window: sparsdr_sample_parser::Window) -> Option<Window> {
 }
 
 fn map_value(value: i16) -> f32 {
-    f32::from(value) / 32768.0
+    f32::from(value) / 32767.0
 }
 
 struct CombinedSetup {

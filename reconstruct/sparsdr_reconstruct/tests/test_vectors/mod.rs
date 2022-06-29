@@ -15,18 +15,19 @@
  *
  */
 
-mod uncompressed;
-
-use byteorder::{ByteOrder, LittleEndian};
+use std::convert::TryInto;
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufReader, BufWriter, ErrorKind, Read, Result, Seek, SeekFrom, Write};
+use std::io::{self, BufReader, BufWriter, Read, Seek, SeekFrom};
 use std::path::Path;
 
-use num_complex::Complex32;
-use sparsdr_reconstruct::window::Window;
+use num_complex::{Complex, Complex32};
+
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
+use sparsdr_sample_parser::{ParseError, Parser, WindowKind};
 
 use self::uncompressed::SAMPLE_BYTES;
+
+mod uncompressed;
 
 const COMPRESSED_BANDWIDTH: f32 = 100e6;
 const COMPRESSION_FFT_SIZE: usize = 2048;
@@ -63,30 +64,29 @@ pub fn test_with_vectors<P1, P2, P3>(
         .expect("Failed to create actual file");
     eprintln!("Saving output to {}", actual_path.as_ref().display());
 
+    let mut actual_output_file = output_file.try_clone().expect("Can't clone output file");
     {
         // Read samples in the MATLAB format
-        let windows_in = MatlabWindows::new(input_file);
-        let mut output_file = BufWriter::new(&mut output_file);
+        let parser = MatlabParser::new();
+        let output_file = BufWriter::new(output_file);
 
         let band_setup = BandSetupBuilder::new(
-            Box::new(&mut output_file),
+            Box::new(output_file),
             COMPRESSED_BANDWIDTH,
             COMPRESSION_FFT_SIZE,
             bins,
             bins,
         )
         .center_frequency(center_frequency);
-        let mut setup = DecompressSetup::new(windows_in, COMPRESSION_FFT_SIZE, TIMESTAMP_BITS);
+        let mut setup =
+            DecompressSetup::new(Box::new(parser), COMPRESSION_FFT_SIZE, TIMESTAMP_BITS);
         setup.add_band(band_setup.build());
 
-        let info = decompress(setup).expect("Decompress failed");
-
-        eprintln!("{:?}", info);
+        decompress(setup, Box::new(input_file)).expect("Decompress failed");
     }
-    output_file.flush().expect("Failed to flush output");
 
     // Seek back to the beginning of the output to compare
-    output_file
+    actual_output_file
         .seek(SeekFrom::Start(0))
         .expect("Output seek failed");
 
@@ -103,10 +103,10 @@ pub fn test_with_vectors<P1, P2, P3>(
         );
     }
 
-    compare_output(expected_file, output_file);
+    compare_output(expected_file, actual_output_file);
 }
 
-fn file_size<P>(path: P) -> Result<u64>
+fn file_size<P>(path: P) -> io::Result<u64>
 where
     P: AsRef<Path>,
 {
@@ -169,17 +169,16 @@ fn sample_approx_equal(s1: &Complex32, s2: &Complex32) -> bool {
 /// 64-bit floating-point number in little-endian byte order
 ///
 /// Chunks are assumed to have sequential time values.
-struct MatlabWindows<R> {
-    source: R,
+struct MatlabParser {
     real_values: Vec<f32>,
     imaginary_values: Vec<f32>,
     timestamp: u32,
 }
 
-impl<R> MatlabWindows<R> {
-    pub fn new(source: R) -> Self {
-        MatlabWindows {
-            source,
+impl MatlabParser {
+    /// Creates a parser
+    pub fn new() -> Self {
+        MatlabParser {
             real_values: Vec::with_capacity(COMPRESSION_FFT_SIZE),
             imaginary_values: Vec::with_capacity(COMPRESSION_FFT_SIZE),
             timestamp: 0,
@@ -187,43 +186,48 @@ impl<R> MatlabWindows<R> {
     }
 }
 
-impl<R> Iterator for MatlabWindows<R>
-where
-    R: Read,
-{
-    type Item = Result<Window>;
+impl Parser for MatlabParser {
+    fn sample_bytes(&self) -> usize {
+        // One 64-bit floating-point value
+        8
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut buffer = [0u8; 8];
-        loop {
-            match self.source.read_exact(&mut buffer) {
-                Ok(()) => {
-                    let value = LittleEndian::read_f64(&buffer) as f32;
-                    if self.real_values.len() == COMPRESSION_FFT_SIZE {
-                        // Add imaginary
-                        self.imaginary_values.push(value);
-                        if self.imaginary_values.len() == COMPRESSION_FFT_SIZE {
-                            // Assemble a window from the collected samples
-                            let complex_bins = self
-                                .real_values
-                                .drain(..)
-                                .zip(self.imaginary_values.drain(..))
-                                .map(|(real, imaginary)| Complex32::new(real, imaginary));
-                            let window = Window::with_bins(
-                                self.timestamp.into(),
-                                COMPRESSION_FFT_SIZE,
-                                complex_bins,
-                            );
-                            self.timestamp = self.timestamp.wrapping_add(1);
-                            break Some(Ok(window));
-                        }
-                    } else {
-                        self.real_values.push(value);
-                    }
-                }
-                Err(e) if e.kind() == ErrorKind::UnexpectedEof => break None,
-                Err(e) => break Some(Err(e)),
+    fn parse(&mut self, bytes: &[u8]) -> Result<Option<sparsdr_sample_parser::Window>, ParseError> {
+        let bytes: [u8; 8] = <&[u8] as TryInto<&[u8; 8]>>::try_into(bytes)
+            .expect("Incorrect number of bytes")
+            .to_owned();
+        let value = f64::from_le_bytes(bytes);
+
+        if self.real_values.len() != COMPRESSION_FFT_SIZE {
+            // Collecting real values
+            self.real_values.push(value as f32);
+        } else {
+            // Collecting imaginary values
+            self.imaginary_values.push(value as f32);
+
+            if self.imaginary_values.len() == COMPRESSION_FFT_SIZE {
+                // Have a complete window
+                let complex_bins: Vec<Complex<i16>> = self
+                    .real_values
+                    .drain(..)
+                    .zip(self.imaginary_values.drain(..))
+                    .map(|(real, imaginary)| {
+                        // Convert from f32 to i16 and scale to +/- 32767
+                        let real = (real * 32767.0) as i16;
+                        let imaginary = (imaginary * 32767.0) as i16;
+                        Complex::new(real, imaginary)
+                    })
+                    .collect();
+                let window = sparsdr_sample_parser::Window {
+                    timestamp: self.timestamp,
+                    kind: WindowKind::Data(complex_bins),
+                };
+                self.timestamp = self.timestamp.wrapping_add(1);
+                return Ok(Some(window));
             }
         }
+
+        // Need more values
+        Ok(None)
     }
 }

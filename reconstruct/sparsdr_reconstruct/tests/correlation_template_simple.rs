@@ -100,7 +100,7 @@ fn load_compressed_samples() -> Result<Vec<Window<Fft>>, Box<dyn std::error::Err
                         .zip(selected_imag.iter())
                         .map(|(real, imag)| Complex32::new(*real as f32, *imag as f32))
                         .collect();
-                    Window::with_bins(i.try_into().unwrap(), bin_range.clone().count(), bins)
+                    Window::with_bins(i.try_into().unwrap(), bins)
                 })
                 .collect();
 

@@ -19,26 +19,62 @@ extern crate byteorder;
 extern crate num_complex;
 extern crate simplelog;
 extern crate sparsdr_reconstruct;
+extern crate sparsdr_sample_parser;
 
-use std::iter;
-
+use num_complex::Complex32;
+use sparsdr_reconstruct::push_reconstruct::WriteSamples;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
+use sparsdr_sample_parser::{ParseError, Parser, Window};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 mod test_vectors;
 
 #[test]
 fn test_empty() {
-    let empty_source = iter::empty();
-    let mut destination = Vec::new();
-    {
-        let band_setup = BandSetupBuilder::new(Box::new(&mut destination), 100e6, 2048, 2048, 2048)
-            .bins(2048)
-            .center_frequency(0.0);
-        let mut setup = DecompressSetup::new(empty_source, 2048, 20);
-        setup.add_band(band_setup.build());
-        decompress(setup).expect("Decompress failed");
+    #[derive(Clone)]
+    struct VecDestination {
+        empty: Arc<AtomicBool>,
     }
-    assert!(destination.is_empty());
+
+    impl Default for VecDestination {
+        fn default() -> Self {
+            VecDestination {
+                empty: Arc::new(AtomicBool::new(true)),
+            }
+        }
+    }
+
+    impl WriteSamples for VecDestination {
+        fn write_samples(&mut self, samples: &[Complex32]) {
+            if !samples.is_empty() {
+                self.empty.store(false, Ordering::SeqCst);
+            }
+        }
+    }
+
+    let destination = VecDestination::default();
+    {
+        struct EmptyParser;
+        impl Parser for EmptyParser {
+            fn sample_bytes(&self) -> usize {
+                unimplemented!()
+            }
+
+            fn parse(&mut self, _bytes: &[u8]) -> Result<Option<Window>, ParseError> {
+                unimplemented!()
+            }
+        }
+
+        let band_setup =
+            BandSetupBuilder::new(Box::new(destination.clone()), 100e6, 2048, 2048, 2048)
+                .bins(2048)
+                .center_frequency(0.0);
+        let mut setup = DecompressSetup::new(Box::new(EmptyParser), 2048, 20);
+        setup.add_band(band_setup.build());
+        decompress(setup, Box::new(std::io::empty())).expect("Decompress failed");
+    }
+    assert!(destination.empty.load(Ordering::SeqCst));
 }
 
 /// Simple decompression with all 2048 bins
