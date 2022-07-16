@@ -55,7 +55,7 @@ pub fn test_with_vectors<P1, P2, P3>(
     let input_file = BufReader::new(input_file);
     let expected_file = File::open(&expected_path).expect("Failed to open expected file");
     let expected_file = BufReader::new(expected_file);
-    let mut output_file = OpenOptions::new()
+    let output_file = OpenOptions::new()
         .create(true)
         .read(true)
         .write(true)

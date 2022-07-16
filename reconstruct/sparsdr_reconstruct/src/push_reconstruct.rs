@@ -36,6 +36,7 @@ use crate::stages::input::{InputSetup, ToFft, ToFfts};
 use crate::steps::overflow::OverflowPushIter;
 use crate::steps::overlap::OverlapMode;
 use crate::steps::shift::ShiftPushIter;
+use crate::window::Fft;
 use crate::window::Window;
 use crate::window::WindowOrTimestamp;
 use crate::{BandSetup, DecompressSetup};
@@ -105,7 +106,7 @@ impl Reconstruct {
             match self.parser.parse(one_sample_bytes) {
                 Ok(Some(window)) => {
                     if let Some(converted_window) = convert_window(window) {
-                        let status = self.chain.push(converted_window);
+                        let status = self.process_window(converted_window);
                         if matches!(status, ControlFlow::Break(())) {
                             return ControlFlow::Break(());
                         }
@@ -116,6 +117,10 @@ impl Reconstruct {
             }
         }
         ControlFlow::Continue(())
+    }
+
+    pub fn process_window(&mut self, window: Window<Fft>) -> ControlFlow<()> {
+        self.chain.push(window)
     }
 
     pub fn shutdown(mut self) {

@@ -28,10 +28,13 @@ extern crate sparsdr_sample_parser;
 use byteorder::{ReadBytesExt, LE};
 use num_complex::Complex;
 use num_traits::Zero;
+use std::convert::TryInto;
 
+use sparsdr_reconstruct::push_reconstruct::Reconstruct;
 use sparsdr_reconstruct::steps::overlap::OverlapMode;
 use sparsdr_reconstruct::window::Window;
 use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
+use sparsdr_sample_parser::V2Parser;
 
 #[test]
 fn test_initial_gap() -> Result<(), Box<dyn std::error::Error>> {
@@ -69,7 +72,10 @@ fn test_initial_gap() -> Result<(), Box<dyn std::error::Error>> {
     let mut samples_upper_half: Vec<u8> = Vec::new();
 
     let mut setup = DecompressSetup::new(
-        windows_in.into_iter().map(std::io::Result::Ok),
+        // Parser is not actually used
+        Box::new(V2Parser::new(
+            fft_size.try_into().expect("FFT size too large"),
+        )),
         fft_size,
         timestamp_bits,
     );
@@ -96,8 +102,11 @@ fn test_initial_gap() -> Result<(), Box<dyn std::error::Error>> {
         .center_frequency(25e6)
         .build(),
     );
-
-    decompress(setup)?;
+    let mut reconstruct = Reconstruct::start(setup)?;
+    for window in windows_in {
+        reconstruct.process_window(window);
+    }
+    reconstruct.shutdown();
 
     println!("Lower half {} bytes", samples_lower_half.len());
     println!("Upper half {} bytes", samples_upper_half.len());
