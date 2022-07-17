@@ -24,16 +24,19 @@ extern crate num_complex;
 extern crate num_traits;
 extern crate sparsdr_reconstruct;
 extern crate sparsdr_sample_parser;
+extern crate tempfile;
 
 use byteorder::{ReadBytesExt, LE};
 use num_complex::Complex;
 use num_traits::Zero;
 use std::convert::TryInto;
+use std::fs::File;
+use std::io::{self, Read, Seek, SeekFrom};
 
 use sparsdr_reconstruct::push_reconstruct::Reconstruct;
 use sparsdr_reconstruct::steps::overlap::OverlapMode;
 use sparsdr_reconstruct::window::Window;
-use sparsdr_reconstruct::{decompress, BandSetupBuilder, DecompressSetup};
+use sparsdr_reconstruct::{BandSetupBuilder, DecompressSetup};
 use sparsdr_sample_parser::V2Parser;
 
 #[test]
@@ -67,9 +70,9 @@ fn test_initial_gap() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     // Output bytes for the lower frequency range (corresponding to bins 1024..2048)
-    let mut samples_lower_half: Vec<u8> = Vec::new();
+    let mut lower_half_file: File = tempfile::tempfile()?;
     // Output bytes for the higher frequency range (corresponding to bins 0..1024)
-    let mut samples_upper_half: Vec<u8> = Vec::new();
+    let mut upper_half_file: File = tempfile::tempfile()?;
 
     let mut setup = DecompressSetup::new(
         // Parser is not actually used
@@ -82,7 +85,7 @@ fn test_initial_gap() -> Result<(), Box<dyn std::error::Error>> {
     setup.set_overlap_mode(OverlapMode::Gaps);
     setup.add_band(
         BandSetupBuilder::new(
-            Box::new(&mut samples_lower_half),
+            Box::new(lower_half_file.try_clone()?),
             compressed_bandwidth,
             fft_size,
             1024,
@@ -93,7 +96,7 @@ fn test_initial_gap() -> Result<(), Box<dyn std::error::Error>> {
     );
     setup.add_band(
         BandSetupBuilder::new(
-            Box::new(&mut samples_upper_half),
+            Box::new(upper_half_file.try_clone()?),
             compressed_bandwidth,
             fft_size,
             1024,
@@ -108,6 +111,8 @@ fn test_initial_gap() -> Result<(), Box<dyn std::error::Error>> {
     }
     reconstruct.shutdown();
 
+    let samples_lower_half = read_output(&mut lower_half_file)?;
+    let samples_upper_half = read_output(&mut upper_half_file)?;
     println!("Lower half {} bytes", samples_lower_half.len());
     println!("Upper half {} bytes", samples_upper_half.len());
 
@@ -147,4 +152,11 @@ fn test_initial_gap() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+fn read_output(file: &mut File) -> io::Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    file.seek(SeekFrom::Start(0))?;
+    file.read_to_end(&mut bytes)?;
+    Ok(bytes)
 }
