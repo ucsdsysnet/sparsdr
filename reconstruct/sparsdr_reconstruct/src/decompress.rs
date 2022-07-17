@@ -19,7 +19,7 @@
 //! Top-level decompression interface
 //!
 
-use std::io::{BufReader, Read, Result};
+use std::io::{BufReader, ErrorKind, Read, Result};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
@@ -100,7 +100,11 @@ pub fn decompress(setup: DecompressSetup, source: Box<dyn Read + '_>) -> Result<
 
     let mut read_buffer = vec![0u8; sample_bytes];
     loop {
-        reader.read_exact(&mut read_buffer)?;
+        match reader.read_exact(&mut read_buffer) {
+            Ok(()) => {}
+            Err(e) if e.kind() == ErrorKind::UnexpectedEof => break,
+            Err(e) => return Err(e),
+        }
         let status = reconstruct.process_samples(&read_buffer);
         if status.is_break() {
             break;
