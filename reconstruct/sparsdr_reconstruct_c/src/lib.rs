@@ -101,27 +101,31 @@ pub struct Config {
 /// Bandwidth/sample rate for N210 compression
 const N210_COMPRESSED_BANDWIDTH: f32 = 100e6;
 
-/// Initializes a configuration struct with the provided callback and context, no bands, and
-/// other fields with implementation-defined defaults
+/// Initializes and returns a configuration struct with the provided callback and context, no bands,
+/// and other fields with implementation-defined defaults
+///
+/// The returned pointer must be passed to `sparsdr_reconstruct_config_free` to deallocate it.
 #[no_mangle]
-pub unsafe extern "C" fn sparsdr_reconstruct_config_init(
+pub extern "C" fn sparsdr_reconstruct_config_init(
     output_callback: OutputCallback,
     output_context: *mut c_void,
-    config: *mut Config,
-) {
-    // Initialize everything in a way that's safe if *config is uninitialized
-    ptr::write(
-        config,
-        Config {
-            format: SPARSDR_RECONSTRUCT_FORMAT_V2,
-            compression_fft_size: 1024,
-            compressed_bandwidth: N210_COMPRESSED_BANDWIDTH,
-            bands: ptr::null(),
-            bands_length: 0,
-            output_context,
-            output_callback,
-        },
-    )
+) -> *mut Config {
+    let config = Config {
+        format: SPARSDR_RECONSTRUCT_FORMAT_V2,
+        compression_fft_size: 1024,
+        compressed_bandwidth: N210_COMPRESSED_BANDWIDTH,
+        bands: ptr::null(),
+        bands_length: 0,
+        output_context,
+        output_callback,
+    };
+    Box::into_raw(Box::new(config))
+}
+
+/// Deallocates a configuration
+#[no_mangle]
+pub unsafe extern "C" fn sparsdr_reconstruct_config_free(config: *mut Config) {
+    drop(Box::from_raw(config));
 }
 
 /// A configured reconstruction context
