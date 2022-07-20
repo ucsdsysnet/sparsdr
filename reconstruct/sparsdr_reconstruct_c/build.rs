@@ -93,6 +93,7 @@ fn cpp_config() -> Config {
 
     config.language = Language::Cxx;
     config.header = Some("/* -*- c++ -*- */\n/* Automatically generated - do not edit */".into());
+    config.namespace = Some("sparsdr".into());
     config.include_guard = Some("SPARSDR_RECONSTRUCT_HPP".into());
     config.sys_includes = vec!["cstddef".into(), "cstdint".into(), "complex".into()];
     config.constant.allow_constexpr = true;

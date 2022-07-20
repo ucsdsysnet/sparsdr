@@ -23,11 +23,13 @@ extern crate sparsdr_reconstruct;
 extern crate sparsdr_sample_parser;
 
 use num_complex::Complex32;
+use sparsdr_reconstruct::push_reconstruct::{Reconstruct, WriteSamples};
+use sparsdr_reconstruct::{BandSetupBuilder, DecompressSetup};
 use sparsdr_sample_parser::{Parser, V1Parser, V2Parser};
 use std::ffi::c_void;
 use std::mem::align_of;
-use std::panic::catch_unwind;
-use std::ptr;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::{ptr, slice};
 
 /// Version 1 of the compressed sample format as produced by a USRP N210
 pub const SPARSDR_RECONSTRUCT_FORMAT_V1_N210: u32 = 1;
@@ -68,6 +70,8 @@ pub struct Config {
     pub format: u32,
     /// FFT size used to compress the signals
     pub compression_fft_size: u32,
+    /// Bandwidth (or equivalently sample rate) used to capture the signals
+    pub compressed_bandwidth: f32,
 
     /// If `bands_length` is not zero, `bands` must be a pointer to `bands_length`
     /// band objects with the bands to reconstruct.
@@ -94,6 +98,9 @@ pub struct Config {
     pub output_callback: OutputCallback,
 }
 
+/// Bandwidth/sample rate for N210 compression
+const N210_COMPRESSED_BANDWIDTH: f32 = 100e6;
+
 /// Initializes a configuration struct with the provided callback and context, no bands, and
 /// other fields with implementation-defined defaults
 #[no_mangle]
@@ -108,6 +115,7 @@ pub unsafe extern "C" fn sparsdr_reconstruct_config_init(
         Config {
             format: SPARSDR_RECONSTRUCT_FORMAT_V2,
             compression_fft_size: 1024,
+            compressed_bandwidth: N210_COMPRESSED_BANDWIDTH,
             bands: ptr::null(),
             bands_length: 0,
             output_context,
@@ -120,7 +128,7 @@ pub unsafe extern "C" fn sparsdr_reconstruct_config_init(
 ///
 /// This is opaque to non-Rust code.
 pub struct Context {
-    // TODO
+    reconstruct: Reconstruct,
 }
 
 /// Creates a reconstruct context
@@ -132,6 +140,9 @@ pub struct Context {
 /// * `config`: A pointer to a configuration struct
 ///
 /// This function returns `SPARSDR_RECONSTRUCT_OK` on success, or another value if an error occurs.
+///
+/// If this function returns anything other than `SPARSDR_RECONSTRUCT_OK`, no other functions may
+/// be called with the same context.
 ///
 /// # Safety
 ///
@@ -149,35 +160,27 @@ pub extern "C" fn sparsdr_reconstruct_init(
     config: *const Config,
 ) -> u32 {
     // Prevent unwinding through FFI
-    let status = catch_unwind(|| {
+    let status = catch_unwind(AssertUnwindSafe(|| {
         // Check pointers
         if !is_non_null_and_aligned(context) || !is_non_null_and_aligned(config) {
             return SPARSDR_RECONSTRUCT_ERROR_INVALID_ARGUMENT;
         }
-        // Since config is non-null and aligned, some (but not all) of the unsafety in this line has been eliminated.
-        let config: &Config = unsafe { &*config };
 
-        let output_callback = match config.output_callback {
-            Some(output_callback) => output_callback,
-            None => return SPARSDR_RECONSTRUCT_ERROR_INVALID_ARGUMENT,
+        let setup = match unsafe { convert_setup(config) } {
+            Ok(setup) => setup,
+            Err(code) => return code,
+        };
+        let reconstruct = match Reconstruct::start(setup) {
+            Ok(reconstruct) => reconstruct,
+            // TODO: Better error handling
+            Err(_e) => return SPARSDR_RECONSTRUCT_ERROR_FATAL,
         };
 
-        let parser: Box<dyn Parser> = match config.format {
-            SPARSDR_RECONSTRUCT_FORMAT_V1_N210 => {
-                Box::new(V1Parser::new_n210(config.compression_fft_size as usize))
-            }
-            SPARSDR_RECONSTRUCT_FORMAT_V1_PLUTO => {
-                Box::new(V1Parser::new_pluto(config.compression_fft_size as usize))
-            }
-            SPARSDR_RECONSTRUCT_FORMAT_V2 => Box::new(V2Parser::new(config.compression_fft_size)),
-            _ => return SPARSDR_RECONSTRUCT_ERROR_INVALID_ARGUMENT,
-        };
-
-        let context_box = Box::new(Context {});
+        let context_box = Box::new(Context { reconstruct });
         let new_context_ptr = Box::into_raw(context_box);
         unsafe { *context = new_context_ptr };
         SPARSDR_RECONSTRUCT_OK
-    });
+    }));
     match status {
         Ok(status_code) => status_code,
         Err(_) => SPARSDR_RECONSTRUCT_ERROR_FATAL,
@@ -185,16 +188,17 @@ pub extern "C" fn sparsdr_reconstruct_init(
 }
 
 #[no_mangle]
-pub extern "C" fn sparsdr_reconstruct_handle_samples(
+pub unsafe extern "C" fn sparsdr_reconstruct_handle_samples(
     context: *mut Context,
     samples: *const c_void,
     num_bytes: usize,
 ) -> u32 {
-    let status = catch_unwind(|| {
-        todo!();
-    });
+    let status = catch_unwind(AssertUnwindSafe(|| {
+        let samples_slice: &[u8] = slice::from_raw_parts(samples as *const u8, num_bytes);
+        (*context).reconstruct.process_samples(samples_slice)
+    }));
     match status {
-        Ok(()) => SPARSDR_RECONSTRUCT_OK,
+        Ok(_) => SPARSDR_RECONSTRUCT_OK,
         Err(_) => SPARSDR_RECONSTRUCT_ERROR_FATAL,
     }
 }
@@ -202,10 +206,72 @@ pub extern "C" fn sparsdr_reconstruct_handle_samples(
 #[no_mangle]
 pub extern "C" fn sparsdr_reconstruct_free(context: *mut Context) {
     // Prevent unwinding through FFI
-    let _ = catch_unwind(|| {
+    let _ = catch_unwind(AssertUnwindSafe(|| {
         let context_box = unsafe { Box::from_raw(context) };
-        drop(context_box)
-    });
+        let context = *context_box;
+        context.reconstruct.shutdown();
+    }));
+}
+
+/// Converts a C reconstruct configuration into a Rust reconstruct configuration
+unsafe fn convert_setup(config: *const Config) -> Result<DecompressSetup, u32> {
+    const N210_TIMESTAMP_BITS: u32 = 20;
+    const PLUTO_TIMESTAMP_BITS: u32 = 21;
+    /// Compressed format version 2, from either device, has 30 full bits of timestamp
+    const V2_TIMESTAMP_BITS: u32 = 30;
+
+    let output_callback = match (*config).output_callback {
+        Some(output_callback) => output_callback,
+        None => return Err(SPARSDR_RECONSTRUCT_ERROR_INVALID_ARGUMENT),
+    };
+
+    let compression_fft_size = (*config).compression_fft_size as usize;
+    let timestamp_bits;
+    let parser: Box<dyn Parser> = match (*config).format {
+        SPARSDR_RECONSTRUCT_FORMAT_V1_N210 => {
+            timestamp_bits = N210_TIMESTAMP_BITS;
+            Box::new(V1Parser::new_n210(compression_fft_size))
+        }
+        SPARSDR_RECONSTRUCT_FORMAT_V1_PLUTO => {
+            timestamp_bits = PLUTO_TIMESTAMP_BITS;
+            Box::new(V1Parser::new_pluto(compression_fft_size))
+        }
+        SPARSDR_RECONSTRUCT_FORMAT_V2 => {
+            timestamp_bits = V2_TIMESTAMP_BITS;
+            Box::new(V2Parser::new(
+                compression_fft_size
+                    .try_into()
+                    .expect("Compression FFT size too large for u32"),
+            ))
+        }
+        _ => return Err(SPARSDR_RECONSTRUCT_ERROR_INVALID_ARGUMENT),
+    };
+
+    let mut setup = DecompressSetup::new(parser, compression_fft_size, timestamp_bits);
+    for i in 0..(*config).bands_length {
+        let config_band: *const Band = (*config).bands.add(i);
+        let frequency_offset = (*config_band).frequency_offset;
+        let bins = (*config_band).bins;
+
+        let destination = Box::new(SampleCallback {
+            callback: output_callback,
+            context: (*config).output_context,
+        });
+
+        setup.add_band(
+            BandSetupBuilder::new(
+                destination,
+                (*config).compressed_bandwidth,
+                compression_fft_size,
+                bins,
+                bins,
+            )
+            .center_frequency(frequency_offset)
+            .build(),
+        );
+    }
+
+    Ok(setup)
 }
 
 /// Returns true if the provided pointer is non-null and appropriately aligned for a value of type
@@ -216,4 +282,19 @@ fn is_non_null_and_aligned<T>(ptr: *const T) -> bool {
 /// Returns true if the provided pointer is appropriately aligned for a value of type T
 fn is_aligned<T>(ptr: *const T) -> bool {
     (ptr as usize) % align_of::<T>() == 0
+}
+
+/// A callback and the associated context that passes samples to the callback
+struct SampleCallback {
+    callback: extern "C" fn(context: *mut c_void, samples: *const Complex32, num_samples: usize),
+    context: *mut c_void,
+}
+
+/// The documentation requires that the callback can be safely called from any thread
+unsafe impl Send for SampleCallback {}
+
+impl WriteSamples for SampleCallback {
+    fn write_samples(&mut self, samples: &[Complex32]) {
+        (self.callback)(self.context, samples.as_ptr(), samples.len())
+    }
 }
