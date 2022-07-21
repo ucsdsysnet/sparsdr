@@ -24,6 +24,7 @@ extern crate sparsdr_sample_parser;
 
 use num_complex::Complex32;
 use sparsdr_reconstruct::push_reconstruct::{Reconstruct, WriteSamples};
+use sparsdr_reconstruct::steps::overlap::OverlapMode;
 use sparsdr_reconstruct::{BandSetupBuilder, DecompressSetup};
 use sparsdr_sample_parser::{Parser, V1Parser, V2Parser};
 use std::ffi::c_void;
@@ -97,6 +98,9 @@ pub struct Config {
     pub bands: *const Band,
     /// The number of bands that `bands` points to
     pub bands_length: usize,
+    /// If true, the reconstruction software will add zero samples to the outputs so the
+    /// timing of samples will be correct
+    pub zero_gaps: bool,
 }
 
 /// Bandwidth/sample rate for N210 compression
@@ -114,6 +118,7 @@ pub extern "C" fn sparsdr_reconstruct_config_init() -> *mut Config {
         compressed_bandwidth: N210_COMPRESSED_BANDWIDTH,
         bands: ptr::null(),
         bands_length: 0,
+        zero_gaps: false,
     };
     Box::into_raw(Box::new(config))
 }
@@ -243,6 +248,12 @@ unsafe fn convert_setup(config: *const Config) -> Result<DecompressSetup, u32> {
     };
 
     let mut setup = DecompressSetup::new(parser, compression_fft_size, timestamp_bits);
+    if (*config).zero_gaps {
+        setup.set_overlap_mode(OverlapMode::Gaps);
+    } else {
+        setup.set_overlap_mode(OverlapMode::Flush(0));
+    }
+
     for i in 0..(*config).bands_length {
         let config_band: *const Band = (*config).bands.add(i);
         let frequency_offset = (*config_band).frequency_offset;
