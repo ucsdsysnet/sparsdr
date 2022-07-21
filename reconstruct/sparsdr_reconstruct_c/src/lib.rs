@@ -42,14 +42,31 @@ pub const SPARSDR_RECONSTRUCT_OK: u32 = 0;
 pub const SPARSDR_RECONSTRUCT_ERROR_INVALID_ARGUMENT: u32 = 1;
 pub const SPARSDR_RECONSTRUCT_ERROR_FATAL: u32 = 2;
 
+/// Function pointer used for output callbacks
+pub type OutputCallback =
+    Option<extern "C" fn(context: *mut c_void, samples: *const Complex32, num_samples: usize)>;
+
+/// Settings for a band to reconstruct
 #[repr(C)]
 pub struct Band {
     pub frequency_offset: f32,
     pub bins: u16,
+    /// A function that will be called when new reconstructed samples are ready on this band
+    ///
+    /// The function takes these arguments:
+    /// * `context`: The `output_context` value used when creating the SparSDR context
+    /// * `samples`: A pointer to zero or more 32-bit float complex values
+    /// * `num_samples`: The number of samples to be read
+    ///
+    /// # Safety
+    ///
+    /// This function may be called at any time from many different threads. It must use the
+    /// necessary methods to ensure thread-safety.
+    ///
+    pub output_callback: OutputCallback,
+    /// An opaque value that will be passed to output_callback
+    pub output_context: *mut c_void,
 }
-
-pub type OutputCallback =
-    Option<extern "C" fn(context: *mut c_void, samples: *const Complex32, num_samples: usize)>;
 
 /// The configuration for a reconstruction session
 ///
@@ -80,22 +97,6 @@ pub struct Config {
     pub bands: *const Band,
     /// The number of bands that `bands` points to
     pub bands_length: usize,
-
-    /// An opaque value that will be passed to output_callback
-    pub output_context: *mut c_void,
-    /// A function that will be called when new reconstructed samples are ready
-    ///
-    /// The function takes these arguments:
-    /// * `context`: The `output_context` value used when creating the SparSDR context
-    /// * `samples`: A pointer to zero or more 32-bit float complex values
-    /// * `num_samples`: The number of samples to be read
-    ///
-    /// # Safety
-    ///
-    /// This function may be called at any time from many different threads. It must use the
-    /// necessary methods to ensure thread-safety.
-    ///
-    pub output_callback: OutputCallback,
 }
 
 /// Bandwidth/sample rate for N210 compression
@@ -106,18 +107,13 @@ const N210_COMPRESSED_BANDWIDTH: f32 = 100e6;
 ///
 /// The returned pointer must be passed to `sparsdr_reconstruct_config_free` to deallocate it.
 #[no_mangle]
-pub extern "C" fn sparsdr_reconstruct_config_init(
-    output_callback: OutputCallback,
-    output_context: *mut c_void,
-) -> *mut Config {
+pub extern "C" fn sparsdr_reconstruct_config_init() -> *mut Config {
     let config = Config {
         format: SPARSDR_RECONSTRUCT_FORMAT_V2,
         compression_fft_size: 1024,
         compressed_bandwidth: N210_COMPRESSED_BANDWIDTH,
         bands: ptr::null(),
         bands_length: 0,
-        output_context,
-        output_callback,
     };
     Box::into_raw(Box::new(config))
 }
@@ -224,11 +220,6 @@ unsafe fn convert_setup(config: *const Config) -> Result<DecompressSetup, u32> {
     /// Compressed format version 2, from either device, has 30 full bits of timestamp
     const V2_TIMESTAMP_BITS: u32 = 30;
 
-    let output_callback = match (*config).output_callback {
-        Some(output_callback) => output_callback,
-        None => return Err(SPARSDR_RECONSTRUCT_ERROR_INVALID_ARGUMENT),
-    };
-
     let compression_fft_size = (*config).compression_fft_size as usize;
     let timestamp_bits;
     let parser: Box<dyn Parser> = match (*config).format {
@@ -257,9 +248,14 @@ unsafe fn convert_setup(config: *const Config) -> Result<DecompressSetup, u32> {
         let frequency_offset = (*config_band).frequency_offset;
         let bins = (*config_band).bins;
 
+        let output_callback = match (*config_band).output_callback {
+            Some(output_callback) => output_callback,
+            None => return Err(SPARSDR_RECONSTRUCT_ERROR_INVALID_ARGUMENT),
+        };
+
         let destination = Box::new(SampleCallback {
             callback: output_callback,
-            context: (*config).output_context,
+            context: (*config_band).output_context,
         });
 
         setup.add_band(

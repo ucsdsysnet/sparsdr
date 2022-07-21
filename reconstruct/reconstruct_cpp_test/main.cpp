@@ -27,8 +27,10 @@ int main() {
     sparsdr_reconstruct_band complete_band;
     complete_band.frequency_offset = 0.0f;
     complete_band.bins = 1024;
+    complete_band.output_callback = handle_output;
+    complete_band.output_context = nullptr;
 
-    sparsdr_reconstruct_config* config = sparsdr_reconstruct_config_init(handle_output, nullptr);
+    sparsdr_reconstruct_config* config = sparsdr_reconstruct_config_init();
     config->format = SPARSDR_RECONSTRUCT_FORMAT_V2;
     config->compression_fft_size = 1024;
     config->compressed_bandwidth = 100e6f;
