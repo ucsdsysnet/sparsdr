@@ -47,7 +47,6 @@ simple_combined_pluto_receiver::make(const std::string& uri,
                                      float center_frequency,
                                      const std::vector<simple_band_spec>& bands,
                                      std::uint32_t threshold,
-                                     const std::string& reconstruct_path,
                                      bool zero_gaps,
                                      bool skip_bin_config)
 {
@@ -57,7 +56,6 @@ simple_combined_pluto_receiver::make(const std::string& uri,
                                                 center_frequency,
                                                 bands,
                                                 threshold,
-                                                reconstruct_path,
                                                 zero_gaps,
                                                 skip_bin_config));
 }
@@ -71,7 +69,6 @@ simple_combined_pluto_receiver_impl::simple_combined_pluto_receiver_impl(
     float center_frequency,
     const std::vector<simple_band_spec>& bands,
     std::uint32_t threshold,
-    const std::string& reconstruct_path,
     bool zero_gaps,
     bool skip_bin_config)
     : gr::hier_block2(
@@ -89,7 +86,6 @@ simple_combined_pluto_receiver_impl::simple_combined_pluto_receiver_impl(
                                                      PLUTO_DEFAULT_FFT_SIZE,
                                                      center_frequency,
                                                      setup.reconstruct_bands,
-                                                     reconstruct_path,
                                                      zero_gaps);
     // This configuration doesn't need to be done from the Python code
     inner_block->set_frequency(static_cast<unsigned long long>(center_frequency));

@@ -7,10 +7,6 @@ flags:
 - throttle
 
 parameters:
--   id: reconstruct_path
-    label: Executable
-    dtype: string
-    default: sparsdr_reconstruct
 -   id: uri
     label: IIO context URI
     dtype: string
@@ -559,7 +555,7 @@ templates:
         % if int(eval(band_count)) > 31:
         ${id}_bands.push_back(sparsdr.band_spec(${band_31_frequency}, ${band_31_bins})
         % endif
-        self.${id} = ${id} = sparsdr.combined_pluto_receiver(uri=${uri}, buffer_size=${buffer_size}, fft_size=${fft_size}, center_frequency=${frequency}, bands=${id}_bands, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps})
+        self.${id} = ${id} = sparsdr.combined_pluto_receiver(uri=${uri}, buffer_size=${buffer_size}, fft_size=${fft_size}, center_frequency=${frequency}, bands=${id}_bands, zero_gaps=${zero_gaps})
         self.${id}.set_frequency(${frequency})
         self.${id}.set_gain_control_mode(${gain_control_mode})
         self.${id}.set_gain(${gain})

@@ -63,7 +63,6 @@ public:
                      unsigned int fft_size,
                      float center_frequency,
                      const std::vector<band_spec>& bands,
-                     const std::string& reconstruct_path = "sparsdr_reconstruct",
                      bool zero_gaps = false);
 
     // Compressing pluto source delegate functions

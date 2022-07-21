@@ -40,16 +40,10 @@ combined_pluto_receiver::make(const std::string& uri,
                               unsigned int fft_size,
                               float center_frequency,
                               const std::vector<band_spec>& bands,
-                              const std::string& reconstruct_path,
                               bool zero_gaps)
 {
-    return gnuradio::get_initial_sptr(new combined_pluto_receiver_impl(uri,
-                                                                       buffer_size,
-                                                                       fft_size,
-                                                                       center_frequency,
-                                                                       bands,
-                                                                       reconstruct_path,
-                                                                       zero_gaps));
+    return gnuradio::get_initial_sptr(new combined_pluto_receiver_impl(
+        uri, buffer_size, fft_size, center_frequency, bands, zero_gaps));
 }
 
 /*
@@ -61,7 +55,6 @@ combined_pluto_receiver_impl::combined_pluto_receiver_impl(
     unsigned int fft_size,
     float center_frequency,
     const std::vector<band_spec>& bands,
-    const std::string& reconstruct_path,
     bool zero_gaps)
     : gr::hier_block2(
           "combined_pluto_receiver",
@@ -91,8 +84,8 @@ combined_pluto_receiver_impl::combined_pluto_receiver_impl(
     default:
         throw std::runtime_error("Invalid format version, expected 1 or 2");
     }
-    d_reconstruct = reconstruct::make(
-        relative_bands, reconstruct_path, format_version_string, zero_gaps, fft_size);
+    d_reconstruct =
+        reconstruct::make(relative_bands, format_version_string, zero_gaps, fft_size);
     // Connect
     connect(d_pluto, 0, d_reconstruct, 0);
     for (std::size_t i = 0; i < bands.size(); i++) {

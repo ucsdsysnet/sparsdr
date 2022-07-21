@@ -64,7 +64,6 @@ public:
                      int format_version,
                      float center_frequency,
                      const std::vector<band_spec>& bands,
-                     const std::string& reconstruct_path = "sparsdr_reconstruct",
                      bool zero_gaps = false);
 
     // Compressing USRP source delegated functions

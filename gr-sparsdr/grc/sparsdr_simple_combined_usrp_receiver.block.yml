@@ -31,11 +31,6 @@ parameters:
     label: Threshold
     dtype: int
     default: '1000'
--   id: reconstruct_path
-    label: Executable
-    category: Reconstruct
-    dtype: string
-    default: sparsdr_reconstruct
 -   id: zero_gaps
     label: Zero samples in gaps
     category: Reconstruct
@@ -552,7 +547,7 @@ templates:
         % if int(eval(band_count)) > 31:
         ${id}_bands.push_back(sparsdr.simple_band_spec(${band_31_frequency}, ${band_31_bandwidth})
         % endif
-        self.${id} = ${id} = sparsdr.simple_combined_usrp_receiver(device_addr=uhd.device_addr(${device_addr}), format_version=${format_version}, center_frequency=${center_freq}, bands=${id}_bands, threshold=${threshold}, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), zero_gaps=${zero_gaps}, skip_bin_config=${skip_config})
+        self.${id} = ${id} = sparsdr.simple_combined_usrp_receiver(device_addr=uhd.device_addr(${device_addr}), format_version=${format_version}, center_frequency=${center_freq}, bands=${id}_bands, threshold=${threshold}, zero_gaps=${zero_gaps}, skip_bin_config=${skip_config})
         self.${id}.set_gain(${gain})
         self.${id}.set_antenna(${antenna})
         self.${id}.set_shift_amount(${shift_amount})

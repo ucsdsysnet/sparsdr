@@ -43,15 +43,10 @@ combined_usrp_receiver::make(const ::uhd::device_addr_t& device_addr,
                              int format_version,
                              float center_frequency,
                              const std::vector<band_spec>& bands,
-                             const std::string& reconstruct_path,
                              bool zero_gaps)
 {
-    return gnuradio::get_initial_sptr(new combined_usrp_receiver_impl(device_addr,
-                                                                      format_version,
-                                                                      center_frequency,
-                                                                      bands,
-                                                                      reconstruct_path,
-                                                                      zero_gaps));
+    return gnuradio::get_initial_sptr(new combined_usrp_receiver_impl(
+        device_addr, format_version, center_frequency, bands, zero_gaps));
 }
 
 /*
@@ -62,7 +57,6 @@ combined_usrp_receiver_impl::combined_usrp_receiver_impl(
     int format_version,
     float center_frequency,
     const std::vector<band_spec>& bands,
-    const std::string& reconstruct_path,
     bool zero_gaps)
     : gr::hier_block2(
           "combined_usrp_receiver",
@@ -92,7 +86,6 @@ combined_usrp_receiver_impl::combined_usrp_receiver_impl(
     // Create blocks
     d_usrp = compressing_usrp_source::make(device_addr);
     d_reconstruct = reconstruct::make(relative_bands,
-                                      reconstruct_path,
                                       format_version_string,
                                       zero_gaps,
                                       /* compression FFT size */ 2048);

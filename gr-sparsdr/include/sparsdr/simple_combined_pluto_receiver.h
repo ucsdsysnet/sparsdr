@@ -58,7 +58,6 @@ public:
      * \param bands The bands to receive and reconstruct (all these frequencies
      *   are absolute)
      * \param threshold The threshold to apply to all unmasked bins
-     * \param reconstruct_path The path to the sparsdr_reconstruct executable
      * \param zero_gaps True if zero samples should be included in time gaps
      *   in the outputs
      */
@@ -67,7 +66,6 @@ public:
                      float center_frequency,
                      const std::vector<simple_band_spec>& bands,
                      std::uint32_t threshold,
-                     const std::string& reconstruct_path = "sparsdr_reconstruct",
                      bool zero_gaps = false,
                      bool skip_bin_config = false);
 

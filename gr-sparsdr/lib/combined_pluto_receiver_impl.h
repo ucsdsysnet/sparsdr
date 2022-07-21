@@ -41,7 +41,6 @@ public:
                                  unsigned int fft_size,
                                  float center_frequency,
                                  const std::vector<band_spec>& bands,
-                                 const std::string& reconstruct_path,
                                  bool zero_gaps);
     ~combined_pluto_receiver_impl();
 

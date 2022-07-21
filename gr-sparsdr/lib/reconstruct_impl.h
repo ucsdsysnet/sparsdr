@@ -32,8 +32,6 @@ namespace sparsdr {
 class reconstruct_impl : public reconstruct, public boost::noncopyable
 {
 private:
-
-
 public:
     reconstruct_impl(const std::vector<band_spec>& bands,
                      const std::string& sample_format,

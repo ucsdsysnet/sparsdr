@@ -41,7 +41,6 @@ public:
                                        float center_frequency,
                                        const std::vector<simple_band_spec>& bands,
                                        std::uint32_t threshold,
-                                       const std::string& reconstruct_path,
                                        bool zero_gaps,
                                        bool skip_bin_config);
 

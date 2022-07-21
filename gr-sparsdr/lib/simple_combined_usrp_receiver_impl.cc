@@ -47,7 +47,6 @@ simple_combined_usrp_receiver::make(const ::uhd::device_addr_t& device_addr,
                                     float center_frequency,
                                     const std::vector<simple_band_spec>& bands,
                                     std::uint32_t threshold,
-                                    const std::string& reconstruct_path,
                                     bool zero_gaps,
                                     bool skip_bin_config)
 {
@@ -57,7 +56,6 @@ simple_combined_usrp_receiver::make(const ::uhd::device_addr_t& device_addr,
                                                center_frequency,
                                                bands,
                                                threshold,
-                                               reconstruct_path,
                                                zero_gaps,
                                                skip_bin_config));
 }
@@ -71,7 +69,6 @@ simple_combined_usrp_receiver_impl::simple_combined_usrp_receiver_impl(
     float center_frequency,
     const std::vector<simple_band_spec>& bands,
     std::uint32_t threshold,
-    const std::string& reconstruct_path,
     bool zero_gaps,
     bool skip_bin_config)
     : gr::hier_block2(
@@ -88,7 +85,6 @@ simple_combined_usrp_receiver_impl::simple_combined_usrp_receiver_impl(
                                                     format_version,
                                                     center_frequency,
                                                     setup.reconstruct_bands,
-                                                    reconstruct_path,
                                                     zero_gaps);
     // This configuration doesn't need to be done from the Python code
     inner_block->set_center_freq(center_frequency);

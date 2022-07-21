@@ -24,24 +24,33 @@
 
 #include "reconstruct_impl.h"
 #include <gnuradio/io_signature.h>
-#include <signal.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <boost/lexical_cast.hpp>
-#include <cstdlib>
 #include <sparsdr_reconstruct.hpp>
 
 namespace gr {
 namespace sparsdr {
+
+namespace {
+
+/**
+ * The reconstruction library calls this function (potentially from many
+ * different threads) when it has produced samples
+ */
+void handle_reconstructed_samples(void* context,
+                                  const std::complex<float>* samples,
+                                  std::size_t num_samples)
+{
+    // TODO: Need a way to determine which band this is
+}
+
+} // namespace
 
 reconstruct::sptr reconstruct::make(std::vector<band_spec> bands,
                                     const std::string& sample_format,
                                     bool zero_gaps,
                                     unsigned int compression_fft_size)
 {
-    return gnuradio::get_initial_sptr(new reconstruct_impl(
-        bands, sample_format, zero_gaps, compression_fft_size));
+    return gnuradio::get_initial_sptr(
+        new reconstruct_impl(bands, sample_format, zero_gaps, compression_fft_size));
 }
 
 /*
@@ -57,10 +66,15 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
           gr::io_signature::make(1, 1, sizeof(uint32_t)),
           // One output per band
           gr::io_signature::make(bands.size(), bands.size(), sizeof(gr_complex)))
-      // Begin fields
+// Begin fields
 
 {
     // TODO
+    using namespace ::sparsdr;
+    sparsdr_reconstruct_config* config =
+        sparsdr_reconstruct_config_init(handle_reconstructed_samples, this);
+
+
     if (sample_format == "N210 v1") {
         // arguments.push_back("--compressed-bandwidth");
         // arguments.push_back("100e6");
@@ -90,8 +104,12 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
         // arguments.push_back("--timestamp-bits");
         // arguments.push_back("30");
     } else {
+        sparsdr_reconstruct_config_free(config);
         throw std::runtime_error("Unsupported sample format");
     }
+
+    // Now that the context has been created, we can destroy the context
+    sparsdr_reconstruct_config_free(config);
 }
 
 /*

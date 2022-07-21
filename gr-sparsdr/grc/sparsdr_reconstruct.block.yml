@@ -7,10 +7,6 @@ category: '[SparSDR]'
 value: ${0}
 
 parameters:
--   id: reconstruct_path
-    label: Executable
-    dtype: string
-    default: sparsdr_reconstruct
 -   id: band_count
     label: Bands
     dtype: int
@@ -531,7 +527,7 @@ templates:
         % if int(eval(band_count)) > 31:
         ${id}_bands.push_back(sparsdr.band_spec(${band_31_frequency}, ${band_31_bins}))
         % endif
-        self.${id} = ${id} = sparsdr.reconstruct(bands=${id}_bands, reconstruct_path=distutils.spawn.find_executable(${reconstruct_path}), sample_format=${compressed_format}, zero_gaps=${zero_gaps}, compression_fft_size=${compression_fft_size})
+        self.${id} = ${id} = sparsdr.reconstruct(bands=${id}_bands, sample_format=${compressed_format}, zero_gaps=${zero_gaps}, compression_fft_size=${compression_fft_size})
 
 documentation: |-
     The SparSDR reconstruct block receives compressed samples and reconstructs signals from one or more bands.
