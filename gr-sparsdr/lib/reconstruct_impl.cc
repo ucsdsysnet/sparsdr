@@ -74,39 +74,40 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
     sparsdr_reconstruct_config* config =
         sparsdr_reconstruct_config_init(handle_reconstructed_samples, this);
 
+    // Common config fields other than bands
+    config->compression_fft_size = compression_fft_size;
+    // TODO use zero_gaps
+    
 
     if (sample_format == "N210 v1") {
-        // arguments.push_back("--compressed-bandwidth");
-        // arguments.push_back("100e6");
-        // arguments.push_back("--sample-format");
-        // arguments.push_back("v1-n210");
-        // arguments.push_back("--timestamp-bits");
-        // arguments.push_back("20");
+        config->format = SPARSDR_RECONSTRUCT_FORMAT_V1_N210;
+        config->compressed_bandwidth = 100e6f;
     } else if (sample_format == "N210 v2") {
-        // arguments.push_back("--compressed-bandwidth");
-        // arguments.push_back("100e6");
-        // arguments.push_back("--sample-format");
-        // arguments.push_back("v2");
-        // arguments.push_back("--timestamp-bits");
-        // arguments.push_back("30");
+        config->format = SPARSDR_RECONSTRUCT_FORMAT_V2;
+        config->compressed_bandwidth = 100e6f;
     } else if (sample_format == "Pluto v1") {
-        // arguments.push_back("--compressed-bandwidth");
-        // arguments.push_back("61.44e6");
-        // arguments.push_back("--sample-format");
-        // arguments.push_back("v1-pluto");
-        // arguments.push_back("--timestamp-bits");
-        // arguments.push_back("21");
+        config->format = SPARSDR_RECONSTRUCT_FORMAT_V1_PLUTO;
+        config->compressed_bandwidth = 61.44e6f;
     } else if (sample_format == "Pluto v2") {
-        // arguments.push_back("--compressed-bandwidth");
-        // arguments.push_back("61.44e6");
-        // arguments.push_back("--sample-format");
-        // arguments.push_back("v2");
-        // arguments.push_back("--timestamp-bits");
-        // arguments.push_back("30");
+        config->format = SPARSDR_RECONSTRUCT_FORMAT_V2;
+        config->compressed_bandwidth = 61.44e6f;
     } else {
         sparsdr_reconstruct_config_free(config);
         throw std::runtime_error("Unsupported sample format");
     }
+    
+    // Bands
+    std::vector<sparsdr_reconstruct_band> c_bands;
+    c_bands.reserve(bands.size());
+    for (const band_spec& band : bands) {
+        sparsdr_reconstruct_band c_band;
+        c_band.frequency_offset = band.frequency();
+        c_band.bins = band.bins();
+        
+        c_bands.push_back(c_band);
+    }
+    config->bands_length = c_bands.size();
+    config->bands = c_bands.data();
 
     // Now that the context has been created, we can destroy the context
     sparsdr_reconstruct_config_free(config);
