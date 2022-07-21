@@ -24,6 +24,7 @@
 #include <sparsdr/reconstruct.h>
 #include <unistd.h>
 #include <boost/noncopyable.hpp>
+#include <vector>
 
 namespace gr {
 namespace sparsdr {
@@ -32,11 +33,42 @@ namespace sparsdr {
 class reconstruct_impl : public reconstruct, public boost::noncopyable
 {
 private:
+    /** A value used with the output callback as a context */
+    struct output_context {
+        /** The reconstruct block */
+        reconstruct_impl* reconstruct;
+        /** The index of the band associated with these samples */
+        std::size_t band_index;
+    };
+    /**
+     * Allocated output contexts
+     * (this must not be changed while the reconstruction context exists)
+     */
+    const std::vector<output_context> d_output_contexts;
+
+    /** Callback that handles reconstructed samples */
+    static void handle_reconstructed_samples(void* context,
+                                             const std::complex<float>* samples,
+                                             std::size_t num_samples);
+
+    /**
+     * Generates a vector of output_context objects with successive band index values
+     * starting at 0
+     */
+    static std::vector<output_context> make_output_contexts(reconstruct_impl* reconstruct,
+                                                            std::size_t count);
+
 public:
     reconstruct_impl(const std::vector<band_spec>& bands,
                      const std::string& sample_format,
                      bool zero_gaps,
                      unsigned int compression_fft_size);
+
+    int general_work(int noutput_items,
+                     gr_vector_int& ninput_items,
+                     gr_vector_const_void_star& input_items,
+                     gr_vector_void_star& output_items);
+
     ~reconstruct_impl();
 };
 
