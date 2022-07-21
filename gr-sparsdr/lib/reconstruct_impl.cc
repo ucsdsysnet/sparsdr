@@ -24,13 +24,20 @@
 
 #include "reconstruct_impl.h"
 #include <gnuradio/io_signature.h>
-#include <sparsdr_reconstruct.hpp>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
 
 namespace gr {
 namespace sparsdr {
 
 namespace {
 
+/**
+ * Size of a GNU Radio input sample in bytes
+ * (the size that the compressed sample parser uses may be different)
+ */
+constexpr std::size_t GR_IN_SAMPLE_BYTES = sizeof(std::uint32_t);
 
 } // namespace
 
@@ -52,11 +59,13 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
                                    unsigned int compression_fft_size)
     : gr::block("reconstruct",
                 // One input for compressed samples
-                gr::io_signature::make(1, 1, sizeof(uint32_t)),
+                gr::io_signature::make(1, 1, GR_IN_SAMPLE_BYTES),
                 // One output per band
                 gr::io_signature::make(bands.size(), bands.size(), sizeof(gr_complex))),
       // Begin fields
-      d_output_contexts(make_output_contexts(this, bands.size()))
+      d_output_contexts(make_output_contexts(bands.size())),
+      d_parser_sample_bytes(0), // Will be corrected below
+      d_context(nullptr)        // Will be corrected below
 {
     using namespace ::sparsdr;
     sparsdr_reconstruct_config* config = sparsdr_reconstruct_config_init();
@@ -69,15 +78,19 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
     if (sample_format == "N210 v1") {
         config->format = SPARSDR_RECONSTRUCT_FORMAT_V1_N210;
         config->compressed_bandwidth = 100e6f;
+        d_parser_sample_bytes = 8;
     } else if (sample_format == "N210 v2") {
         config->format = SPARSDR_RECONSTRUCT_FORMAT_V2;
         config->compressed_bandwidth = 100e6f;
+        d_parser_sample_bytes = 4;
     } else if (sample_format == "Pluto v1") {
         config->format = SPARSDR_RECONSTRUCT_FORMAT_V1_PLUTO;
         config->compressed_bandwidth = 61.44e6f;
+        d_parser_sample_bytes = 8;
     } else if (sample_format == "Pluto v2") {
         config->format = SPARSDR_RECONSTRUCT_FORMAT_V2;
         config->compressed_bandwidth = 61.44e6f;
+        d_parser_sample_bytes = 4;
     } else {
         sparsdr_reconstruct_config_free(config);
         throw std::runtime_error("Unsupported sample format");
@@ -94,31 +107,34 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
         // For each band, call the single callback. Give it a context that points
         // to this block and gives the band number.
         c_band.output_callback = reconstruct_impl::handle_reconstructed_samples;
-        c_band.output_context =
-            const_cast<void*>(reinterpret_cast<const void*>(&d_output_contexts.at(i)));
+        c_band.output_context = reinterpret_cast<void*>(&d_output_contexts.at(i));
 
         c_bands.push_back(c_band);
     }
     config->bands_length = c_bands.size();
     config->bands = c_bands.data();
 
+    // Start reconstruction
+    const int status = sparsdr_reconstruct_init(&d_context, config);
     // Now that the context has been created, we can destroy the context
     sparsdr_reconstruct_config_free(config);
+    if (status != SPARSDR_RECONSTRUCT_OK) {
+        std::stringstream stream;
+        stream << "sparsdr_reconstruct_init returned " << status;
+        throw std::runtime_error(stream.str());
+    }
 }
 
 /**
- * Generates a vector of output_context objects with successive band index values starting
- * at 0
+ * Generates a vector of output_context objects
  */
-std::vector<reconstruct_impl::output_context>
-reconstruct_impl::make_output_contexts(reconstruct_impl* reconstruct, std::size_t count)
+std::vector<std::unique_ptr<reconstruct_impl::output_context>>
+reconstruct_impl::make_output_contexts(std::size_t count)
 {
-    std::vector<output_context> contexts;
+    std::vector<std::unique_ptr<output_context>> contexts;
+    contexts.reserve(count);
     for (std::size_t i = 0; i < count; i++) {
-        output_context context;
-        context.reconstruct = reconstruct;
-        context.band_index = i;
-        contexts.push_back(context);
+        contexts.push_back(std::unique_ptr<output_context>());
     }
     return contexts;
 }
@@ -128,8 +144,44 @@ int reconstruct_impl::general_work(int noutput_items,
                                    gr_vector_const_void_star& input_items,
                                    gr_vector_void_star& output_items)
 {
-    // TODO
-    return 0;
+    using namespace ::sparsdr;
+    // Part 1: Input
+    const std::size_t num_input_bytes = ninput_items[0] * GR_IN_SAMPLE_BYTES;
+    const std::size_t input_compressed_samples = num_input_bytes / d_parser_sample_bytes;
+    const std::uint8_t* input_bytes =
+        reinterpret_cast<const std::uint8_t*>(input_items[0]);
+    for (std::size_t i = 0; i < input_compressed_samples; i++) {
+        const std::uint8_t* sample = input_bytes + (i * d_parser_sample_bytes);
+        const int status = sparsdr_reconstruct_handle_samples(
+            d_context, reinterpret_cast<const void*>(sample), d_parser_sample_bytes);
+        if (status != 0) {
+            std::cerr << "sparsdr_reconstruct_handle_samples returned " << status << '\n';
+            return WORK_DONE;
+        }
+    }
+
+    // Part 2: Outputs
+    for (std::size_t i = 0; i < d_output_contexts.size(); i++) {
+        std::unique_ptr<output_context>& output = d_output_contexts.at(i);
+        gr_complex* out_buffer = reinterpret_cast<gr_complex*>(&output_items.at(i));
+        // Lock the mutex and copy some outputs
+        std::lock_guard<std::mutex> lock(output->mutex);
+        // Copy one complex value at a time until the queue is empty or noutput_items
+        // values have been copied
+        int items_copied = 0;
+        auto done = [&] {
+            return items_copied == noutput_items || output->queue.empty();
+        };
+        for (items_copied = 0; !done(); items_copied++) {
+            *out_buffer = output->queue.front();
+            out_buffer += 1;
+            output->queue.pop();
+        }
+        // Tell the scheduler the number of items copied for this output
+        produce(i, items_copied);
+    }
+
+    return WORK_CALLED_PRODUCE;
 }
 
 
@@ -141,9 +193,13 @@ void reconstruct_impl::handle_reconstructed_samples(void* context,
                                                     const std::complex<float>* samples,
                                                     std::size_t num_samples)
 {
-    const output_context* output_context =
+    output_context* output_context =
         reinterpret_cast<reconstruct_impl::output_context*>(context);
-    // TODO
+    // Lock the mutex and copy the samples to the queue
+    std::lock_guard<std::mutex> lock(output_context->mutex);
+    for (std::size_t i = 0; i < num_samples; i++) {
+        output_context->queue.push(samples[i]);
+    }
 }
 
 /*
@@ -151,7 +207,8 @@ void reconstruct_impl::handle_reconstructed_samples(void* context,
  */
 reconstruct_impl::~reconstruct_impl()
 {
-    // TODO
+    ::sparsdr::sparsdr_reconstruct_free(d_context);
+    d_context = nullptr;
 }
 
 } /* namespace sparsdr */

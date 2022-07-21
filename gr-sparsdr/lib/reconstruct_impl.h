@@ -24,7 +24,13 @@
 #include <sparsdr/reconstruct.h>
 #include <unistd.h>
 #include <boost/noncopyable.hpp>
+#include <complex>
+#include <memory>
+#include <mutex>
+#include <queue>
 #include <vector>
+
+#include <sparsdr_reconstruct.hpp>
 
 namespace gr {
 namespace sparsdr {
@@ -35,16 +41,21 @@ class reconstruct_impl : public reconstruct, public boost::noncopyable
 private:
     /** A value used with the output callback as a context */
     struct output_context {
-        /** The reconstruct block */
-        reconstruct_impl* reconstruct;
-        /** The index of the band associated with these samples */
-        std::size_t band_index;
+        /** Mutex used to protect queue */
+        std::mutex mutex;
+        /** Queue of samples produced by the reconstruction library */
+        std::queue<std::complex<float>> queue;
     };
+
     /**
      * Allocated output contexts
      * (this must not be changed while the reconstruction context exists)
      */
-    const std::vector<output_context> d_output_contexts;
+    std::vector<std::unique_ptr<output_context>> d_output_contexts;
+    /** Number of bytes the parser expects in every compressed sample */
+    std::size_t d_parser_sample_bytes;
+    /** Reconstruction context */
+    ::sparsdr::sparsdr_reconstruct_context* d_context;
 
     /** Callback that handles reconstructed samples */
     static void handle_reconstructed_samples(void* context,
@@ -52,11 +63,10 @@ private:
                                              std::size_t num_samples);
 
     /**
-     * Generates a vector of output_context objects with successive band index values
-     * starting at 0
+     * Generates a vector of output_context objects
      */
-    static std::vector<output_context> make_output_contexts(reconstruct_impl* reconstruct,
-                                                            std::size_t count);
+    static std::vector<std::unique_ptr<output_context>>
+    make_output_contexts(std::size_t count);
 
 public:
     reconstruct_impl(const std::vector<band_spec>& bands,
