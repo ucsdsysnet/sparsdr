@@ -72,7 +72,7 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
 
     // Common config fields other than bands
     config->compression_fft_size = compression_fft_size;
-    // TODO use zero_gaps
+    config->zero_gaps = zero_gaps;
 
 
     if (sample_format == "N210 v1") {
@@ -116,7 +116,7 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
 
     // Start reconstruction
     const int status = sparsdr_reconstruct_init(&d_context, config);
-    // Now that the context has been created, we can destroy the context
+    // Now that the context has been created, we can destroy the config
     sparsdr_reconstruct_config_free(config);
     if (status != SPARSDR_RECONSTRUCT_OK) {
         std::stringstream stream;
