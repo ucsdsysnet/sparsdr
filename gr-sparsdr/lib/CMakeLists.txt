@@ -25,6 +25,8 @@
 
 find_package(UHD REQUIRED)
 find_package(IIO REQUIRED)
+# The reconstruct library depends on FFTW, linked dynamically
+find_package(FFTW REQUIRED)
 
 ########################################################################
 # Set up to run cargo to compile the Rust library
@@ -112,6 +114,8 @@ target_link_libraries(gnuradio-sparsdr
     gnuradio::gnuradio-blocks
     UHD::uhd
     IIO::IIO
+    FFTW::FFTW3
+    FFTW::FFTW3F
     ${RECONSTRUCT_LIBRARY}
 )
 target_include_directories(gnuradio-sparsdr
