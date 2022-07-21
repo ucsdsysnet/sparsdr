@@ -49,7 +49,6 @@ public:
      * creating new instances.
      *
      * \param bands the bands to decompress
-     * \param reconstruct_path the path to the sparsdr_reconstruct executable
      * \param sample_format The compressed sample format and source device
      * (this should be "N210 v1", "N210 v2", "Pluto v1", or "Pluto v2")
      * \param zero_gaps true to insert zero samples in the output(s) for periods
@@ -58,7 +57,6 @@ public:
      * compress the received signals
      */
     static sptr make(std::vector<::gr::sparsdr::band_spec> bands,
-                     const std::string& reconstruct_path = "sparsdr_reconstruct",
                      const std::string& sample_format = "N210 v1",
                      bool zero_gaps = false,
                      unsigned int compression_fft_size = 1024);
