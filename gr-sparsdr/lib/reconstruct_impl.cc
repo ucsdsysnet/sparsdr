@@ -24,6 +24,7 @@
 
 #include "reconstruct_impl.h"
 #include <gnuradio/io_signature.h>
+#include <exception>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -107,7 +108,9 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
         // For each band, call the single callback. Give it a context that points
         // to this block and gives the band number.
         c_band.output_callback = reconstruct_impl::handle_reconstructed_samples;
-        c_band.output_context = reinterpret_cast<void*>(&d_output_contexts.at(i));
+
+        std::unique_ptr<output_context>& context_ptr = d_output_contexts.at(i);
+        c_band.output_context = reinterpret_cast<void*>(context_ptr.get());
 
         c_bands.push_back(c_band);
     }
@@ -134,7 +137,8 @@ reconstruct_impl::make_output_contexts(std::size_t count)
     std::vector<std::unique_ptr<output_context>> contexts;
     contexts.reserve(count);
     for (std::size_t i = 0; i < count; i++) {
-        contexts.push_back(std::unique_ptr<output_context>());
+        std::unique_ptr<output_context> context(new output_context);
+        contexts.push_back(std::move(context));
     }
     return contexts;
 }
@@ -163,9 +167,10 @@ int reconstruct_impl::general_work(int noutput_items,
     // Part 2: Outputs
     for (std::size_t i = 0; i < d_output_contexts.size(); i++) {
         std::unique_ptr<output_context>& output = d_output_contexts.at(i);
-        gr_complex* out_buffer = reinterpret_cast<gr_complex*>(&output_items.at(i));
+        void* raw_out_buffer = output_items.at(i);
+        gr_complex* out_buffer = reinterpret_cast<gr_complex*>(raw_out_buffer);
         // Lock the mutex and copy some outputs
-        std::lock_guard<std::mutex> lock(output->mutex);
+        std::unique_lock<std::mutex> lock(output->mutex);
         // Copy one complex value at a time until the queue is empty or noutput_items
         // values have been copied
         int items_copied = 0;
@@ -193,12 +198,22 @@ void reconstruct_impl::handle_reconstructed_samples(void* context,
                                                     const std::complex<float>* samples,
                                                     std::size_t num_samples)
 {
-    output_context* output_context =
-        reinterpret_cast<reconstruct_impl::output_context*>(context);
-    // Lock the mutex and copy the samples to the queue
-    std::lock_guard<std::mutex> lock(output_context->mutex);
-    for (std::size_t i = 0; i < num_samples; i++) {
-        output_context->queue.push(samples[i]);
+    try {
+        output_context* output_context =
+            reinterpret_cast<reconstruct_impl::output_context*>(context);
+        // Lock the mutex and copy the samples to the queue
+        std::unique_lock<std::mutex> lock(output_context->mutex);
+        for (std::size_t i = 0; i < num_samples; i++) {
+            output_context->queue.push(samples[i]);
+        }
+    } catch (std::exception& e) {
+        // Don't let C++ exceptions propagate into Rust
+        std::cerr << "Unexpected exception in reconstructed sample callback: " << e.what()
+                  << '\n';
+        std::terminate();
+    } catch (...) {
+        std::cerr << "Unexpected unknown exception in reconstructed sample callback\n";
+        std::terminate();
     }
 }
 
