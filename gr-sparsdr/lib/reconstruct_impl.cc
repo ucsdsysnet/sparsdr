@@ -148,6 +148,8 @@ int reconstruct_impl::general_work(int noutput_items,
                                    gr_vector_const_void_star& input_items,
                                    gr_vector_void_star& output_items)
 {
+    std::cout << "reconstruct_impl::general_work(noutput_items = " << noutput_items
+              << ", ninput_items[0] = " << ninput_items.at(0) << ")\n";
     using namespace ::sparsdr;
     // Part 1: Input
     const std::size_t num_input_bytes = ninput_items[0] * GR_IN_SAMPLE_BYTES;
@@ -163,6 +165,9 @@ int reconstruct_impl::general_work(int noutput_items,
             return WORK_DONE;
         }
     }
+    // Tell the scheduler the number of items copied for this input
+    // Consumed all of them
+    consume(0, ninput_items[0]);
 
     // Part 2: Outputs
     for (std::size_t i = 0; i < d_output_contexts.size(); i++) {
@@ -184,6 +189,9 @@ int reconstruct_impl::general_work(int noutput_items,
         }
         // Tell the scheduler the number of items copied for this output
         produce(i, items_copied);
+        if (items_copied != 0) {
+            std::cout << "produce(output " << i << ", " << items_copied << " items)\n";
+        }
     }
 
     return WORK_CALLED_PRODUCE;
