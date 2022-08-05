@@ -99,6 +99,8 @@ list(APPEND sparsdr_sources
     simple_combined_usrp_receiver_impl.cc
     swap_16_impl.cc
     window.cc
+    reconstruct_sink_impl.cc
+    reconstruct_source_impl.cc
 )
 
 set(sparsdr_sources "${sparsdr_sources}" PARENT_SCOPE)
