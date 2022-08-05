@@ -21,6 +21,7 @@
 #ifndef INCLUDED_SPARSDR_RECONSTRUCT_IMPL_H
 #define INCLUDED_SPARSDR_RECONSTRUCT_IMPL_H
 
+#include <condition_variable>
 #include <sparsdr/reconstruct.h>
 #include <unistd.h>
 #include <boost/noncopyable.hpp>
@@ -43,6 +44,11 @@ private:
     struct output_context {
         /** Mutex used to protect queue */
         std::mutex mutex;
+        /**
+         * Condition variable used to notify the work thread when samples are
+         * available
+         */
+        std::condition_variable cv;
         /** Queue of samples produced by the reconstruction library */
         std::queue<std::complex<float>> queue;
     };

@@ -176,6 +176,12 @@ int reconstruct_impl::general_work(int noutput_items,
         gr_complex* out_buffer = reinterpret_cast<gr_complex*>(raw_out_buffer);
         // Lock the mutex and copy some outputs
         std::unique_lock<std::mutex> lock(output->mutex);
+
+        // Wait until this output's queue of samples is not empty, or
+        // the timeout has passed
+        const bool got_samples = output->cv.wait_for(
+            lock, std::chrono::seconds(1), [&output] { return !output->queue.empty(); });
+
         // Copy one complex value at a time until the queue is empty or noutput_items
         // values have been copied
         int items_copied = 0;
@@ -214,6 +220,9 @@ void reconstruct_impl::handle_reconstructed_samples(void* context,
         for (std::size_t i = 0; i < num_samples; i++) {
             output_context->queue.push(samples[i]);
         }
+        lock.unlock();
+        // Wake up the work thread that may be waiting for samples
+        output_context->cv.notify_one();
     } catch (std::exception& e) {
         // Don't let C++ exceptions propagate into Rust
         std::cerr << "Unexpected exception in reconstructed sample callback: " << e.what()
