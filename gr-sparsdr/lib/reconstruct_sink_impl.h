@@ -29,10 +29,14 @@ namespace sparsdr {
 class reconstruct_sink_impl : public reconstruct_sink
 {
 private:
-    // Nothing to declare in this block.
+    /** Reconstruction context */
+    ::sparsdr::sparsdr_reconstruct_context* d_context;
+    /** Number of bytes the parser expects in every compressed sample */
+    std::size_t d_parser_sample_bytes;
 
 public:
-    reconstruct_sink_impl(::sparsdr::sparsdr_reconstruct_context* context);
+    reconstruct_sink_impl(::sparsdr::sparsdr_reconstruct_context* context,
+                          int parser_sample_bytes);
     ~reconstruct_sink_impl();
 
     // Where all the action really happens

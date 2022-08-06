@@ -22,7 +22,7 @@
 #ifndef INCLUDED_SPARSDR_RECONSTRUCT_H
 #define INCLUDED_SPARSDR_RECONSTRUCT_H
 
-#include <gnuradio/block.h>
+#include <gnuradio/hier_block2.h>
 #include <sparsdr/api.h>
 #include <sparsdr/band_spec.h>
 
@@ -35,7 +35,7 @@ namespace sparsdr {
  * \ingroup sparsdr
  *
  */
-class SPARSDR_API reconstruct : virtual public gr::block
+class SPARSDR_API reconstruct : virtual public gr::hier_block2
 {
 public:
     typedef boost::shared_ptr<reconstruct> sptr;

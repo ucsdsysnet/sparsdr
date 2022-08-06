@@ -21,30 +21,36 @@
 #ifndef INCLUDED_SPARSDR_RECONSTRUCT_SOURCE_IMPL_H
 #define INCLUDED_SPARSDR_RECONSTRUCT_SOURCE_IMPL_H
 
+#include <memory>
+
 #include "reconstruct_source.h"
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
 
-    class reconstruct_source_impl : public reconstruct_source
-    {
-     private:
-      // Nothing to declare in this block.
+class reconstruct_source_impl : public reconstruct_source
+{
+private:
+    /** Context used by the reconstructed sample callback */
+    std::unique_ptr<output_context> d_context;
 
-     public:
-      reconstruct_source_impl();
-      ~reconstruct_source_impl();
+public:
+    reconstruct_source_impl(std::unique_ptr<output_context>&& context);
+    ~reconstruct_source_impl();
 
-      // Where all the action really happens
-      int work(
-              int noutput_items,
-              gr_vector_const_void_star &input_items,
-              gr_vector_void_star &output_items
-      );
-    };
+    // Where all the action really happens
+    int work(int noutput_items,
+             gr_vector_const_void_star& input_items,
+             gr_vector_void_star& output_items);
 
-  } // namespace sparsdr
+
+    /** Callback that handles reconstructed samples */
+    static void handle_reconstructed_samples(void* context,
+                                             const std::complex<float>* samples,
+                                             std::size_t num_samples);
+};
+
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_RECONSTRUCT_SOURCE_IMPL_H */
-

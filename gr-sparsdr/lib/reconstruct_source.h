@@ -21,39 +21,40 @@
 #ifndef INCLUDED_SPARSDR_RECONSTRUCT_SOURCE_H
 #define INCLUDED_SPARSDR_RECONSTRUCT_SOURCE_H
 
-#include <sparsdr/api.h>
+#include "output_context.h"
 #include <gnuradio/sync_block.h>
+#include <sparsdr/api.h>
+#include <memory>
 
 namespace gr {
-  namespace sparsdr {
+namespace sparsdr {
+
+/*!
+ * \brief This simple block gets reconstructed samples from the
+ * reconstruction library and sends them on to the next step.
+ *
+ * This block is not part of the public API.
+ *
+ * \ingroup sparsdr
+ *
+ */
+class SPARSDR_API reconstruct_source : virtual public gr::sync_block
+{
+public:
+    typedef boost::shared_ptr<reconstruct_source> sptr;
 
     /*!
-     * \brief This simple block gets reconstructed samples from the
-     * reconstruction library and sends them on to the next step.
+     * \brief Return a shared_ptr to a new instance of sparsdr::reconstruct_source.
      *
-     * This block is not part of the public API.
-     *
-     * \ingroup sparsdr
-     *
+     * To avoid accidental use of raw pointers, sparsdr::reconstruct_source's
+     * constructor is in a private implementation
+     * class. sparsdr::reconstruct_source::make is the public interface for
+     * creating new instances.
      */
-    class SPARSDR_API reconstruct_source : virtual public gr::sync_block
-    {
-     public:
-      typedef boost::shared_ptr<reconstruct_source> sptr;
+    static sptr make(std::unique_ptr<output_context>&& context);
+};
 
-      /*!
-       * \brief Return a shared_ptr to a new instance of sparsdr::reconstruct_source.
-       *
-       * To avoid accidental use of raw pointers, sparsdr::reconstruct_source's
-       * constructor is in a private implementation
-       * class. sparsdr::reconstruct_source::make is the public interface for
-       * creating new instances.
-       */
-      static sptr make();
-    };
-
-  } // namespace sparsdr
+} // namespace sparsdr
 } // namespace gr
 
 #endif /* INCLUDED_SPARSDR_RECONSTRUCT_SOURCE_H */
-

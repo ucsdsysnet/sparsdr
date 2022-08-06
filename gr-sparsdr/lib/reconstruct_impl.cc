@@ -22,25 +22,17 @@
 #include "config.h"
 #endif
 
+#include <memory>
+
 #include "reconstruct_impl.h"
 #include <gnuradio/io_signature.h>
-#include <exception>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
+
+#include "reconstruct_source_impl.h"
+#include "reconstruct_sink.h"
 
 namespace gr {
 namespace sparsdr {
 
-namespace {
-
-/**
- * Size of a GNU Radio input sample in bytes
- * (the size that the compressed sample parser uses may be different)
- */
-constexpr std::size_t GR_IN_SAMPLE_BYTES = sizeof(std::uint32_t);
-
-} // namespace
 
 reconstruct::sptr reconstruct::make(std::vector<band_spec> bands,
                                     const std::string& sample_format,
@@ -58,15 +50,7 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
                                    const std::string& sample_format,
                                    bool zero_gaps,
                                    unsigned int compression_fft_size)
-    : gr::block("reconstruct",
-                // One input for compressed samples
-                gr::io_signature::make(1, 1, GR_IN_SAMPLE_BYTES),
-                // One output per band
-                gr::io_signature::make(bands.size(), bands.size(), sizeof(gr_complex))),
-      // Begin fields
-      d_output_contexts(make_output_contexts(bands.size())),
-      d_parser_sample_bytes(0), // Will be corrected below
-      d_context(nullptr)        // Will be corrected below
+    : gr::hier_block2()
 {
     using namespace ::sparsdr;
     sparsdr_reconstruct_config* config = sparsdr_reconstruct_config_init();
@@ -76,28 +60,29 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
     config->zero_gaps = zero_gaps;
 
 
+    int parser_sample_bytes;
     if (sample_format == "N210 v1") {
         config->format = SPARSDR_RECONSTRUCT_FORMAT_V1_N210;
         config->compressed_bandwidth = 100e6f;
-        d_parser_sample_bytes = 8;
+        parser_sample_bytes = 8;
     } else if (sample_format == "N210 v2") {
         config->format = SPARSDR_RECONSTRUCT_FORMAT_V2;
         config->compressed_bandwidth = 100e6f;
-        d_parser_sample_bytes = 4;
+        parser_sample_bytes = 4;
     } else if (sample_format == "Pluto v1") {
         config->format = SPARSDR_RECONSTRUCT_FORMAT_V1_PLUTO;
         config->compressed_bandwidth = 61.44e6f;
-        d_parser_sample_bytes = 8;
+        parser_sample_bytes = 8;
     } else if (sample_format == "Pluto v2") {
         config->format = SPARSDR_RECONSTRUCT_FORMAT_V2;
         config->compressed_bandwidth = 61.44e6f;
-        d_parser_sample_bytes = 4;
+        parser_sample_bytes = 4;
     } else {
         sparsdr_reconstruct_config_free(config);
         throw std::runtime_error("Unsupported sample format");
     }
 
-    // Bands
+    // Bands (also create a source block for each one)
     std::vector<sparsdr_reconstruct_band> c_bands;
     c_bands.reserve(bands.size());
     for (std::size_t i = 0; i < bands.size(); i++) {
@@ -105,20 +90,25 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
         sparsdr_reconstruct_band c_band;
         c_band.frequency_offset = band.frequency();
         c_band.bins = band.bins();
-        // For each band, call the single callback. Give it a context that points
-        // to this block and gives the band number.
-        c_band.output_callback = reconstruct_impl::handle_reconstructed_samples;
+        // For each band, call the single callback. Give it a context that the
+        // source block also uses
+        c_band.output_callback = reconstruct_source_impl::handle_reconstructed_samples;
 
-        std::unique_ptr<output_context>& context_ptr = d_output_contexts.at(i);
+        std::unique_ptr<output_context> context_ptr(new output_context);
         c_band.output_context = reinterpret_cast<void*>(context_ptr.get());
 
         c_bands.push_back(c_band);
+
+        // Make source block and connect to output
+        auto source_block = reconstruct_source::make(std::move(context_ptr));
+        connect(source_block, 0, self(), i);
     }
     config->bands_length = c_bands.size();
     config->bands = c_bands.data();
 
     // Start reconstruction
-    const int status = sparsdr_reconstruct_init(&d_context, config);
+    sparsdr_reconstruct_context* context;
+    const int status = sparsdr_reconstruct_init(&context, config);
     // Now that the context has been created, we can destroy the config
     sparsdr_reconstruct_config_free(config);
     if (status != SPARSDR_RECONSTRUCT_OK) {
@@ -126,122 +116,17 @@ reconstruct_impl::reconstruct_impl(const std::vector<band_spec>& bands,
         stream << "sparsdr_reconstruct_init returned " << status;
         throw std::runtime_error(stream.str());
     }
-}
 
-/**
- * Generates a vector of output_context objects
- */
-std::vector<std::unique_ptr<reconstruct_impl::output_context>>
-reconstruct_impl::make_output_contexts(std::size_t count)
-{
-    std::vector<std::unique_ptr<output_context>> contexts;
-    contexts.reserve(count);
-    for (std::size_t i = 0; i < count; i++) {
-        std::unique_ptr<output_context> context(new output_context);
-        contexts.push_back(std::move(context));
-    }
-    return contexts;
-}
-
-int reconstruct_impl::general_work(int noutput_items,
-                                   gr_vector_int& ninput_items,
-                                   gr_vector_const_void_star& input_items,
-                                   gr_vector_void_star& output_items)
-{
-    std::cout << "reconstruct_impl::general_work(noutput_items = " << noutput_items
-              << ", ninput_items[0] = " << ninput_items.at(0) << ")\n";
-    using namespace ::sparsdr;
-    // Part 1: Input
-    const std::size_t num_input_bytes = ninput_items[0] * GR_IN_SAMPLE_BYTES;
-    const std::size_t input_compressed_samples = num_input_bytes / d_parser_sample_bytes;
-    const std::uint8_t* input_bytes =
-        reinterpret_cast<const std::uint8_t*>(input_items[0]);
-    for (std::size_t i = 0; i < input_compressed_samples; i++) {
-        const std::uint8_t* sample = input_bytes + (i * d_parser_sample_bytes);
-        const int status = sparsdr_reconstruct_handle_samples(
-            d_context, reinterpret_cast<const void*>(sample), d_parser_sample_bytes);
-        if (status != 0) {
-            std::cerr << "sparsdr_reconstruct_handle_samples returned " << status << '\n';
-            return WORK_DONE;
-        }
-    }
-    // Tell the scheduler the number of items copied for this input
-    // Consumed all of them
-    consume(0, ninput_items[0]);
-
-    // Part 2: Outputs
-    for (std::size_t i = 0; i < d_output_contexts.size(); i++) {
-        std::unique_ptr<output_context>& output = d_output_contexts.at(i);
-        void* raw_out_buffer = output_items.at(i);
-        gr_complex* out_buffer = reinterpret_cast<gr_complex*>(raw_out_buffer);
-        // Lock the mutex and copy some outputs
-        std::unique_lock<std::mutex> lock(output->mutex);
-
-        // Wait until this output's queue of samples is not empty, or
-        // the timeout has passed
-        const bool got_samples = output->cv.wait_for(
-            lock, std::chrono::seconds(1), [&output] { return !output->queue.empty(); });
-
-        // Copy one complex value at a time until the queue is empty or noutput_items
-        // values have been copied
-        int items_copied = 0;
-        auto done = [&] {
-            return items_copied == noutput_items || output->queue.empty();
-        };
-        for (items_copied = 0; !done(); items_copied++) {
-            *out_buffer = output->queue.front();
-            out_buffer += 1;
-            output->queue.pop();
-        }
-        // Tell the scheduler the number of items copied for this output
-        produce(i, items_copied);
-        if (items_copied != 0) {
-            std::cout << "produce(output " << i << ", " << items_copied << " items)\n";
-        }
-    }
-
-    return WORK_CALLED_PRODUCE;
-}
-
-
-/**
- * The reconstruction library calls this function (potentially from many
- * different threads) when it has produced samples
- */
-void reconstruct_impl::handle_reconstructed_samples(void* context,
-                                                    const std::complex<float>* samples,
-                                                    std::size_t num_samples)
-{
-    try {
-        output_context* output_context =
-            reinterpret_cast<reconstruct_impl::output_context*>(context);
-        // Lock the mutex and copy the samples to the queue
-        std::unique_lock<std::mutex> lock(output_context->mutex);
-        for (std::size_t i = 0; i < num_samples; i++) {
-            output_context->queue.push(samples[i]);
-        }
-        lock.unlock();
-        // Wake up the work thread that may be waiting for samples
-        output_context->cv.notify_one();
-    } catch (std::exception& e) {
-        // Don't let C++ exceptions propagate into Rust
-        std::cerr << "Unexpected exception in reconstructed sample callback: " << e.what()
-                  << '\n';
-        std::terminate();
-    } catch (...) {
-        std::cerr << "Unexpected unknown exception in reconstructed sample callback\n";
-        std::terminate();
-    }
+    // Make and connect sink block
+    // Context ownership moves into the sink block
+    auto sink_block = reconstruct_sink::make(context, parser_sample_bytes);
+    connect(self(), 0, sink_block, 0);
 }
 
 /*
  * Our virtual destructor.
  */
-reconstruct_impl::~reconstruct_impl()
-{
-    ::sparsdr::sparsdr_reconstruct_free(d_context);
-    d_context = nullptr;
-}
+reconstruct_impl::~reconstruct_impl() {}
 
 } /* namespace sparsdr */
 } /* namespace gr */

@@ -48,8 +48,15 @@ public:
      * constructor is in a private implementation
      * class. sparsdr::reconstruct_sink::make is the public interface for
      * creating new instances.
+     *
+     * \param context The reconstruction context to use with
+     * sparsdr_reconstruct_handle_samples. This block takes ownership of the
+     * context and will free the context in its destructor.
+     * \param parser_sample_bytes The number of bytes in one compressed sample
+     * that the parser expects
      */
-    static sptr make(::sparsdr::sparsdr_reconstruct_context* context);
+    static sptr make(::sparsdr::sparsdr_reconstruct_context* context,
+                     int parser_sample_bytes);
 };
 
 } // namespace sparsdr
