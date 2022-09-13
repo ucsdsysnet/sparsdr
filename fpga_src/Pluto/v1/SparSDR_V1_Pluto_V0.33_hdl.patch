@@ -1,4 +1,4 @@
-From c81e7ffe42b490a9449d57331d57b54751441c50 Mon Sep 17 00:00:00 2001
+From d90082f2f96be8d3b0bec6d227e227b8325465bb Mon Sep 17 00:00:00 2001
 From: Moein Khazraee <mkhazrae@cs.ucsd.edu>
 Date: Fri, 8 Oct 2021 17:59:45 -0700
 Subject: [PATCH] SparSDR V1
@@ -5859,7 +5859,7 @@ index 4c133863..ab7ecb89 100644
  
  include ../scripts/project-xilinx.mk
 diff --git a/projects/pluto/system_bd.tcl b/projects/pluto/system_bd.tcl
-index 8a9634b9..e3b12c44 100644
+index 8a9634b9..f0223b72 100644
 --- a/projects/pluto/system_bd.tcl
 +++ b/projects/pluto/system_bd.tcl
 @@ -1,8 +1,4 @@
@@ -5994,7 +5994,7 @@ index 8a9634b9..e3b12c44 100644
  ad_connect  axi_ad9361/l_clk axi_ad9361_adc_dma/fifo_wr_clk
 -ad_connect  axi_ad9361/l_clk axi_ad9361_dac_dma/m_axis_aclk
 -ad_connect  cpack/fifo_wr_overflow axi_ad9361/adc_dovf
-+ad_connect  axi_ad9361_adc_dma/fifo_wr_overflow axi_ad9361/adc_dovf
++ad_connect  axi_ad9361/adc_dovf GND
 +ad_connect  axi_ad9361/l_clk axi_ad9361_dac_dma/fifo_rd_clk
 +ad_connect  axi_ad9361_dac_dma/fifo_rd_underflow axi_ad9361/dac_dunf
 +ad_connect  axi_ad9361/dac_data_i1 GND
