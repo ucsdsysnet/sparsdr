@@ -1,4 +1,4 @@
-From e77524acb6ba3d9e3b2ff1738b03691ed1b0cdad Mon Sep 17 00:00:00 2001
+From 4b40cb9feca3cfe67142043c4b2677eabbc2c3bf Mon Sep 17 00:00:00 2001
 From: Moein Khazraee <mkhazrae@cs.ucsd.edu>
 Date: Mon, 28 Feb 2022 15:59:23 -0800
 Subject: [PATCH] SparSDR V2
@@ -1055,7 +1055,7 @@ index 00000000..3df799fe
 +include ../scripts/library.mk
 diff --git a/library/axi_sparSDR/axi_sparSDR.v b/library/axi_sparSDR/axi_sparSDR.v
 new file mode 100755
-index 00000000..da62dfbe
+index 00000000..075bd9c1
 --- /dev/null
 +++ b/library/axi_sparSDR/axi_sparSDR.v
 @@ -0,0 +1,225 @@
@@ -1083,7 +1083,7 @@ index 00000000..da62dfbe
 +    parameter SCALING_WIDTH          = 4,
 +    // How many LSB bits go to FFT engine, between 9 and 16
 +    parameter FFT_IN_DATA_WIDTH      = 13,
-+    parameter FFT_FIFO_ADDR_WIDTH    = 12,
++    parameter FFT_FIFO_ADDR_WIDTH    = 13,
 +    parameter AVG_FIFO_ADDR_WIDTH    = 12
 +)(
 +    input                             lgc_clk,
