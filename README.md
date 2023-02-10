@@ -14,7 +14,7 @@ send compressed signals
 ## Getting started
 
 * [Pluto getting started guide](doc/getting_started_pluto.md)
-* [USRP N2101 getting started guide](doc/getting_started_pluto.md)
+* [USRP N2101 getting started guide](doc/getting_started_n210.md)
 
 ## Debugging
 
