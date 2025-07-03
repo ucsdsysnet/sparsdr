@@ -44,7 +44,7 @@ namespace sparsdr {
 class SPARSDR_API iio_device_source : virtual public gr::sync_block
 {
 public:
-    typedef boost::shared_ptr<iio_device_source> sptr;
+    typedef std::shared_ptr<iio_device_source> sptr;
 
     /*!
      * \brief Return a shared_ptr to a new instance of sparsdr::iio_device_source.

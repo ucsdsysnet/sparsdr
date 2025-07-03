@@ -40,7 +40,7 @@ class SPARSDR_API combined_pluto_receiver : virtual public gr::hier_block2,
                                             public compressing_source
 {
 public:
-    typedef boost::shared_ptr<combined_pluto_receiver> sptr;
+    typedef std::shared_ptr<combined_pluto_receiver> sptr;
 
     /*!
      * \brief Return a shared_ptr to a new instance of sparsdr::combined_pluto_receiver.

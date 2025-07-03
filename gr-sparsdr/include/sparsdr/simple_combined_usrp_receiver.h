@@ -44,7 +44,7 @@ namespace sparsdr {
 class SPARSDR_API simple_combined_usrp_receiver : virtual public gr::hier_block2
 {
 public:
-    typedef boost::shared_ptr<simple_combined_usrp_receiver> sptr;
+    typedef std::shared_ptr<simple_combined_usrp_receiver> sptr;
 
     /*!
      * \brief Return a shared_ptr to a new instance of

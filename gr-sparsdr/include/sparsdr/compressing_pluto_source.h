@@ -40,7 +40,7 @@ class SPARSDR_API compressing_pluto_source : virtual public gr::hier_block2,
                                              public compressing_source
 {
 public:
-    typedef boost::shared_ptr<compressing_pluto_source> sptr;
+    typedef std::shared_ptr<compressing_pluto_source> sptr;
 
     /*!
      * \brief Return a shared_ptr to a new instance of

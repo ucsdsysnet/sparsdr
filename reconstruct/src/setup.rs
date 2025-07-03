@@ -38,6 +38,7 @@ pub struct Setup {
     /// Size of the source file in bytes, if known
     pub source_length: Option<u64>,
     /// Log level
+    #[allow(dead_code)]
     pub log_level: LevelFilter,
     /// Bandwidth used to create the compressed data
     pub compressed_bandwidth: f32,
@@ -46,6 +47,7 @@ pub struct Setup {
     /// The number of bits in the window timestamp counter
     pub timestamp_bits: u32,
     /// The compressed sample format
+    #[allow(dead_code)]
     pub sample_format: CompressedFormat,
     /// Bands to decompress
     pub bands: Vec<BandSetup>,

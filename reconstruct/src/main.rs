@@ -159,7 +159,7 @@ fn main() {
 fn create_progress_bar(setup: &Setup) -> Option<ProgressBar> {
     if setup.progress_bar {
         // Set up progress bar if input file size is known, or spinner if it is not known
-        let progress = indicatif::ProgressBar::new(setup.source_length.unwrap_or(0));
+        let progress = ProgressBar::new(setup.source_length.unwrap_or(0));
         progress.set_position(0);
         progress.set_draw_delta(1000);
         if setup.source_length.is_some() {
